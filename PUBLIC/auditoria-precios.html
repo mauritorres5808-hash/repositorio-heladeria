@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<script src="js/auth.js"></script>
+
+<title>Auditoría de Cambios de Precios</title>
+
+<style>
+    body { font-family: Arial; background:#8AC0FF; padding:20px; margin:0; }
+    .contenedor {
+        background:white;
+        padding:20px;
+        max-width:900px;
+        margin:auto;
+        border-radius:10px;
+        box-shadow:0 0 10px rgba(0,0,0,0.3);
+    }
+    h2 { text-align:center; background:#8AC0FF; padding:10px; border-radius:8px; }
+    table {
+        width:100%; border-collapse:collapse; margin-top:20px;
+        font-size:15px;
+    }
+    th, td {
+        border:1px solid #333; padding:8px; text-align:center;
+    }
+    th { background:#f2f2f2; }
+    button {
+        padding:8px 14px; background:#007bff; color:white;
+        border:none; border-radius:6px; cursor:pointer; font-weight:bold;
+    }
+    button:hover { background:red; }
+</style>
+
+</head>
+<body>
+
+<div class="contenedor">
+    <h2>📋 Auditoría de Cambios de Precios</h2>
+
+    <table id="tablaCambios">
+        <thead>
+            <tr>
+                <th>Fecha</th>
+                <th>Hora</th>
+                <th>Usuario</th>
+                <th>Grupo</th>
+                <th>Cambio</th>
+            </tr>
+        </thead>
+        <tbody id="tbodyCambios"></tbody>
+    </table>
+
+    <div style="text-align:center; margin-top:20px;">
+        <button onclick="location.href='menu-general.html'">&#8617; Volver</button>
+    </div>
+</div>
+
+<script>
+
+verificarSesion();
+
+// === CARGAR HISTORIAL ===
+async function cargarAuditoria() {
+    const tbody = document.getElementById("tbodyCambios");
+    tbody.innerHTML = "<tr><td colspan='5'>Cargando...</td></tr>";
+
+    const snap = await db.collection("AUDITORIA_PRECIOS")
+                         .orderBy("fecha", "desc")
+                         .orderBy("hora", "desc")
+                         .get();
+
+    tbody.innerHTML = "";
+
+    if (snap.empty) {
+        tbody.innerHTML = "<tr><td colspan='5'>No hay registros.</td></tr>";
+        return;
+    }
+
+    snap.forEach(doc => {
+        const d = doc.data();
+        const tr = document.createElement("tr");
+
+        tr.innerHTML = `
+            <td>${d.fecha}</td>
+            <td>${d.hora}</td>
+            <td>${d.usuario}</td>
+            <td>${d.grupo}</td>
+            <td>${d.cambio}</td>
+        `;
+
+        tbody.appendChild(tr);
+    });
+}
+
+cargarAuditoria();
+</script>
+
+<script src="js/medidor.js"></script>
+
+</body>
+</html>

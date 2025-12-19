@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Totales por Tipo de Venta</title>
+
+  <!-- Firebase v8 -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<script src="js/auth.js"></script>  <!-- ?? Aquí se verifica la autenticacion-->
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body {
+      font-family: Arial;
+      background-color: #8AC0FF;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .contenedor {
+      max-width: 1050px;
+      margin: auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+    }
+
+    h2 {
+      text-align: center;
+      background-color: #8AC0FF;
+      padding: 10px;
+      border-radius: 8px;
+    }
+
+	input, select {
+      padding: 6px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      margin-top: 4px;
+      font-size: 14px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      margin-left: auto;
+      margin-right: auto;
+      font-size: 14px;
+    }
+
+    th, td {
+      padding: 8px;
+      border: 1px solid #0E0D0C;
+      text-align: center;
+    }
+
+    th {
+      background-color: #f2f2f2;
+    }
+
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+
+    tr.total {
+      background-color: #e6f0ff;
+      font-weight: bold;
+    }
+
+    .filtros {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .filtros input {
+      margin: 0 10px;
+      padding: 5px;
+    }
+
+.contenedor-botones2 {
+  display: flex; /* Convierte el div en un contenedor flexible */
+  justify-content: center;
+  gap: 30px; /* Establece un espacio de xx píxeles entre los elementos */
+}
+
+.boton-redondeado {
+  padding: 10px 20px; /* Ajusta el padding a tu gusto */
+  background-color: #007bff; /* Color de fondo */
+  color: white; /* Color del texto */
+  border: none; /* Opcional: elimina el borde predeterminado */
+  border-radius: 8px; /* Bordes redondeados */
+  cursor: pointer; /* Cambia el cursor al pasar por encima */
+}
+
+    button {
+      padding: 8px 14px;
+      background: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: red;
+      color: white;
+    }
+
+    #mensajeProcesando {
+      text-align: center;
+      color: #007bff;
+      font-weight: bold;
+      margin-top: 10px;
+      display: none;
+    }
+
+    #graficoContainer {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-top: 30px;
+      width: 100%;
+    }
+
+    #graficoTorta {
+      max-width: 300px;
+      max-height: 300px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="contenedor">
+    <h2>Totales por Tipo de Venta</h2>
+
+    <div class="filtros">
+      <label>Desde: <input type="date" id="fechaDesde"></label>
+      <label>Hasta: <input type="date" id="fechaHasta"></label>
+	  	<label for="chk_cierre">solo Ventas sin cierre</label>
+	<input  type="checkbox" checked=true id="chk_cierre">
+      <br>
+      <br>
+      <div class="contenedor-botones2">
+        <button class="boton-redondeado" onclick="calcularTotales()">&#128269; Buscar</button>
+        <button onclick="window.location.href='menu-ventas.html'">&#8617; Volver</button>
+      </div>
+    </div>
+
+    <div id="mensajeProcesando">🔄 Procesando, por favor espere...</div>
+
+    <table id="tablaTotales">
+      <thead>
+        <tr>
+          <th>Tipo Venta</th>
+          <th>Cantidad de Ventas</th>
+          <th>Total ($)</th>
+          <th>% Cantidad</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <div id="graficoContainer">
+      <canvas id="graficoTorta"></canvas>
+    </div>
+  </div>
+
+  <script>
+
+verificarSesion();
+
+    const formateadorMoneda = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' });
+
+    const hoy = new Date();
+    const yyyy = hoy.getFullYear();
+    const mm = String(hoy.getMonth() + 1).padStart(2, "0");
+    const dd = String(hoy.getDate()).padStart(2, "0");
+    const fechaHoy = `${yyyy}-${mm}-${dd}`;
+    document.getElementById("fechaDesde").value = fechaHoy;
+    document.getElementById("fechaHasta").value = fechaHoy;
+
+    function convertirFecha(fechaStr) {
+      const [dia, mes, año] = fechaStr.split("/");
+	  return `${año}-${mes.padStart(2, "0")}-${dia.padStart(2, "0")}`;
+      //return `${año}-${mes}-${dia}`;
+    }
+
+    let grafico = null;
+
+    async function calcularTotales() {
+      const mensaje = document.getElementById("mensajeProcesando");
+      mensaje.style.display = "block";
+
+      const fechaDesde = document.getElementById("fechaDesde").value;
+      const fechaHasta = document.getElementById("fechaHasta").value;
+
+sin_cierre = document.getElementById("chk_cierre").checked;
+
+      try {
+        const ventasSnap = await db.collection("VENTAS_CAB").get();
+        const ventas = ventasSnap.docs
+          .map(doc => doc.data())
+          .filter(v => {
+            const f = convertirFecha(v.fecha);
+			const estados = v.anulada != "S";
+			if (sin_cierre) {
+				const cierres = v.id_cierre === 0;
+				return f >= fechaDesde && f <= fechaHasta && estados && cierres;
+			}else {
+            return f >= fechaDesde && f <= fechaHasta && estados;}				
+
+          });
+
+        if (ventas.length === 0) {
+          mensaje.style.display = "none";
+          alert("No se encontraron ventas en ese rango.");
+          return;
+        }
+
+        // Agrupar por tipo_venta
+        const totales = {};
+        ventas.forEach(v => {
+          const tipo = v.tipo_venta || "Sin dato";
+          if (!totales[tipo]) {
+            totales[tipo] = { cantidad: 0, total: 0 };
+          }
+          totales[tipo].cantidad += 1;
+          totales[tipo].total += v.total || 0;
+        });
+
+        const totalGeneralCantidad = Object.values(totales).reduce((a, t) => a + t.cantidad, 0);
+        const totalGeneralImporte = Object.values(totales).reduce((a, t) => a + t.total, 0);
+
+        const tbody = document.querySelector("#tablaTotales tbody");
+        tbody.innerHTML = "";
+
+        const labels = [];
+        const data = [];
+
+        for (const tipo in totales) {
+          const t = totales[tipo];
+          const descripcion = tipo === "1" ? "Delivery propio" :
+							  tipo === "2" ? "Rappi" :
+                              tipo === "3" ? "PedidosYa" :
+                              tipo === "4" ? "mostrador" :
+                              tipo === "5" ? "Vtas OnLine" : "Otro";
+
+          const porcentaje = ((t.cantidad / totalGeneralCantidad) * 100).toFixed(2);
+          labels.push(descripcion);
+          data.push(t.cantidad);
+
+          tbody.innerHTML += `
+            <tr>
+              <td>${descripcion}</td>
+              <td>${t.cantidad}</td>
+              <td>${formateadorMoneda.format(t.total)}</td>
+              <td>${porcentaje}%</td>
+            </tr>
+          `;
+        }
+
+        tbody.innerHTML += `
+          <tr class="total">
+            <td colspan="1">TOTAL GENERAL</td>
+            <td>${totalGeneralCantidad}</td>
+            <td>${formateadorMoneda.format(totalGeneralImporte)}</td>
+            <td>100%</td>
+          </tr>
+        `;
+
+        // Gráfico
+        const ctx = document.getElementById("graficoTorta").getContext("2d");
+        if (grafico) grafico.destroy();
+
+        grafico = new Chart(ctx, {
+          type: "pie",
+          data: {
+            labels: labels,
+            datasets: [{
+			  label: "Cantidad vendida",
+              data: data,
+              backgroundColor: ["#007bff", "#ff5722", "#ff4081", "#9c27b0"],
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { position: "bottom" },
+              title: {
+                display: true,
+                text: "Distribución de Ventas por Tipo de Venta (%)"
+              }
+            }
+          }
+        });
+
+      } catch (error) {
+        console.error("Error:", error);
+        alert("Error al procesar los datos.");
+      } finally {
+        mensaje.style.display = "none";
+      }
+    }
+  </script>
+
+<script src="js/medidor.js"></script>
+
+</body>
+</html>

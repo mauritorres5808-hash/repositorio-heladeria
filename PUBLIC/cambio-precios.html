@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<script src="js/auth.js"></script>  <!-- Aqui se verifica la autenticacion -->
+
+
+<meta charset="utf-8" />
+<title>Cambio Masivo de Precios</title>
+<style>
+  body { font-family: Arial; background:#8AC0FF; margin:0; padding:20px; }
+  .contenedor { background:#fff; padding:20px; max-width:900px; margin:auto; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.2); }
+  h2 { text-align:center; background:#8AC0FF; padding:10px; border-radius:8px; }
+  /* select,input,button { padding:8px; font-size:15px; } */
+  table { width:100%; border-collapse:collapse; margin-top:20px; }
+  th,td { border:1px solid #333; padding:8px; text-align:center; }
+  th { background:#f2f2f2; }
+  button { background:#007bff; color:white; border:none; border-radius:6px; cursor:pointer; }
+  button:hover { background:red; }
+  .confirmar { text-align:center; margin-top:20px; }
+  
+  	 select,input,button {
+      padding: 6px;
+      border-radius: 5px;
+      border: 1px solid #999;
+    }
+	
+</style>
+</head>
+<body>
+<div class="contenedor">
+  <h2>Cambio Masivo de Precios</h2>
+
+  <label>Seleccione Grupo:</label>
+  <select id="selGrupo"></select>
+  <br><br>
+
+  <label>Tipo de Cambio:</label>
+  <select id="tipoCambio">
+    <option value="inc">Incrementar %</option>
+    <option value="dec">Decrementar %</option>
+    <option value="fijo" >Valor Fijo</option>
+  </select>
+
+  <input type="number" style="width: 100px; height: 15px;" id="valorCambio" placeholder="Ingrese valor" />
+
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <button onclick="previsualizar()">Previsualizar</button>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+		<button onclick="location.href='menu-general.html'">&#8617; Salir</button>
+
+  <div id="tablaPreview"></div>
+
+  <div class="confirmar" id="divConfirmar" style="display:none;">
+    <button onclick="confirmarCambio()">Confirmar Cambios</button>
+    <button onclick="cancelar()">&#8617; Cancelar</button>
+  </div>
+</div>
+
+
+<script>
+
+verificarSesion();
+
+// --- CARGAR GRUPOS ---
+let productosGrupo = [];
+let grupoSeleccionado = null;
+let usuarioEmail = localStorage.getItem("usuarioEmail") || "";
+
+async function cargarGrupos() {
+  const snap = await db.collection("GRUPOS").orderBy("descripcion").get();
+  let sel = document.getElementById("selGrupo");
+  sel.innerHTML = "";
+  snap.forEach(doc=>{
+    const d = doc.data();
+	sel.innerHTML += `<option value="${d.id_grupo}">${d.descripcion}</option>`;
+  });
+}
+cargarGrupos();
+
+// --- PREVISUALIZACIÓN ---
+async function previsualizar() {
+  const grupoID = Number(document.getElementById("selGrupo").value);
+  const tipo = document.getElementById("tipoCambio").value;
+  const valor = parseFloat(document.getElementById("valorCambio").value);
+
+  if (!valor && valor !== 0) { alert("Ingrese un valor válido"); return; }
+
+  const snap = await db.collection("PRODUCTOS").where("id_grupo","==",grupoID).get();
+  productosGrupo = [];
+  snap.forEach(doc=>{
+    let d = doc.data();
+
+	productosGrupo.push({
+    idDoc: doc.id,
+    id_producto: d.id_producto,
+    desc: d.descripcion,
+    precio: d.precio,
+    nuevo: d.precio
+});
+
+  });
+
+  productosGrupo.forEach(p=>{
+    if (tipo==="inc") p.nuevo = Math.round(p.precio * (1 + valor/100));
+    if (tipo==="dec") p.nuevo = Math.round(p.precio * (1 - valor/100));
+    if (tipo==="fijo") p.nuevo = Math.round(valor);
+  });
+
+  renderTabla();
+  document.getElementById("divConfirmar").style.display = "block";
+}
+
+function renderTabla() {
+  let html = `<table><tr><th>ID</th><th>Producto</th><th>Precio Actual</th><th>Nuevo Precio<br>(editable)</th></tr>`;
+  productosGrupo.forEach((p,i)=>{
+    html += `<tr>
+      <td>${p.id_producto}</td>
+      <td>${p.desc}</td>
+      <td>${p.precio}</td>
+      <td><input type='number' value='${p.nuevo}' onchange='editar(${i},this.value)' /></td>
+    </tr>`;
+  });
+  html += `</table>`;
+  document.getElementById("tablaPreview").innerHTML = html;
+}
+
+function editar(i,val){ productosGrupo[i].nuevo = Math.round(parseFloat(val)||0); }
+
+// --- CONFIRMAR ---
+async function confirmarCambio() {
+  if (!confirm("¿Aplicar cambios?") ) return;
+
+  const grupoID = document.getElementById("selGrupo").value;
+  const grupoDesc = document.getElementById("selGrupo").selectedOptions[0].textContent;
+
+		for (let p of productosGrupo) {
+			const nuevoPrecio = Number(p.nuevo);
+
+			if (isNaN(nuevoPrecio)) {
+				alert("Uno de los precios no es un número válido.");
+				return;
+			}
+
+			await db.collection("PRODUCTOS").doc(p.idDoc).update({
+				precio: nuevoPrecio
+			});
+		}
+
+  const ahora = new Date();
+  const fecha = ahora.toLocaleDateString("es-AR");
+  const hora = ahora.toLocaleTimeString("es-AR",{hour12:false});
+
+  const tipo = document.getElementById("tipoCambio").value;
+  const valor = parseFloat(document.getElementById("valorCambio").value);
+
+  await db.collection("AUDITORIA_PRECIOS").add({
+    fecha: fecha,
+    hora: hora,
+    usuario: usuarioEmail,
+    grupo: grupoDesc,
+	cambio:  `${tipo}: ${valor}`
+  });
+
+  alert("Cambios aplicados correctamente");
+  location.reload();
+}
+
+function cancelar(){ location.reload(); }
+</script>
+
+<script src="js/medidor.js"></script>
+
+</body>
+</html>

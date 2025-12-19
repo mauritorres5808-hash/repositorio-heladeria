@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Anular Movimientos (sin cierre)</title>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<script src="js/auth.js"></script>  <!-- ?? Aquí se verifica la autenticacion-->
+
+  <style>
+    body { font-family: Arial; background-color: #8AC0FF; margin: 0; padding: 20px; }
+    .contenedor {
+      background-color: #fff; border-radius: 10px; max-width: 850px;
+      margin: 0 auto; padding: 25px; box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    }
+    .filtros { text-align:center;margin-bottom:20px; }	
+    h2 { text-align: center; background-color: #8AC0FF; border-radius: 8px; padding: 10px; margin-bottom: 20px; }
+    label { font-weight: bold; margin-right: 10px; }
+    button { padding:8px 16px;background:#007bff;color:white;border:none;border-radius:6px;cursor:pointer }
+    button:hover { background:red;color:white; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #000; padding: 8px; text-align: center; }
+    th { background-color: #f2f2f2; }
+	    .contenedor-botones, .contenedor-botones2 {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+    }
+	 #mensajeProcesando {
+      text-align: center;
+      color: #007bff;
+      font-weight: bold;
+      margin-top: 10px;
+      display: none;
+    }
+	input, select {
+      width: 15%;
+      padding: 6px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      margin-top: 4px;
+      font-size: 14px;
+    }
+
+  </style>
+</head>
+
+<body>
+  <div class="contenedor">
+    <h2>🚫 Anular Movimientos (sin cierre)</h2>
+
+    <div class="contenedor-botones">
+      <label>Fecha:</label>
+      <input type="date" id="fecha">
+      <label>Tipo:</label>
+      <select id="tipo">
+        <option value="I">Ingreso</option>
+        <option value="E">Egreso</option>
+      </select>
+      <button onclick="buscarMovimientos()">🔍 Buscar</button>
+    </div>
+
+    <div id="mensajeProcesando">🔄 Procesando, por favor espere...</div>
+
+    <table id="tabla">
+      <thead>
+        <tr>
+          <th>Descripción</th>
+          <th>Importe</th>
+          <th>Estado</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <div style="text-align:center; margin-top:20px;">
+      <button onclick="window.location.href='menu-caja.html'">&#8617; Volver</button>
+    </div>
+  </div>
+
+  <script>
+
+verificarSesion();
+
+    const hoy = new Date();
+    const yyyy = hoy.getFullYear();
+    const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+    const dd = String(hoy.getDate()).padStart(2, '0');
+    const fechaHoy = `${yyyy}-${mm}-${dd}`;
+    document.getElementById("fecha").value = fechaHoy;
+	
+    const formateador = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
+
+    async function buscarMovimientos() {
+	
+      const mensaje = document.getElementById("mensajeProcesando");
+      mensaje.style.display = "block";
+      mensaje.textContent = "🔄 Procesando, por favor espere...";
+
+      const fecha = document.getElementById("fecha").value;
+      const tipo = document.getElementById("tipo").value;
+      if (!fecha) { alert("Seleccione una fecha."); return; }
+
+      const tbody = document.querySelector("#tabla tbody");
+      tbody.innerHTML = "";
+
+      const snapshot = await db.collection("MOVIMIENTOS")
+        .where("fecha", "==", fecha)
+        .where("tipo", "==", tipo)
+		.where("id_cierre", "==", 0)
+        .get();
+
+      if (snapshot.empty) {
+	            mensaje.style.display = "none";
+        tbody.innerHTML = `<tr><td colspan="4">No hay movimientos para esta fecha.</td></tr>`;
+        return;
+      }
+
+      snapshot.forEach(doc => {
+        const m = doc.data();
+        const fila = document.createElement("tr");
+        fila.innerHTML = `
+          <td>${m.descripcion}</td>
+          <td>${formateador.format(m.importe)}</td>
+          <td>${m.anulado === 'S' ? 'Anulado' : 'Activo'}</td>
+          <td>${m.anulado === 'N' ? `<button onclick="anularMovimiento('${doc.id}')">Anular</button>` : ''}</td>
+        `;
+        tbody.appendChild(fila);
+      });
+
+		mensaje.style.display = "none";
+
+    }
+
+    async function anularMovimiento(id) {
+      if (confirm("¿Confirma que desea anular este movimiento?")) {
+        await db.collection("MOVIMIENTOS").doc(id).update({ anulado: "S" });
+        alert("Movimiento anulado correctamente.");
+        buscarMovimientos();
+      }
+    }
+  </script>
+
+<script src="js/medidor.js"></script>
+
+</body>
+</html>

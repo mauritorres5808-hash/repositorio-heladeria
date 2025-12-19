@@ -1,0 +1,55 @@
+/* Fondo */
+.alerta-fondo {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+/* Caja */
+.alerta-contenido {
+  background: #FFFDE6;
+  border-radius: 12px;
+  padding: 25px;
+  min-width: 150px;
+  max-width: 250px;
+  text-align: center;
+  border: 3px solid #444;
+  box-shadow: 0 0 12px rgba(0,0,0,0.25);
+}
+
+.alerta-icono {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+.alerta-texto {
+  font-size: 14px;
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+
+/* Tipos */
+/* .alerta-exito { background:#E8F5E9; border-color:#2E7D32; } */
+.alerta-exito { background:#E8F5E9; border-color:black; }
+/* .alerta-error { background:#FFEBEE; border-color:#C62828; } */
+.alerta-error { background:#FFB8B9; border-color:black; }
+/* .alerta-advertencia { background:#FFF8E1; border-color:#EF6C00; } */
+.alerta-advertencia { background:#FBEF8D; border-color:black; }
+
+
+.alerta-boton {
+  background: #007bff;
+  color: white;
+  padding: 10px 22px;
+  font-weight: bold;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.alerta-boton:hover { background:red; }

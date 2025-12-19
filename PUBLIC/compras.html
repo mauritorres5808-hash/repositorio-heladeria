@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Compras - Ingreso de Mercaderia</title>
+ 
+  <!-- Firebase v8 -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<script src="js/auth.js"></script>  <!-- Aqu� se verifica la autenticacion -->
+
+  <style>
+    body{font-family:Arial;background:#f3f3f3;margin:0;padding:20px;background-color:#8AC0FF}
+    .contenedor{max-width:920px;margin:auto;background:#fff;padding:20px;border-radius:8px}
+	.contenedor-botones {
+  display: flex;
+  justify-content: space-between; /* Distribuye el espacio: uno a la izquierda, otro a la derecha */
+  align-items: center; /* Centra los botones verticalmente si es necesario */
+  width: 40%; /* Ancho del contenedor */
+  margin: 0 auto; /* Centra el contenedor horizontalmente en la página */
+}
+    
+	input, select {
+      width: 15%;
+      padding: 6px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      margin-top: 4px;
+      font-size: 14px;
+    }
+    table{width:100%;border-collapse:collapse;margin-top:10px}
+    th,td{border:1px solid #ccc;padding:8px;text-align:center}
+    th{background:#eee}
+    .total{font-weight:bold;text-align:right;margin-top:10px; font-size:20px;}
+    button{padding:8px 14px;background:#007bff;color:#fff;border:none;border-radius:5px;cursor:pointer}
+    button:hover{background:#0056b3}
+    .input-pequeno{width:90px;height:22px}
+    h2{text-align:center;background-color:#8AC0FF;padding:10px;border-radius:8px}
+    .flex{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .right{float:right}
+    /* modal styling (reusable) */
+    .modal{display:none;position:fixed;z-index:1000;left:0;top:0;width:100%;height:100%;background-color:rgba(0,0,0,0.4)}
+    .modal-contenido{background-color:#fff;margin:6% auto;padding:20px;border-radius:8px;width:420px;max-height:76%;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.2)}
+    .cerrar{float:right;font-size:20px;cursor:pointer}
+    .tooltip-container{position:relative;display:inline-block}
+    .tooltip-text{visibility:hidden;width:120px;background:black;color:#fff;text-align:center;border-radius:6px;padding:5px 0;position:absolute;z-index:1;bottom:125%;left:50%;margin-left:-60px;opacity:0;transition:opacity .3s}
+    .tooltip-container:hover .tooltip-text{visibility:visible;opacity:1}
+    .radio-group{display:flex;padding:20px;gap:46px;align-items:center;justify-content:center;margin-bottom:12px; font-size:20px; background-color:#42EB83}
+    .alert-modern{background:#e9f7ef;border-left:6px solid #28a745;padding:10px;border-radius:6px;margin:10px 0}
+  </style>
+
+</head>
+<body>
+  <div class="contenedor">
+    <h2>Compras - Ingreso de Mercaderia</h2>
+
+    <hr>
+
+    <label style="font-weight:bold">Codigo del producto o Codigo de barras</label><br>
+    <input type="text" id="id_producto" placeholder="codigo o cod.barras" style="width:240px">
+    <button id="btnAgregar" onclick="agregarProducto()">&#10133; Agregar</button>
+    <button id="btnBuscarProd">&#128269; Buscar producto</button>
+
+    <!-- Modal Productos -->
+    <div id="modalProductos" class="modal">
+      <div class="modal-contenido">
+        <span class="cerrar" onclick="cerrarModal('modalProductos')">&times;</span>
+        <h3>Buscar productos por descripcion</h3>
+        <input type="text" style="width:240px" id="txtBuscarProd" placeholder="Parte de la descripcion...">
+        <button id="btnBuscarProductosModal">&#128269; Buscar</button>
+        <div id="resultProd" style="margin-top:10px"></div>
+      </div>
+    </div>
+
+    <table id="tabla">
+      <thead>
+        <tr><th>Codigo</th><th>Descripcion</th><th>Precio</th><th>Cantidad</th><th>Subtotal</th><th></th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <div style="margin-top:20px;">
+      <div>
+        <label><b>Forma de pago:</b></label><br>
+        <select style="width: 200px; height: 35px;" id="fpago1"></select>
+      <span div style="margin-left:390px;" class="total"  id="totalGeneral">Total general: $ 0.00</div>
+    </div>
+
+    <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+    </div>
+
+<br><br>
+    <div class="contenedor-botones" >
+    <button class="boton-centrado" id="btnAceptar" onclick="finalizarCompra()">&#128190; Confirmar</button>
+    <button class="boton-derecha" id="btnSalir" onclick="SalirCompra()">&#8617; Salir</button>
+    </div>
+
+  </div>
+
+  <script>
+  
+  
+verificarSesion();
+
+
+    // Mostrar fecha en encabezado (solo visual)
+    const hoy = new Date();
+    const fechaFormateada = hoy.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'});
+    document.addEventListener('DOMContentLoaded', () => {
+      const h2 = document.querySelector('h2');
+      h2.textContent = `COMPRAS - Ingreso de Mercaderia  _____________________ ${fechaFormateada}`;
+    });
+
+
+    // Datos globales
+    window.productosCompra = [];
+
+    // Cargar formas de pago
+    async function cargarFormasPago(){
+      const s1 = document.getElementById('fpago1');
+      s1.innerHTML = "<option value=''>Seleccione</option>";
+      const snap = await db.collection('F_PAGO')
+			.where("deshabilitado","==","N")
+			.orderBy('descripcion').get();
+      snap.forEach(d => {
+        const data = d.data();
+        const opt = `<option value="${data.id_fpago}">${data.descripcion}</option>`;
+        s1.innerHTML += opt;
+      });
+    }
+    window.onload = cargarFormasPago;
+
+
+			function cerrarModal(id){ document.getElementById(id).style.display = 'none'; }
+
+			// ====== Productos ======
+			document.getElementById('btnBuscarProd').onclick = () => {
+			  document.getElementById('modalProductos').style.display = 'block';
+			  document.getElementById('txtBuscarProd').focus();
+			};
+
+			document.getElementById('btnBuscarProductosModal').onclick = async () => {
+			  const texto = document.getElementById('txtBuscarProd').value.trim().toLowerCase();
+			  const cont = document.getElementById('resultProd');
+			  cont.innerHTML = "<p>Buscando...</p>";
+			  if (!texto) { cont.innerHTML = "<p>Ingrese al menos 2 caracteres</p>"; return; }
+			  try {
+				const snap = await db.collection('PRODUCTOS').get();
+				let resultados = [];
+				snap.forEach(doc => {
+				  const p = doc.data();
+				  if (p.descripcion && p.descripcion.toLowerCase().includes(texto) && p.deshabilitado !== 'S') resultados.push(p);
+				});
+				if (resultados.length === 0) { cont.innerHTML = "<p>No se encontraron productos.</p>"; return; }
+				let html = `<table style="width:100%;border-collapse:collapse"><tr><th>ID</th><th>Descripción</th><th>Precio</th></tr>`;
+				resultados.forEach(p => {
+				  html += `<tr style="cursor:pointer" onclick="seleccionarProductoModal('${p.id_producto}')">
+					<td>${p.id_producto}</td><td style="text-align:left">${p.descripcion}</td><td>${p.precio?.toFixed? p.precio.toFixed(2) : p.precio}</td></tr>`;
+				});
+				html += "</table>";
+				cont.innerHTML = html;
+			  } catch(e) { cont.innerHTML = `<p style="color:red">${e.message}</p>`; }
+			};
+
+			window.seleccionarProductoModal = function(idProd){
+			  document.getElementById('id_producto').value = idProd;
+			  agregarProducto();
+			  document.getElementById('modalProductos').style.display = 'none';
+			};
+
+		   window.agregarProducto = async function () {
+		  const idProd = document.getElementById('id_producto').value.trim();
+		  if (!idProd) { 
+			alert('Ingrese un codigo de producto');
+			return;
+		  }
+
+		  try {
+			let docSnap = null;
+
+			// 1) Buscar por id_producto (id del documento)
+			const snapDoc = await db.collection('PRODUCTOS').doc(String(idProd)).get();
+			if (snapDoc.exists) {
+			  docSnap = snapDoc;
+			}
+
+			// 2) Si no esta, buscar por cod_barra
+			if (!docSnap) {
+			  const q = await db.collection('PRODUCTOS')
+				.where('cod_barra', '==', String(idProd))
+				.get();
+			  if (!q.empty) {
+				docSnap = q.docs[0]; // Primer match
+			  }
+			}
+
+			if (!docSnap) {
+			  alert('Producto no encontrado');
+			  return;
+			}
+
+			const producto = docSnap.data();
+
+			if (producto.deshabilitado === 'S') {
+			  alert('Producto no habilitado para la compra');
+			  return;
+			}
+
+			const nombre = producto.descripcion || '(sin nombre)';
+			const precio = Number(producto.precio) || 0;
+			const CodProd = producto.id_producto ?? 0;
+			const modifica = producto.modifica || 'N';
+
+			const idx = window.productosCompra.findIndex(p => p.id === CodProd);
+			if (idx >= 0) {
+			  window.productosCompra[idx].cantidad += 1;
+			} else {
+			  window.productosCompra.push({ id: CodProd, nombre, precio, cantidad: 1, modifica });
+			}
+
+			renderTabla();
+
+			document.getElementById('id_producto').value = '';
+			document.getElementById('id_producto').focus();
+
+		  } catch (err) {
+			console.error('Error buscando producto:', err);
+			alert('Error al buscar el producto (ver consola).');
+		  }
+		};
+
+
+    // Render tabla y totales
+    window.renderTabla = function(){
+      const tbody = document.querySelector('#tabla tbody');
+      tbody.innerHTML = '';
+      let totalGeneral = 0;
+      window.productosCompra.forEach((p,i) => {
+        const subtotal = (Number(p.precio)||0) * (Number(p.cantidad)||0);
+        totalGeneral += subtotal;
+        /* -------- siempre modifica !!
+		const precioHTML = p.modifica === 'S'
+          ? `<input type="number" value="${p.precio.toFixed(2)}" min="0" step="0.01" style="width:80px" onchange="cambiarPrecio(${i}, this.value)">`
+          : `$ ${p.precio.toFixed(2)}`;
+        */
+		const precioHTML = `<input type="number" value="${p.precio.toFixed(2)}" min="0" step="0.01" style="width:80px" onchange="cambiarPrecio(${i}, this.value)">`;
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${p.id}</td>
+          <td style="text-align:left">${p.nombre}</td>
+          <td>${precioHTML}</td>
+          <td><input type="number" value="${p.cantidad}" min="1" style="width:70px" onchange="cambiarCantidad(${i}, this.value)"></td>
+          <td>$ ${subtotal.toFixed(2)}</td>
+          <td class="tooltip-container"><button onclick="eliminarProducto(${i})">X</button><span class="tooltip-text">Eliminar</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
+      document.getElementById('totalGeneral').textContent = 'Total general: $ ' + totalGeneral.toFixed(2);
+    };
+
+    window.cambiarPrecio = function(index, nuevoPrecio){
+      const n = parseFloat(nuevoPrecio);
+      if (isNaN(n) || n < 0) return;
+      window.productosCompra[index].precio = n;
+      renderTabla();
+    };
+
+    window.cambiarCantidad = function(index, nuevaCantidad){
+      const n = parseInt(nuevaCantidad,10);
+      if (isNaN(n) || n<1) return;
+      window.productosCompra[index].cantidad = n;
+      renderTabla();
+    };
+
+    window.eliminarProducto = function(index){
+      window.productosCompra.splice(index,1);
+      renderTabla();
+    };
+
+    window.recalcularImportes = function(modificado=0){
+      const totalGeneral = window.productosCompra.reduce((acc,p)=>acc + (p.precio*p.cantidad),0);
+    };
+
+    // ====== Finalizar compra (grabado) ======
+    window.finalizarCompra = async function(){
+      if (window.productosCompra.length === 0) { alert('⚠️ No hay productos en la compra'); return; }
+
+      const fp1 = document.getElementById('fpago1').value;
+
+      const totalFinal = window.productosCompra.reduce((acc,p)=>acc + (p.precio*p.cantidad),0);
+
+      if (!fp1) { alert('Debe seleccionar la forma de pago.'); return; }
+
+      try {
+        // obtener nuevo id_compra
+        const snapUlt = await db.collection('COMPRAS_CAB').orderBy('id_compra','desc').limit(1).get();
+        let nuevoIdCompra = 1;
+        if (!snapUlt.empty) {
+          const u = snapUlt.docs[0].data();
+          nuevoIdCompra = (u.id_compra || 0) + 1;
+        }
+
+        // fecha y hora
+        const fechaHoy = fechaFormateada;	//new Date().toLocaleDateString('es-AR');
+        const horaHoy = Obtener_Hora();
+
+        // armar cabecera
+        const cabecera = {
+          id_compra: nuevoIdCompra,
+          fecha: fechaHoy,
+          hora: horaHoy,
+          total: totalFinal,
+          f_pago1: fp1 ? parseInt(fp1) : 0,
+          id_cierre: 0,
+          anulada: 'N'
+        };
+
+        // grabar cabecera
+        await db.collection('COMPRAS_CAB').doc(String(nuevoIdCompra)).set(cabecera);
+
+        // detalle + actualizar stock en batch
+        const batch = db.batch();
+        for (const p of window.productosCompra) {
+          const sub = p.precio * p.cantidad;
+          const detRef = db.collection('COMPRAS_DET').doc();
+          batch.set(detRef, {
+            id_compra: nuevoIdCompra,
+            id_producto: isNaN(Number(p.id)) ? p.id : Number(p.id),
+            cantidad: p.cantidad,
+            precio: p.precio,
+            subtotal: sub
+          });
+          // sumar stock del producto principal
+          const prodRef = db.collection('PRODUCTOS').doc(String(p.id));
+          batch.update(prodRef, { stock: firebase.firestore.FieldValue.increment(+p.cantidad) });
+		  
+// Si el producto tiene subproductos, sumarle stock tambien
+const prodDoc = await db.collection('PRODUCTOS').doc(String(p.id)).get();
+if (prodDoc.exists && prodDoc.data().subproductos === "S") {
+  const relSnap = await db.collection('RELA_PROD_SUB')
+                          .where("id_producto", "==", Number(p.id))
+                          .get();
+  relSnap.forEach(docRel => {
+    const idSub = docRel.data().id_prod_sub;
+    const subRef = db.collection('PRODUCTOS').doc(String(idSub));
+    batch.update(subRef, { stock: firebase.firestore.FieldValue.increment(+p.cantidad) });
+  });
+}
+
+        }
+        await batch.commit();
+
+        LimpiarPantalla();
+        alert('Compra grabada correctamente.');
+      } catch(err){
+        console.error('Error al grabar la compra:', err);
+        alert('Error al grabar la compra. Ver consola.');
+      }
+    };
+
+    async function LimpiarPantalla(){
+      window.productosCompra = [];
+      renderTabla();
+      document.getElementById('fpago1').value = '';
+    }
+
+    // funcion hora
+    function Obtener_Hora(){
+      const ahora = new Date();
+      const opciones = { timeZone: 'America/Argentina/Buenos_Aires', hour: '2-digit', minute: '2-digit', second: '2-digit' };
+      return ahora.toLocaleTimeString('es-AR', opciones);
+    }
+
+    // Salir
+    window.SalirCompra = function(){
+      if (window.productosCompra.length > 0) {
+        const deseaSalir = confirm('⚠️ Hay productos en la compra.\n\n¿Desea salir y perder lo ingresado?');
+        if (deseaSalir) { LimpiarPantalla(); return; }
+        else return;
+      }
+      window.location.href = 'menu-compras.html';
+    };
+
+    // Cerrar modales con click fuera
+    window.onclick = function(event){
+      const mp = document.getElementById('modalProductos'), mc = document.getElementById('modalClientes');
+      if (event.target === mp) mp.style.display = 'none';
+      if (event.target === mc) mc.style.display = 'none';
+    };
+  </script>
+
+<script src="./js/controlCaja.js"></script>
+<script>
+  verificarAperturaActiva("apertura-caja.html");
+</script>
+
+<script src="js/medidor.js"></script>
+
+</body>
+
+</html>

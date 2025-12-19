@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Listado de Clientes</title>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<script src="js/auth.js"></script>  <!-- Aquí se verifica la autenticacion-->
+
+  <style>
+    body { font-family: Arial; background:#8AC0FF; margin:0; padding:20px;}
+    .contenedor { background:#fff;border-radius:10px;max-width:950px;margin:0 auto;padding:25px;box-shadow:0 0 12px rgba(0,0,0,0.25); }
+    h2 {text-align:center;background:#8AC0FF;padding:10px;border-radius:8px;margin-bottom:20px;}
+    table { width:100%; border-collapse: collapse; margin-top:15px; }
+    th,td { border:1px solid black; padding:8px; text-align:left; }
+    th { background:#f2f2f2; text-align:center }
+    .deshabilitado { background:#ffe5e5; color:red; font-weight:bold; }
+    .paginacion { margin-top:18px; display:flex; justify-content:center; gap:12px; }
+    button { padding:8px 14px; border:none; border-radius:6px; cursor:pointer; background:#007bff; color:white; }
+    button:hover { background:red; }
+	
+	    .alert-modern{background:#e9f7ef;border-left:6px solid red;padding:10px;border-radius:6px;margin:10px 0}
+
+  </style>
+</head>
+<body>
+
+<div class="contenedor">
+  <h2>Listado de Clientes</h2>
+  <!-- <div id="usuario" style="text-align:center;margin-bottom:12px;"></div> -->
+
+<div style="text-align:center; margin-top:10px;">
+  <input id="buscar" type="text" placeholder="Buscar cliente por nombre..." 
+         style="font-size:16px; width:60%;padding:6px;border-radius:6px;border:1px solid #555;">
+</div>
+
+    <!-- Mensaje moderno (visual) -->
+    <div id="mensajeTipo" class="alert-modern">Los clientes en ROJO se encuentran deshabilitados.</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Nombre</th>
+      <th>Domicilio</th>
+      <th>Teléfono</th>
+      <th>Nota</th>
+      <th>Deshabilitado</th>
+    </tr>
+  </thead>
+  <tbody id="tablaClientes"></tbody>
+</table>
+
+
+  <div class="paginacion">
+    <button onclick="paginaAnterior()">&leftarrow; Anterior</button>
+    <button onclick="paginaSiguiente()">Siguiente &rightarrow;</button>
+  </div>
+
+  <div style="text-align:center;margin-top:18px;">
+    <button onclick="window.location.href='menu-tablas.html'">&#8617; Volver</button>
+  </div>
+</div>
+
+<script>
+
+verificarSesion();
+
+
+
+  let clientes = [];
+  let clientesFiltrados = [];
+  let pagina = 0;
+  const TAM_PAG = 15;
+
+  async function cargarClientes() {
+    const snap = await db.collection("CLIENTES").orderBy("nombre").get();
+    clientes = snap.docs.map(d => d.data());
+    clientesFiltrados = [...clientes]; // copia inicial
+    mostrarPagina();
+  }
+
+  function aplicarFiltro() {
+    const texto = document.getElementById("buscar").value.toLowerCase();
+    clientesFiltrados = clientes.filter(c => (c.nombre || "").toLowerCase().includes(texto));
+    pagina = 0;
+    mostrarPagina();
+  }
+
+  function mostrarPagina() {
+    const tbody = document.getElementById("tablaClientes");
+    tbody.innerHTML = "";
+
+    const ini = pagina * TAM_PAG;
+    const fin = ini + TAM_PAG;
+    const lista = clientesFiltrados.slice(ini, fin);
+
+	lista.forEach(c => {
+	  const tr = document.createElement("tr");
+	  if (c.deshabilitado === "S") tr.classList.add("deshabilitado");
+
+	  tr.style.cursor = "pointer";
+
+	  tr.innerHTML = `
+		<td>${c.id_cliente}</td>
+		<td>${c.nombre}</td>
+		<td>${c.domicilio || "-"}</td>
+		<td>${c.telefono || "-"}</td>
+		<td>${c.nota || "-"}</td>
+		<td>${c.deshabilitado || "-"}</td>
+		<td><button onclick="irAEditarCliente(${c.id_cliente})">Editar</button></td>
+	  `;
+
+	  // ✅ Abrir pantalla de edición al hacer clic
+	  tr.addEventListener("click", () => {
+		window.location.href = `clientes.html?id=${c.id_cliente}`;
+	  });
+
+	  tbody.appendChild(tr);
+	});
+
+  }
+
+  function paginaSiguiente() {
+    if ((pagina+1) * TAM_PAG < clientesFiltrados.length) {
+      pagina++;
+      mostrarPagina();
+    }
+  }
+
+  function paginaAnterior() {
+    if (pagina > 0) {
+      pagina--;
+      mostrarPagina();
+    }
+  }
+  
+  function irAEditarCliente(id_cliente) {
+  // redirige a clientes.html (o a la página ABM si tiene otro nombre) con parámetro id
+  // Si ya estás en clientes.html, puedes simplemente llamar a cargarClienteParaEditar(id)
+  // uso: clientes.html?id=123
+  window.location.href = `clientes.html?id=${encodeURIComponent(id_cliente)}`;
+}
+
+  document.getElementById("buscar").addEventListener("input", aplicarFiltro);
+
+  cargarClientes();
+</script>
+
+<script src="js/medidor.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Anular último cierre</title>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<script src="js/auth.js"></script>  <!-- ?? Aquí se verifica la autenticacion-->
+
+  <style>
+    body { font-family: Arial; background-color: #8AC0FF; margin:0; padding:20px; }
+    .contenedor { background:#fff;border-radius:10px;max-width:800px;margin:0 auto;padding:25px;box-shadow:0 0 10px rgba(0,0,0,0.2); }
+    h2 { text-align:center;background-color:#8AC0FF;border-radius:8px;padding:10px;margin-bottom:25px; }
+    button { padding:12px 20px;background:#007bff;color:white;border:none;border-radius:6px;cursor:pointer; 	   font-size: 15px; }
+    button:hover { background:red;color:white; }
+    #mensaje { margin-top:20px;font-weight:bold;font-size:16px;text-align:center; }
+  </style>
+</head>
+<body>
+  <div class="contenedor">
+    <h2>Anular último cierre</h2>
+
+    <div id="infoUltimo"></div>
+
+    <div style="text-align:center;margin-top:12px;">
+      <button id="btnAnular">&#10060; Anular último cierre</button>
+      <button onclick="window.location.href='menu-caja.html'">&#8617; Volver</button>
+    </div>
+
+    <div id="mensaje"></div>
+  </div>
+
+<script>
+
+verificarSesion();
+    cargarUltimoCierre();
+
+    const formateadorMoneda = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' });
+
+  let ultimoCierreDoc = null;
+  let userEmail = "";
+
+  async function cargarUltimoCierre() {
+    const snap = await db.collection("CIERRES_CAB").orderBy("id_cierre","desc").limit(1).get();
+    if (snap.empty) {
+      document.getElementById("infoUltimo").innerHTML = "<p>No hay cierres registrados.</p>";
+      document.getElementById("btnAnular").disabled = true;
+      return;
+    }
+    const doc = snap.docs[0];
+    ultimoCierreDoc = { id: doc.id, data: doc.data() };
+    const cab = ultimoCierreDoc.data;
+    const fh = cab.fecha_hora_grabacion?.toDate ? cab.fecha_hora_grabacion.toDate().toLocaleString("es-AR") : cab.fecha_string || "";
+    
+    document.getElementById("infoUltimo").innerHTML = `
+      <p><b>ID cierre:</b> ${cab.id_cierre} &nbsp; <b>Fecha/Hora:</b> ${fh} &nbsp; <b>Usuario:</b> ${cab.usuario || ""} &nbsp; <b>Total:</b> ${formateadorMoneda.format(cab.total_general)}</p>`;
+  }
+
+  document.getElementById("btnAnular").onclick = async function() {
+    if (!ultimoCierreDoc) return;
+    
+    const confirmar = confirm("¿Confirma anular el último cierre?");
+    if (!confirmar) return;
+
+    // Mostrar mensaje de proceso
+    document.getElementById("mensaje").innerHTML = "⏳ Procesando... por favor espere...";
+    document.getElementById("btnAnular").disabled = true;
+
+    try {
+      const idC = ultimoCierreDoc.data.id_cierre;
+
+      // 1) eliminar detalles del cierre
+      const detSnap = await db.collection("CIERRES_DET").where("id_cierre","==",idC).get();
+      const batchDel = db.batch();
+      detSnap.forEach(d => batchDel.delete(d.ref));
+      await batchDel.commit();
+
+      // 2) eliminar cabecera del cierre
+      const cabSnap = await db.collection("CIERRES_CAB").where("id_cierre","==",idC).get();
+      const batchDel2 = db.batch();
+      cabSnap.forEach(d => batchDel2.delete(d.ref));
+      await batchDel2.commit();
+
+      // 3) desmarcar ventas
+      const ventasSnap = await db.collection("VENTAS_CAB").where("id_cierre","==",idC).get();
+      const batchV = db.batch();
+      ventasSnap.forEach(d => batchV.update(d.ref, { id_cierre: 0 }));
+      await batchV.commit();
+
+      // 4) desmarcar movimientos (CORREGIDO batchV → batchM)
+      const movSnap = await db.collection("MOVIMIENTOS").where("id_cierre","==",idC).get();
+      const batchM = db.batch();
+      movSnap.forEach(d => batchM.update(d.ref, { id_cierre: 0 }));
+      await batchM.commit();
+
+      // 5) registrar auditoría
+      await db.collection("CIERRES_ANULADOS").add({
+        id_cierre: idC,
+        usuario: userEmail,
+        fecha_hora_anulacion: new Date()
+      });
+
+      // Mensaje final
+      document.getElementById("mensaje").innerHTML = "✅ Cierre anulado correctamente.";
+      document.getElementById("infoUltimo").innerHTML = "";
+
+    } catch (e) {
+      console.error(e);
+      alert("Error al anular: " + e.message);
+      document.getElementById("btnAnular").disabled = false;
+      document.getElementById("mensaje").innerHTML = "";
+    }
+  };
+</script>
+
+<script src="js/medidor.js"></script>
+
+</body>
+</html>

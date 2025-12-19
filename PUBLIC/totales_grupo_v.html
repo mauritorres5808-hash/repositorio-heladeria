@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Totales de Caja por Grupo</title>
+
+  <!-- Firebase v8 -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<script src="js/auth.js"></script>  <!-- Aquí se verifica la autenticacion-->
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body{
+		font-family:Arial;
+		background:#f3f3f3;
+		margin:0;
+		padding:20px;
+		background-color: #8AC0FF;
+	}
+ 
+/* fondo contenedor blanco */
+ .contenedor{max-width:1050px;margin:auto;background:#fff;padding:20px;border-radius:8px}
+
+
+    h2 {
+      text-align: center;
+      background-color: #8AC0FF;
+      padding: 10px;
+      border-radius: 8px;
+    }
+	
+    label {
+      margin: 15px 0;
+      display: inline-block;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+        margin-left: auto;
+        margin-right: auto;
+		font-size: 14px;
+    }
+    th,td {
+      padding: 8px;
+      border: 1px solid #0E0D0C;
+      text-align: center;
+    }	
+    th {
+      background-color: #f2f2f2;
+    }
+    .total {
+      font-weight: bold;
+      background-color: #e8f5e9;
+    }
+    .resumen {
+      margin-top: 25px;
+      border-top: 12px solid #333;
+      padding-top: 10px;
+    }
+
+.contenedor-botones {
+  display: flex; /* Convierte el div en un contenedor flexible */
+  justify-content: center;
+  gap: 10px; /* Establece un espacio de xx píxeles entre los elementos */
+}
+.contenedor-botones2 {
+  display: flex; /* Convierte el div en un contenedor flexible */
+  justify-content: center;
+  gap: 30px; /* Establece un espacio de xx píxeles entre los elementos */
+}
+.boton-redondeado {
+  padding: 10px 20px; /* Ajusta el padding a tu gusto */
+  background-color: #007bff; /* Color de fondo */
+  color: white; /* Color del texto */
+  border: none; /* Opcional: elimina el borde predeterminado */
+  border-radius: 8px; /* Bordes redondeados */
+  cursor: pointer; /* Cambia el cursor al pasar por encima */
+}
+
+    button {
+      padding: 8px 14px;
+      background: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: red;
+      color: white;
+    }
+
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+    tr.total {
+      background-color: #e6f0ff;
+      font-weight: bold;
+    }
+
+    .filtros {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .filtros input {
+      margin: 0 10px;
+      padding: 5px;
+    }
+    #mensajeProcesando {
+      text-align: center;
+      color: #007bff;
+      font-weight: bold;
+      margin-top: 10px;
+      display: none;
+    }
+    #graficoContainer {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-top: 30px;
+      width: 100%;
+    }
+	#graficoTorta {
+	  max-width: 300px;
+	  max-height: 300px;
+	}
+	input, select {
+      padding: 6px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      margin-top: 4px;
+      font-size: 14px;
+    }
+	
+  </style>
+</head>
+<body>
+  <div class="contenedor">
+
+  <h2 align=center style="background-color: #8AC0FF;">Totales de Caja por Grupo</h2>
+
+    <div class="filtros">
+      <label>Desde: <input type="date" id="fechaDesde"></label>
+      <label>Hasta: <input type="date" id="fechaHasta"></label>
+	<label for="chk_cierre">solo Ventas sin cierre</label>
+	<input  type="checkbox" checked=true id="chk_cierre">
+	  <div class="contenedor-botones2">
+			<button class="boton-redondeado" onclick="calcularTotales()">&#128269; Buscar</button>
+			<button  onclick="window.location.href='menu-ventas.html'">&#8617; Volver</button>
+	  </div>
+    </div>
+
+    <div id="mensajeProcesando">🔄 Procesando, por favor espere...</div>
+
+    <table id="tablaTotales">
+      <thead>
+        <tr>
+          <th>Descripción Grupo</th>
+          <th>Cantidad Vendida</th>
+          <th>Total ($)</th>
+          <th>% Cantidad</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <div id="graficoContainer">
+      <canvas id="graficoTorta" width="400" height="400"></canvas>
+    </div>
+  </div>
+
+  <script>
+
+verificarSesion();
+
+    const formateadorMoneda = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' });
+
+    // 🔸 Fecha por defecto (hoy)
+    const hoy = new Date();
+    const yyyy = hoy.getFullYear();
+    const mm = String(hoy.getMonth() + 1).padStart(2, "0");
+    const dd = String(hoy.getDate()).padStart(2, "0");
+    const fechaHoy = `${yyyy}-${mm}-${dd}`;
+    document.getElementById("fechaDesde").value = fechaHoy;
+    document.getElementById("fechaHasta").value = fechaHoy;
+
+    // 🔸 Función auxiliar: convierte "DD/MM/YYYY" → "YYYY-MM-DD"
+    function convertirFecha(fechaStr) {
+      const [dia, mes, año] = fechaStr.split("/");
+	          return `${año}-${mes.padStart(2, "0")}-${dia.padStart(2, "0")}`;
+      //return `${año}-${mes}-${dia}`;
+    }
+
+    let grafico = null; // Para poder actualizar el gráfico
+
+    async function calcularTotales() {
+      const mensaje = document.getElementById("mensajeProcesando");
+      mensaje.style.display = "block";
+      mensaje.textContent = "🔄 Procesando, por favor espere...";
+
+      const fechaDesde = document.getElementById("fechaDesde").value;
+      const fechaHasta = document.getElementById("fechaHasta").value;
+
+sin_cierre = document.getElementById("chk_cierre").checked;
+
+      try {
+        const ventasCabSnap = await db.collection("VENTAS_CAB").get();
+        const ventasCab = ventasCabSnap.docs
+          .map(doc => ({ id: doc.id, ...doc.data() }))
+          .filter(v => {
+            const f = convertirFecha(v.fecha);
+            const estados = v.anulada != "S";
+			if (sin_cierre) {
+				const cierres = v.id_cierre === 0;
+				return f >= fechaDesde && f <= fechaHasta && estados && cierres;
+			}else {
+            return f >= fechaDesde && f <= fechaHasta && estados;}
+          });
+
+        if (ventasCab.length === 0) {
+          mensaje.style.display = "none";
+          alert("No se encontraron ventas en ese rango.");
+          return;
+        }
+
+        const idsVentas = ventasCab.map(v => v.id_venta);
+        const ventasDetSnap = await db.collection("VENTAS_DET").get();
+
+        const ventasDet = ventasDetSnap.docs
+          .map(doc => doc.data())
+          .filter(det => idsVentas.includes(det.id_venta));
+
+        const productosSnap = await db.collection("PRODUCTOS").get();
+        const gruposSnap = await db.collection("GRUPOS").get();
+
+        const productos = {};
+        productosSnap.forEach(doc => (productos[doc.id] = doc.data()));
+
+        const grupos = {};
+        gruposSnap.forEach(doc => (grupos[doc.id] = doc.data().descripcion));
+
+        const totales = {};
+        ventasDet.forEach(det => {
+          const producto = productos[det.id_producto];
+          if (!producto) return;
+          const id_grupo = producto.id_grupo;
+          if (!totales[id_grupo]) {
+            totales[id_grupo] = {
+              descripcion: grupos[id_grupo] || "Sin grupo",
+              cantidad: 0,
+              total: 0,
+            };
+          }
+          totales[id_grupo].cantidad += det.cantidad;
+          totales[id_grupo].total += det.subtotal;
+        });
+
+        // 🔹 Totales generales
+        const totalGeneralImporte = Object.values(totales).reduce((acc, g) => acc + g.total, 0);
+        const totalGeneralCantidad = Object.values(totales).reduce((acc, g) => acc + g.cantidad, 0);
+
+        const tbody = document.querySelector("#tablaTotales tbody");
+        tbody.innerHTML = "";
+
+        // 🔹 Filas por grupo
+        const labels = [];
+        const data = [];
+        for (const id in totales) {
+          const g = totales[id];
+          const porcentajeCant = ((g.cantidad / totalGeneralCantidad) * 100).toFixed(2);
+          labels.push(g.descripcion);
+          data.push(g.cantidad);
+
+          tbody.innerHTML += `
+            <tr>
+              <td>${g.descripcion}</td>
+              <td>${g.cantidad}</td>
+              <td>${formateadorMoneda.format(g.total)}</td>
+              <td>${porcentajeCant}%</td>
+            </tr>
+          `;
+        }
+
+        // 🔹 Fila total
+        tbody.innerHTML += `
+          <tr class="total">
+            <td colspan="1">TOTAL GENERAL</td>
+            <td>${totalGeneralCantidad}</td>
+            <td>${formateadorMoneda.format(totalGeneralImporte)}</td>
+            <td>100%</td>
+          </tr>
+        `;
+
+        // 🔹 Mostrar gráfico
+        const ctx = document.getElementById("graficoTorta").getContext("2d");
+        if (grafico) grafico.destroy(); // Si ya existía, lo reemplazamos
+
+        grafico = new Chart(ctx, {
+          type: "pie",
+          data: {
+            labels: labels,
+            datasets: [{
+              label: "Cantidad vendida",
+              data: data,
+              backgroundColor: [
+                "#007bff", "#28a745", "#ffc107", "#dc3545",
+                "#17a2b8", "#6f42c1", "#fd7e14", "#20c997"
+              ],
+            }],
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { position: "bottom" },
+              title: {
+                display: true,
+                text: "Distribución de cantidad de Ventas por Grupo (%)"
+              }
+            }
+          },
+        });
+
+      } catch (error) {
+        console.error("Error al calcular totales:", error);
+        alert("Ocurrió un error al procesar los datos.");
+      } finally {
+        mensaje.style.display = "none";
+      }
+    }
+  </script>
+
+<script src="js/medidor.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Generar Venta - Delivery / Mostrador</title>
+ 
+  <!-- Firebase v8 -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<script src="js/auth.js"></script>  <!-- AquÌ se verifica la autenticacion-->
+
+<!-- MAPA -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+
+  <style>
+    body{font-family:Arial;background:#f3f3f3;margin:0;padding:20px;background-color:#8AC0FF}
+    .contenedor{max-width:920px;margin:auto;background:#fff;padding:20px;border-radius:8px}
+	.contenedor-botones {
+  display: flex;
+  justify-content: space-between; /* Distribuye el espacio: uno a la izquierda, otro a la derecha */
+  align-items: center; /* Centra los botones verticalmente si es necesario */
+  width: 40%; /* Ancho del contenedor */
+  margin: 0 auto; /* Centra el contenedor horizontalmente en la p√°gina */
+}
+    
+	input, select {
+      width: 15%;
+      padding: 6px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      margin-top: 4px;
+      font-size: 14px;
+    }
+    table{width:100%;border-collapse:collapse;margin-top:10px}
+    th,td{border:1px solid #ccc;padding:8px;text-align:center}
+    th{background:#eee}
+    .total{font-weight:bold;text-align:right;margin-top:10px; font-size:20px;}
+    button{padding:8px 14px;background:#007bff;color:#fff;border:none;border-radius:5px;cursor:pointer}
+    button:hover{background:#0056b3}
+    .input-pequeno{width:90px;height:22px}
+    h2{text-align:center;background-color:#8AC0FF;padding:10px;border-radius:8px}
+    .flex{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .right{float:right}
+    /* modal styling (reusable) */
+    .modal{display:none;position:fixed;z-index:1000;left:0;top:0;width:100%;height:100%;background-color:rgba(0,0,0,0.4)}
+    .modal-contenido{background-color:#fff;margin:6% auto;padding:20px;border-radius:8px;width:420px;max-height:76%;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.2)}
+    .cerrar{float:right;font-size:20px;cursor:pointer}
+    .tooltip-container{position:relative;display:inline-block}
+    .tooltip-text{visibility:hidden;width:120px;background:black;color:#fff;text-align:center;border-radius:6px;padding:5px 0;position:absolute;z-index:1;bottom:125%;left:50%;margin-left:-60px;opacity:0;transition:opacity .3s}
+    .tooltip-container:hover .tooltip-text{visibility:visible;opacity:1}
+    .radio-group{display:flex;padding:20px;gap:46px;align-items:center;justify-content:center;margin-bottom:12px; font-size:20px; background-color:#42EB83}
+    .cliente-box{border:4px solid #ddd;padding:10px;border-radius:6px;margin:8px 0;background:#fafafa}
+    .alert-modern{background:#e9f7ef;border-left:6px solid #28a745;padding:10px;border-radius:6px;margin:10px 0}
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+</head>
+<body>
+  <div class="contenedor">
+    <h2>Generar Venta - Delivery / Mostrador</h2>
+
+    <!-- Tipo de delivery (option buttons) -->
+    <div class="radio-group">
+      <label><input type="radio" style="width:30px" name="tipoDelivery" value="1" id="deliveryPropio" checked> Delivery propio</label>
+      <label><input type="radio" style="width:30px" name="tipoDelivery" value="2"> Rappi</label>
+      <label><input type="radio" style="width:30px" name="tipoDelivery" value="3"> PedidosYa</label>
+      <label><input type="radio" style="width:30px" name="tipoDelivery" value="4" id="mostrador"> mostrador</label>
+    </div>
+
+    <!-- Mensaje moderno (visual) -->
+    <div id="mensajeTipo" class="alert-modern">Delivery propio seleccionado. Si mantiene la opcion, debe seleccionar el cliente.</div>
+
+    <!-- BLOQUE CLIENTE (oculto si no es delivery propio) -->
+    <div id="bloqueCliente">
+      <label style="font-weight:bold">Cliente (solo para delivery propio)</label>
+      <div class="flex" style="align-items:center">
+<button onclick="NuevoCliente()">&#11207; ir a Clientes</button>
+        <input type="text" id="id_cliente" placeholder="codigo cliente" style="width:140px">
+		        <button id="btnVerificar">&#9989; Verificar</button>
+
+        <button id="btnBuscarCliente">&#128269; Buscar cliente</button>
+		
+<button onclick="distancia()">&#128663; Ver distancia</button>
+
+      </div>
+        <div style="margin-left:12px;">
+          <div id="datosCliente" class="cliente-box">
+            <div><strong>Nombre &nbsp;   :</strong>&nbsp;&nbsp; <span id="cli_nombre">-</span></div>
+            <div><strong>Domicilio&nbsp;:</strong>&nbsp; <span id="cli_domicilio">-</span></div>
+            <div><strong>Telefono &nbsp; :</strong>&nbsp <span id="cli_telefono">-</span></div>
+          </div>
+        </div>
+    </div>
+
+<div id="logoDelivery" style="display: flex; justify-content:center; text-align:center; margin-top:10px;">
+  <img id="imgDelivery" src="" alt="" style="display:none; width:120px; height:120px;">
+</div>
+
+    <hr>
+
+    <!-- <label for="id_producto" style="font-size:15px;">Codigo del producto o Codigo de barras</label><br> -->
+	  <label style="font-weight:bold">Codigo del producto o Codigo de barras</label><br>
+    <input type="text" id="id_producto" placeholder="codigo o cod.barras" style="width:240px">
+    <button id="btnAgregar" onclick="agregarProducto()">&#10133; Agregar</button>
+    <button id="btnBuscarProd">&#128269; Buscar producto</button>
+
+    <!-- Modal Productos -->
+    <div id="modalProductos" class="modal">
+      <div class="modal-contenido">
+        <span class="cerrar" onclick="cerrarModal('modalProductos')">&times;</span>
+        <h3>Buscar productos por descripcion</h3>
+        <input type="text" style="width:240px" id="txtBuscarProd" placeholder="Parte de la descripcion...">
+        <button id="btnBuscarProductosModal">&#128269; Buscar</button>
+        <div id="resultProd" style="margin-top:10px"></div>
+      </div>
+    </div>
+
+    <!-- Modal Clientes -->
+    <div id="modalClientes" class="modal">
+      <div class="modal-contenido">
+        <span class="cerrar" onclick="cerrarModal('modalClientes')">&times;</span>
+        <h3>Buscar cliente por nombre o telefono</h3>
+        <input type="text" style="width:240px"  id="txtBuscarCli" placeholder="Parte del nombre o telefono...">
+        <button id="btnBuscarClientesModal">&#128269; Buscar</button>
+        <div id="resultCli" style="margin-top:10px"></div>
+      </div>
+    </div>
+
+    <table id="tabla">
+      <thead>
+        <tr><th>Codigo</th><th>Descripcion</th><th>Precio</th><th>Cantidad</th><th>Subtotal</th><th></th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <div style="margin-top:20px;">
+       <div style="display: none;" class="total" id="subtotal">Subtotal: $ 0.00</div> 
+      <label>Descuento: </label>
+      <input class="input-pequeno" type="number" id="descuento" value="0" step="0.01" onchange="aplicarDescuentoRecargo()">
+      <label>Recargo: </label>
+      <input class="input-pequeno" type="number" id="recargo" value="0" step="0.01" onchange="aplicarDescuentoRecargo()">
+      <span style="margin-left:190px;" class="total"  id="totalGeneral">Total general: $ 0.00</span>
+    </div>
+
+    <h3>Formas de pago</h3>
+    <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+      <div>
+        <label>Forma de pago 1:</label><br>
+        <select style="width: 200px; height: 35px;" id="fpago1"></select>
+      </div>
+      <div>
+        <label>Importe 1:</label><br>
+        <input class="input-pequeno" type="number" id="importe1" min="0" value="0" step="0.01" onchange="recalcularImportes(1)">
+      </div>
+      <div>
+        <label>Forma de pago 2:</label><br>
+        <select style="width: 200px; height: 35px;" id="fpago2"></select>
+      </div>
+      <div>
+        <label>Importe 2:</label><br>
+        <input class="input-pequeno" type="number" id="importe2" min="0" value="0" step="0.01" onchange="recalcularImportes(2)">
+      </div>
+    </div>
+
+<!--
+    <br><br>
+    <div style="display:flex;justify-content:center;gap:20px">
+      <button onclick="finalizarVenta()">Aceptar</button>
+      <button onclick="SalirVenta()">Salir</button>
+    </div>
+-->
+<br><br>
+    <div class="contenedor-botones" >
+    <button class="boton-centrado" id="btnAceptar" onclick="finalizarVenta()">&#128190; Confirmar</button>
+    <button class="boton-derecha" id="btnSalir" onclick="SalirVenta()">&#8617; Salir</button>
+    </div>
+
+
+  </div>
+
+  <script>
+
+verificarSesion();
+
+async function NuevoCliente() {
+localStorage.setItem("paginaAnterior", window.location.href);
+window.location.href = "clientes.html";
+}
+
+async function obtenerDatosEmpresa() {
+    try {
+        const snap = await db.collection("EMPRESA").get();
+
+        if (snap.empty) {
+            console.warn("No se encontrÛ documento en EMPRESA");
+            return null;
+        }
+
+        const data = snap.docs[0].data();
+
+        return {
+            nombre: data.nombre_empresa,
+            domicilio: data.domicilio
+        };
+
+    } catch (err) {
+        console.error("Error obteniendo datos de EMPRESA:", err);
+        return null;
+    }
+}
+  
+async function distancia() {
+
+    // Espera el resultado ANTES de seguir
+    const info = await obtenerDatosEmpresa();
+    if (!info) {
+        alert("No se pudo obtener el domicilio de la empresa");
+        return;
+    }
+
+    const origen = info.domicilio;
+    const destino = document.getElementById('cli_domicilio').textContent;
+
+//mostrarMapaDistancia('liniers 89, CABA', 'av albarellos 2500, Buenos Aires');
+mostrarMapaDistancia(origen, destino);
+    };
+
+    // Mostrar fecha en encabezado (solo visual)
+    const hoy = new Date();
+    const fechaFormateada = hoy.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'});
+    document.addEventListener('DOMContentLoaded', () => {
+      const h2 = document.querySelector('h2');
+      h2.textContent = `VENTAS - Delivery / Mostrador  _____________________ ${fechaFormateada}`;
+    });
+
+    // Datos globales
+    window.productosVenta = [];
+    let clienteSeleccionado = null; // { id_cliente, nombre, domicilio, telefono }
+
+    // Cargar formas de pago
+    async function cargarFormasPago(){
+      const s1 = document.getElementById('fpago1');
+      const s2 = document.getElementById('fpago2');
+      s1.innerHTML = "<option value=''>Seleccione</option>";
+      s2.innerHTML = "<option value=''>Seleccione</option>";
+      const snap = await db.collection('F_PAGO')
+			.where("deshabilitado","==","N")
+			.orderBy('descripcion').get();
+      snap.forEach(d => {
+        const data = d.data();
+        const opt = `<option value="${data.id_fpago}">${data.descripcion}</option>`;
+        s1.innerHTML += opt;
+        s2.innerHTML += opt;
+      });
+    }
+    window.onload = cargarFormasPago;
+
+    // ====== Delivery radio handling ======
+    const radios = document.querySelectorAll('input[name="tipoDelivery"]');
+    const bloqueCliente = document.getElementById('bloqueCliente');
+    const mensajeTipo = document.getElementById('mensajeTipo');
+	const imgDelivery = document.getElementById("imgDelivery");
+
+    function updateDeliveryUI(){
+      const tipo = document.querySelector('input[name="tipoDelivery"]:checked').value;
+      if (tipo === "1") {
+        bloqueCliente.style.display = "block";
+        mensajeTipo.textContent = "Delivery propio seleccionado. Debe seleccionar el cliente.";
+        mensajeTipo.style.display = "block";
+		imgDelivery.style.display = "none";		
+      } else 
+	  {
+        bloqueCliente.style.display = "none";
+        mensajeTipo.textContent = tipo === "2" ? "No requiere datos de cliente." : "No requiere datos de cliente.";
+        mensajeTipo.style.display = "block";
+			if (tipo === "2") 
+			{
+				imgDelivery.src = "rappi.png";
+				imgDelivery.style.display = "block";		
+			} else 
+			{
+				if (tipo === "3") 
+				{
+					imgDelivery.src = "pedidosya.png";
+					imgDelivery.style.display = "block";		
+				} else 
+				{
+					imgDelivery.src = "mostrador.png";
+					imgDelivery.style.display = "block";		
+				}			
+			}
+		}
+    }
+    radios.forEach(r => r.addEventListener('change', updateDeliveryUI));
+    updateDeliveryUI();
+
+
+    // ====== Cliente modal/search (igual que productos modal) ======
+    document.getElementById('btnBuscarCliente').onclick = () => {
+      document.getElementById('modalClientes').style.display = 'block';
+      document.getElementById('txtBuscarCli').focus();
+    };
+    document.getElementById('btnBuscarClientesModal').onclick = async () => {
+      const texto = document.getElementById('txtBuscarCli').value.trim().toLowerCase();
+      const cont = document.getElementById('resultCli');
+      cont.innerHTML = "<p>Buscando...</p>";
+      if (!texto) { cont.innerHTML = "<p>Ingrese al menos 1 caracter</p>"; return; }
+      try {
+        const snap = await db.collection('CLIENTES').get();
+        let resultados = [];
+        snap.forEach(doc => {
+          const d = doc.data();
+          if (d.deshabilitado === 'S') return; // excluye deshabilitados
+          if ((d.nombre && d.nombre.toLowerCase().includes(texto)) || (d.telefono && String(d.telefono).includes(texto))) {
+            resultados.push({...d, _docId: doc.id});
+          }
+        });
+        if (resultados.length === 0) { cont.innerHTML = "<p>No se encontraron clientes.</p>"; return; }
+        let html = `<table style="width:100%;border-collapse:collapse"><tr><th>ID</th><th>Nombre</th><th>Domicilio</th><th>Tel</th></tr>`;
+        resultados.forEach(r => {
+          html += `<tr style="cursor:pointer" onclick="seleccionarCliente('${r._docId}', ${r.id_cliente}, '${(r.nombre||'').replace(/'/g,"\\'")}', '${(r.domicilio||'').replace(/'/g,"\\'")}', '${(r.telefono||'').replace(/'/g,"\\'")}')">
+            <td>${r.id_cliente}</td><td style="text-align:left">${r.nombre}</td><td style="text-align:left">${r.domicilio}</td><td>${r.telefono||''}</td></tr>`;
+        });
+        html += "</table>";
+        cont.innerHTML = html;
+      } catch(e) {
+        cont.innerHTML = `<p style="color:red">${e.message}</p>`;
+      }
+    };
+
+    window.seleccionarCliente = function(docId, id_cliente, nombre, domicilio, telefono){
+      // asignar
+      clienteSeleccionado = { docId, id_cliente, nombre, domicilio, telefono };
+      document.getElementById('id_cliente').value = id_cliente;
+      document.getElementById('cli_nombre').textContent = nombre;
+      document.getElementById('cli_domicilio').textContent = domicilio || '-';
+      document.getElementById('cli_telefono').textContent = telefono || '-';
+      document.getElementById('modalClientes').style.display = 'none';
+    };
+
+    function cerrarModal(id){ document.getElementById(id).style.display = 'none'; }
+
+    // ====== Productos (igual a ventas.html) ======
+    document.getElementById('btnBuscarProd').onclick = () => {
+      document.getElementById('modalProductos').style.display = 'block';
+      document.getElementById('txtBuscarProd').focus();
+    };
+    document.getElementById('btnBuscarProductosModal').onclick = async () => {
+      const texto = document.getElementById('txtBuscarProd').value.trim().toLowerCase();
+      const cont = document.getElementById('resultProd');
+      cont.innerHTML = "<p>Buscando...</p>";
+      if (!texto) { cont.innerHTML = "<p>Ingrese al menos 2 caracteres</p>"; return; }
+      try {
+        const snap = await db.collection('PRODUCTOS').get();
+        let resultados = [];
+        snap.forEach(doc => {
+          const p = doc.data();
+          if (p.descripcion && p.descripcion.toLowerCase().includes(texto) && p.deshabilitado !== 'S') resultados.push(p);
+        });
+        if (resultados.length === 0) { cont.innerHTML = "<p>No se encontraron productos.</p>"; return; }
+        let html = `<table style="width:100%;border-collapse:collapse"><tr><th>ID</th><th>Descripci√≥n</th><th>Precio</th></tr>`;
+        resultados.forEach(p => {
+          html += `<tr style="cursor:pointer" onclick="seleccionarProductoModal('${p.id_producto}')">
+            <td>${p.id_producto}</td><td style="text-align:left">${p.descripcion}</td><td>${p.precio?.toFixed? p.precio.toFixed(2) : p.precio}</td></tr>`;
+        });
+        html += "</table>";
+        cont.innerHTML = html;
+      } catch(e) { cont.innerHTML = `<p style="color:red">${e.message}</p>`; }
+    };
+
+    window.seleccionarProductoModal = function(idProd){
+      document.getElementById('id_producto').value = idProd;
+      agregarProducto();
+      document.getElementById('modalProductos').style.display = 'none';
+    };
+
+		   window.agregarProducto = async function () {
+		  const idProd = document.getElementById('id_producto').value.trim();
+		  if (!idProd) { 
+			alert('Ingrese un c®Ædigo de producto');
+			return;
+		  }
+
+		  try {
+			let docSnap = null;
+
+			// 1) Buscar por id_producto (id del documento)
+			const snapDoc = await db.collection('PRODUCTOS').doc(String(idProd)).get();
+			if (snapDoc.exists) {
+			  docSnap = snapDoc;
+			}
+
+			// 2) Si no est®¢, buscar por cod_barra
+			if (!docSnap) {
+			  const q = await db.collection('PRODUCTOS')
+				.where('cod_barra', '==', String(idProd))
+				.get();
+			  if (!q.empty) {
+				docSnap = q.docs[0]; // Primer match
+			  }
+			}
+
+			if (!docSnap) {
+			  alert('Producto no encontrado');
+			  return;
+			}
+
+			const producto = docSnap.data();
+
+			if (producto.deshabilitado === 'S') {
+			  alert('Producto no habilitado para la venta');
+			  return;
+			}
+
+			const nombre = producto.descripcion || '(sin nombre)';
+			const precio = Number(producto.precio) || 0;
+			const CodProd = producto.id_producto ?? 0;
+			const modifica = producto.modifica || 'N';
+
+			const idx = window.productosVenta.findIndex(p => p.id === CodProd);
+			if (idx >= 0) {
+			  window.productosVenta[idx].cantidad += 1;
+			} else {
+			  window.productosVenta.push({ id: CodProd, nombre, precio, cantidad: 1, modifica });
+			}
+
+			renderTabla();
+
+			document.getElementById('id_producto').value = '';
+			document.getElementById('id_producto').focus();
+
+		  } catch (err) {
+			console.error('Error buscando producto:', err);
+			alert('Error al buscar el producto (ver consola).');
+		  }
+		};
+
+
+    // Render tabla y totales
+    window.renderTabla = function(){
+      const tbody = document.querySelector('#tabla tbody');
+      tbody.innerHTML = '';
+      let totalGeneral = 0;
+      window.productosVenta.forEach((p,i) => {
+        const subtotal = (Number(p.precio)||0) * (Number(p.cantidad)||0);
+        totalGeneral += subtotal;
+        const precioHTML = p.modifica === 'S'
+          ? `<input type="number" value="${p.precio.toFixed(2)}" min="0" step="0.01" style="width:80px" onchange="cambiarPrecio(${i}, this.value)">`
+          : `$ ${p.precio.toFixed(2)}`;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${p.id}</td>
+          <td style="text-align:left">${p.nombre}</td>
+          <td>${precioHTML}</td>
+          <td><input type="number" value="${p.cantidad}" min="1" style="width:70px" onchange="cambiarCantidad(${i}, this.value)"></td>
+          <td>$ ${subtotal.toFixed(2)}</td>
+          <td class="tooltip-container"><button onclick="eliminarProducto(${i})">X</button><span class="tooltip-text">Eliminar</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
+      document.getElementById('totalGeneral').textContent = 'Total general: $ ' + totalGeneral.toFixed(2);
+      aplicarDescuentoRecargo();
+    };
+
+    window.cambiarPrecio = function(index, nuevoPrecio){
+      const n = parseFloat(nuevoPrecio);
+      if (isNaN(n) || n < 0) return;
+      window.productosVenta[index].precio = n;
+      renderTabla();
+    };
+
+    function aplicarDescuentoRecargo(){
+      const subtotal = window.productosVenta.reduce((acc,p)=>acc + (p.precio*p.cantidad), 0);
+      const descuento = parseFloat(document.getElementById('descuento').value) || 0;
+      const recargo = parseFloat(document.getElementById('recargo').value) || 0;
+      let total = subtotal - descuento + recargo;
+      if (total < 0) total = 0;
+      document.getElementById('subtotal').textContent = 'Subtotal: $ ' + subtotal.toFixed(2);
+      document.getElementById('totalGeneral').textContent = 'Total general: $ ' + total.toFixed(2);
+      recalcularImportes();
+    }
+
+    const origRender = window.renderTabla;
+    window.renderTabla = function(){ origRender(); aplicarDescuentoRecargo(); };
+
+    window.cambiarCantidad = function(index, nuevaCantidad){
+      const n = parseInt(nuevaCantidad,10);
+      if (isNaN(n) || n<1) return;
+      window.productosVenta[index].cantidad = n;
+      renderTabla();
+    };
+
+    window.eliminarProducto = function(index){
+      window.productosVenta.splice(index,1);
+      renderTabla();
+    };
+
+    window.recalcularImportes = function(modificado=0){
+      const subtotal = window.productosVenta.reduce((acc,p)=>acc + (p.precio*p.cantidad),0);
+      const descuento = parseFloat(document.getElementById('descuento').value) || 0;
+      const recargo = parseFloat(document.getElementById('recargo').value) || 0;
+      const totalGeneral = subtotal - descuento + recargo;
+      const imp1 = document.getElementById('importe1'), imp2 = document.getElementById('importe2');
+      let val1 = parseFloat(imp1.value) || 0;
+      let val2 = parseFloat(imp2.value) || 0;
+      if (modificado === 1) {
+        val1 = Math.min(val1, totalGeneral);
+        val2 = (totalGeneral - val1).toFixed(2);
+        imp2.value = val2;
+      } else if (modificado === 2) {
+        val2 = Math.min(val2, totalGeneral);
+        val1 = (totalGeneral - val2).toFixed(2);
+        imp1.value = val1;
+      } else {
+        imp1.value = totalGeneral.toFixed(2);
+        imp2.value = '0.00';
+      }
+    };
+
+    // ====== Finalizar venta (grabado) ======
+    window.finalizarVenta = async function(){
+      if (window.productosVenta.length === 0) { alert('‚ö†Ô∏è No hay productos en la venta'); return; }
+
+      const tipoVenta = parseInt(document.querySelector('input[name="tipoDelivery"]:checked').value,10); // 1,2,3
+      // validar tipo y cliente si corresponde
+      if (!tipoVenta) { alert('Seleccione tipo de delivery'); return; }
+      if (tipoVenta === 1 && !clienteSeleccionado) { alert('Para Delivery propio debe seleccionar un cliente'); return; }
+
+      const fp1 = document.getElementById('fpago1').value;
+      const fp2 = document.getElementById('fpago2').value;
+      const imp1 = parseFloat(document.getElementById('importe1').value) || 0;
+      const imp2 = parseFloat(document.getElementById('importe2').value) || 0;
+
+      const subtotal = window.productosVenta.reduce((acc,p)=>acc + (p.precio*p.cantidad),0);
+      const descuento = parseFloat(document.getElementById('descuento').value) || 0;
+      const recargo = parseFloat(document.getElementById('recargo').value) || 0;
+      const totalFinal = subtotal - descuento + recargo;
+
+      if (!fp1 && !fp2) { alert('Debe seleccionar al menos una forma de pago.'); return; }
+      if (fp1 && fp2 && fp1 === fp2) { alert('Las dos formas de pago no pueden ser iguales.'); return; }
+      if ((!fp1 && imp1 > 0) || (!fp2 && imp2 > 0)) { alert('Falta seleccionar alguna forma de pago.'); return; }
+      if ((fp1 && imp1 <= 0) || (fp2 && imp2 <= 0)) { alert('Las formas de pago seleccionadas no pueden tener importe cero.'); return; }
+      if (Math.abs((imp1 + imp2) - totalFinal) > 0.01) { alert('‚ö†Ô∏è Los importes no coinciden con el total general.'); return; }
+
+      try {
+        // obtener nuevo id_venta
+        const snapUlt = await db.collection('VENTAS_CAB').orderBy('id_venta','desc').limit(1).get();
+        let nuevoIdVenta = 1;
+        if (!snapUlt.empty) {
+          const u = snapUlt.docs[0].data();
+          nuevoIdVenta = (u.id_venta || 0) + 1;
+        }
+
+        // fecha y hora
+        const fechaHoy = fechaFormateada;	//new Date().toLocaleDateString('es-AR');
+        const horaHoy = Obtener_Hora();
+
+        // armar cabecera
+        const cabecera = {
+          id_venta: nuevoIdVenta,
+          fecha: fechaHoy,
+          hora: horaHoy,
+          total: totalFinal,
+          subtotal: subtotal,
+          descuento: descuento,
+          recargo: recargo,
+          f_pago1: fp1 ? parseInt(fp1) : 0,
+          f_pago2: fp2 ? parseInt(fp2) : 0,
+          importe_fp1: imp1 || 0,
+          importe_fp2: imp2 || 0,
+          id_cierre: 0,
+          anulada: 'N',
+          tipo_venta: tipoVenta // 1,2,3
+        };
+
+        if (tipoVenta === 1 && clienteSeleccionado) {
+			cabecera.id_cliente = clienteSeleccionado.id_cliente;}
+			else{
+			cabecera.id_cliente = 0;}
+			
+
+        // grabar cabecera
+        await db.collection('VENTAS_CAB').doc(String(nuevoIdVenta)).set(cabecera);
+
+        // detalle + actualizar stock en batch
+        const batch = db.batch();
+        for (const p of window.productosVenta) {
+          const sub = p.precio * p.cantidad;
+          const detRef = db.collection('VENTAS_DET').doc();
+          batch.set(detRef, {
+            id_venta: nuevoIdVenta,
+            id_producto: isNaN(Number(p.id)) ? p.id : Number(p.id),
+            cantidad: p.cantidad,
+            precio: p.precio,
+            subtotal: sub
+          });
+          // actualizar stock del producto principal
+          const prodRef = db.collection('PRODUCTOS').doc(String(p.id));
+          batch.update(prodRef, { stock: firebase.firestore.FieldValue.increment(-p.cantidad) });
+		  
+// Si el producto tiene subproductos, descontarles stock tambien
+const prodDoc = await db.collection('PRODUCTOS').doc(String(p.id)).get();
+if (prodDoc.exists && prodDoc.data().subproductos === "S") {
+  const relSnap = await db.collection('RELA_PROD_SUB')
+                          .where("id_producto", "==", Number(p.id))
+                          .get();
+  relSnap.forEach(docRel => {
+    const idSub = docRel.data().id_prod_sub;
+    const subRef = db.collection('PRODUCTOS').doc(String(idSub));
+    batch.update(subRef, { stock: firebase.firestore.FieldValue.increment(-p.cantidad) });
+  });
+}
+
+        }
+        await batch.commit();
+
+        const deseaImprimir = confirm(`‚ú?Venta N¬∞ ${nuevoIdVenta} grabada correctamente.\n\n¬øDesea imprimir el comprobante?`);
+        if (deseaImprimir) {
+          // buscar nombre empresa
+          const q = await db.collection('EMPRESA').where('id_empresa','==',1).get();
+          let fempresa = 'sin empresa';
+          if (!q.empty) fempresa = q.docs[0].data().nombre_empresa || fempresa;
+          generarComprobanteTermicoPDF(nuevoIdVenta, cabecera, window.productosVenta, fp1, fp2, imp1, imp2, fempresa);
+        }
+
+        LimpiarPantalla();
+        alert('Venta grabada correctamente.');
+      } catch(err){
+        console.error('‚ù?Error al grabar la venta:', err);
+        alert('Error al grabar la venta. Ver consola.');
+      }
+    };
+
+    async function LimpiarPantalla(){
+      window.productosVenta = [];
+      renderTabla();
+      document.getElementById('fpago1').value = '';
+      document.getElementById('fpago2').value = '';
+      document.getElementById('importe1').value = '0.00';
+      document.getElementById('importe2').value = '0.00';
+      document.getElementById('descuento').value = '0.00';
+      document.getElementById('recargo').value = '0.00';
+      clienteSeleccionado = null;
+      document.getElementById('id_cliente').value = '';
+      document.getElementById('cli_nombre').textContent = '-';
+      document.getElementById('cli_domicilio').textContent = '-';
+      document.getElementById('cli_telefono').textContent = '-';
+    }
+
+    // funcion hora
+    function Obtener_Hora(){
+      const ahora = new Date();
+      const opciones = { timeZone: 'America/Argentina/Buenos_Aires', hour: '2-digit', minute: '2-digit', second: '2-digit' };
+      return ahora.toLocaleTimeString('es-AR', opciones);
+    }
+	
+    // --- Verificar existencia del cliente ---
+	const idCli = document.getElementById("id_cliente");
+    document.getElementById("btnVerificar").onclick = async () => {
+      const id = parseInt(idCli.value);
+		try {
+			const snap = await db.collection('CLIENTES')
+			  .where('id_cliente', '==', id)
+			  .limit(1)
+			  .get();
+
+			if (snap.empty) {
+			  alert('Cliente no encontrado');
+			  LimpiarPantalla();
+			  return;
+			}
+
+			const d = snap.docs[0].data();
+
+			if (d.deshabilitado === 'S') {
+			  alert('Cliente deshabilitado');
+			  LimpiarPantalla();
+			  return;
+			}
+
+			clienteSeleccionado = {
+			  docId: snap.docs[0].id,
+			  id_cliente: d.id_cliente,
+			  nombre: d.nombre,
+			  domicilio: d.domicilio,
+			  telefono: d.telefono
+			};
+
+			document.getElementById('cli_nombre').textContent = d.nombre;
+			document.getElementById('cli_domicilio').textContent = d.domicilio || '-';
+			document.getElementById('cli_telefono').textContent = d.telefono || '-';
+
+		  } catch (err) {
+			console.error(err);
+			alert('Error buscando cliente');
+		  }
+
+    };
+
+    // generar comprobante termico (copiado de ventas.html)
+    async function generarComprobanteTermicoPDF(idVenta, cabecera, productos, fp1, fp2, imp1, imp2, pempresa) {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ unit: "mm", format: [58, 200] });
+      let y=10;
+      doc.setFontSize(8); doc.text(pempresa,0,y);
+      y+=4; doc.setFontSize(9); doc.text("TICKET",11,y);
+      y+=5; doc.setFontSize(7); doc.text(`Venta N¬∞: ${idVenta}`,1,y);
+      y+=4; doc.text(`${cabecera.fecha}`,1,y);
+      doc.text(`${cabecera.hora}`,14,y);
+      y+=2; doc.setFontSize(7);
+      y+=2; doc.text("=============================",0,y); y+=4;
+      doc.setFontSize(6); doc.text("C√≥d  Descripci√≥n",0,y); y+=3; doc.text("Cant  P.Unit  Subtotal",0,y); y+=3;
+      productos.forEach(p=>{
+        doc.text(`${String(p.id).substring(0,6)} ${p.nombre.substring(0,15)}`,0,y); y+=4;
+        doc.text(`${p.cantidad} x $${p.precio.toFixed(2)} = $${(p.precio*p.cantidad).toFixed(2)}`,0,y); y+=5;
+      });
+      y+=2; doc.setFontSize(7); doc.text(".........................................",0,y); y+=3;
+      doc.setFontSize(6); doc.text(`Subtotal: $${cabecera.subtotal.toFixed(2)}`,5,y); y+=3;
+      doc.text(`Dto: $${cabecera.descuento.toFixed(2)}`,0,y); doc.text(`Rec: $${cabecera.recargo.toFixed(2)}`,25,y); y+=3;
+      doc.text(`TOTAL: $${cabecera.total.toFixed(2)}`,5,y); y+=5; doc.setFontSize(5); doc.text("Formas de Pago:",0,y); y+=3;
+      const fpagos = {}; const fSnap = await db.collection("F_PAGO").get(); fSnap.forEach(d=>fpagos[d.data().id_fpago]=d.data().descripcion);
+      if (fp1) { doc.text(`${fpagos[fp1]||`FP${fp1}`}: $${(imp1).toFixed(2)}`,0,y); y+=3; }
+      if (fp2) { doc.text(`${fpagos[fp2]||`FP${fp2}`}: $${(imp2).toFixed(2)}`,0,y); y+=3; }
+      doc.save(`Ticket_Venta_${idVenta}.pdf`);
+    }
+
+    // Salir
+    window.SalirVenta = function(){
+      if (window.productosVenta.length > 0) {
+        const deseaSalir = confirm('‚ö†Ô∏è Hay productos en la venta.\n\n¬øDesea salir y perder lo ingresado?');
+        if (deseaSalir) { LimpiarPantalla(); return; }
+        else return;
+      }
+      window.location.href = 'menu-ventas.html';
+    };
+
+    // Cerrar modales con click fuera
+    window.onclick = function(event){
+      const mp = document.getElementById('modalProductos'), mc = document.getElementById('modalClientes');
+      if (event.target === mp) mp.style.display = 'none';
+      if (event.target === mc) mc.style.display = 'none';
+    };
+  </script>
+
+<script src="./js/controlCaja.js"></script>
+<script>
+  verificarAperturaActiva("apertura-caja.html");
+</script>
+
+<script src="js/mapa-distancia.js"></script>
+
+<script src="js/medidor.js"></script>
+
+</body>
+
+
+</html>

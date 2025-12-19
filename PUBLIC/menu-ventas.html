@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+
+  <!-- Firebase v8 -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<script src="js/auth.js"></script>  <!-- Aquí se verifica la autenticacion-->
+
+  <title>Menú de Ventas</title>
+
+  <style>
+    table {
+      width: 60%;
+      border-collapse: collapse;
+      margin: 20px auto;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #8AC0FF;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .contenedor {
+      max-width: 440px;
+      margin: auto;
+      background: #FFFDE6; /* #fff; */
+      padding: 20px;
+      font-size: 18px;
+      border-radius: 8px;
+	  border: 1px solid #0E0D0C;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Centrar el contenido dentro de cada celda */
+    td {
+      text-align: center;
+      vertical-align: middle;
+      padding: 10px;
+      border: 0px solid #0E0D0C;
+    }
+
+.boton-redondeado,
+.boton-redondeado3 {
+  width: 180px;              /* Mismo ancho */
+  height: 70px;              /* Mismo alto */
+  background-color: #007bff; /* Color por defecto */
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+  display: flex;             /* Centrar texto dentro */
+  flex-direction: column;    /* Permitir varias líneas */
+  justify-content: center;   /* Centrado vertical */
+  align-items: center;       /* Centrado horizontal */
+  text-align: center;        /* Centrar texto */
+  line-height: 1.2;          /* Espaciado entre líneas */
+  padding: 5px;              /* Menor padding para evitar desbordes */
+  box-sizing: border-box;    /* Incluye padding en el alto total */
+}
+
+.boton-redondeado2 {
+  width: 180px;              /* Mismo ancho */
+  height: 70px;              /* Mismo alto */
+  background-color: #4E4E55; /* Color por defecto */
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+  display: flex;             /* Centrar texto dentro */
+  flex-direction: column;    /* Permitir varias líneas */
+  justify-content: center;   /* Centrado vertical */
+  align-items: center;       /* Centrado horizontal */
+  text-align: center;        /* Centrar texto */
+  line-height: 1.2;          /* Espaciado entre líneas */
+  padding: 5px;              /* Menor padding para evitar desbordes */
+  box-sizing: border-box;    /* Incluye padding en el alto total */
+}
+
+.boton-salirvolver {
+  background-color: #555;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 30px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+	
+/* Botón verde (solo cambia color base) */
+.boton-redondeado3 {
+  background-color: green;
+}
+
+
+/* Opcional: hacer que <small> se vea armónico */
+button small {
+  font-size: 11px;
+  font-weight: normal;
+  opacity: 0.9;
+}
+	
+/* Efecto hover */
+button:hover {
+  background-color: red;
+  color: white;
+}
+
+h3 {
+  text-align: center;
+  background-color: #8AC0FF;
+  padding: 10px;
+  border-radius: 8px;
+}
+
+/* Estado deshabilitado (sin perder estilo) */
+.boton-redondeado:disabled,
+.boton-redondeado3:disabled {
+  background-color: #cccccc !important;
+  color: #666666 !important;
+  cursor: not-allowed !important;
+}
+
+
+  </style>
+        <link rel="stylesheet" href="css/estilos.css">
+
+</head>
+
+<body>
+
+  <div class="contenedor">
+    <h3>&#128178; Menú de VENTAS</h3>
+
+    <table>
+      <tr>
+        <td>
+          <button class="boton-redondeado" id="btnCargarVenta" onclick="location.href='delivery.html'">Ventas mostrador/Delivery</button>
+        </td>
+        <td>
+          <button class="boton-redondeado" id="btnConsVenta"  onclick="location.href='ventas_consultas.html'">Consultar Ventas y Formas de Pago</button>
+        </td>
+      </tr>
+
+      <tr>
+        <td>
+          <button class="boton-redondeado" id="btnTotGrupo" onclick="location.href='totales_grupo_v.html'">Totales x Grupo</button>
+        </td>
+        <td>
+          <button class="boton-redondeado" id="btnTotTipo" onclick="location.href='totales_tipo_v.html'">Totales x Tipo de Venta</button>
+        </td>
+      </tr>
+
+      <tr>
+        <td>
+           <button class="boton-redondeado" id="btnAnularVenta" onclick="location.href='anular_venta.html'">Anular Venta</button>
+        </td>
+        <td>
+           <button class="boton-redondeado" id="btnVtaAnu" onclick="location.href='ventas_anuladas.html'">Ventas Anuladas</button>
+        </td>
+      </tr>
+
+      <tr>
+        <td>
+           <button class="boton-redondeado" id="btnCambiarFP" onclick="location.href='modifica-fpago_v.html'">Cambiar Forma de Pago</button>
+        </td>
+        <td>
+           <button class="boton-redondeado3" id="btnPedidos-wsp" onclick="location.href='http://localhost:3000/pedidos-whatsapp'">Pedidos Online</button>
+        </td>
+      </tr>
+
+      <tr>
+        <td colspan="3">
+          <button id="btnVolver" class="boton-salirvolver" onclick="location.href='index.html'">&#8617; Volver</button>
+        </td>
+      </tr>
+    </table>
+<div style="text-align:center; font-size:13px; border: 0px solid #0E0D0C; max-width: 520px; margin: auto; border-radius:8px;">Usuario: <b><span id="userLabel"></span></div>
+
+  </div>
+
+<script>
+
+verificarSesion(); 
+document.getElementById("userLabel").textContent = localStorage.getItem("usuarioEmail");
+
+
+// BLOQUEA TODOS LOS BOTONES AL CARGAR LA PÁGINA (menos boton Volver)
+document.addEventListener("DOMContentLoaded", () => {
+
+    // Deshabilitar todos los botones
+    const botones = document.querySelectorAll("button");
+    botones.forEach(btn => {
+        if (btn.id !== "btnVolver") {
+            btn.disabled = true;
+            btn.title = "No tiene permiso para usar esta función";
+        }
+    });
+	aplicarPermisos();
+});
+</script>
+
+<script src="js/permisos.js"></script>
+
+<script>
+window.aplicarPermisos = function() {
+    const btn1 = document.getElementById("btnCargarVenta");
+    if (tienePermiso(26)) {
+		if (btn1) btn1.disabled = false;
+		btn1.title = "";
+    }
+    const btn2 = document.getElementById("btnConsVenta");
+    if (tienePermiso(20)) {
+		if (btn2) btn2.disabled = false;
+		btn2.title = "";
+    }
+    const btn3 = document.getElementById("btnTotGrupo");
+    if (tienePermiso(21)) {
+		if (btn3) btn3.disabled = false;
+		btn3.title = "";
+    }
+    const btn4 = document.getElementById("btnTotTipo");
+    if (tienePermiso(22)) {
+		if (btn4) btn4.disabled = false;
+		btn4.title = "";
+    }
+    const btn5 = document.getElementById("btnAnularVenta");
+    if (tienePermiso(23)) {
+		if (btn5) btn5.disabled = false;
+		btn5.title = "";
+    }
+    const btn6 = document.getElementById("btnVtaAnu");
+    if (tienePermiso(24)) {
+		if (btn6) btn6.disabled = false;
+		btn6.title = "";
+    }
+    const btn7 = document.getElementById("btnCambiarFP");
+    if (tienePermiso(25)) {
+		if (btn7) btn7.disabled = false;
+		btn7.title = "";
+    }
+//ver el codigo de funcion para los pedidos de whatsapp
+//ver el codigo de funcion para los pedidos de whatsapp
+//ver el codigo de funcion para los pedidos de whatsapp
+//ver el codigo de funcion para los pedidos de whatsapp
+    const btn8 = document.getElementById("btnPedidos-wsp");
+    if (tienePermiso(25)) {
+		if (btn8) btn8.disabled = false;
+		btn8.title = "";
+    }
+
+};
+</script>
+
+
+</body>
+</html>

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Login</title>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+	
+	<style>  
+	body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 50px;
+            /* OPCIÓN 1: Fondo de color (ejemplo: azul). Descomenta para usar. */
+            /* background-color: #F5F5F4; */ /* Cambia 'blue' por el color que quieras, ej: #FF0000 para rojo */
+             background-color: #8AC0FF; /*#B8E6FE;*/
+            
+            /* OPCIÓN 2: Imagen de fondo. Descomenta estas líneas para usar. */
+             /*background-image: url('https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80');*/  /* Reemplaza con tu URL o ruta local */
+			 /*background-image: url('fondo-claro.jpeg');*/
+			 /*background-image: url('1.jpg');*/
+			 
+             background-size: cover; 
+             background-repeat: no-repeat; 
+             background-position: center; 
+             background-attachment: fixed;  /* Opcional: fija la imagen al scroll */
+        }
+
+        #logo {
+            /* position: absolute;*/ /* Fija la posición */
+            left: 120px; /* Margen izquierdo */
+            top: 20px; /* Margen superior */
+            width: 250px; /* Tamaño pequeño */
+            height: auto; /* Mantiene proporciones */
+            z-index: 1; /* Por encima de otros elementos si es necesario */
+            border-radius: 10px; /* Opcional: bordes redondeados */
+            box-shadow: 0 12px 15px rgba(0,0,0,0.2); /* Opcional: sombra para resaltar */
+        }  
+
+    .contenedor { background:#FEF5E7; border-radius:10px;max-width:300px;margin:0 auto;padding:25px;box-shadow:0 0 10px rgba(0,0,0,0.2); }
+
+.boton-redondeado {
+  padding: 10px 20px; /* Ajusta el padding a tu gusto */
+  background-color: #007bff; /* Color de fondo */
+  color: white; /* Color del texto */
+  border: none; /* Opcional: elimina el borde predeterminado */
+  border-radius: 8px; /* Bordes redondeados */
+  cursor: pointer; /* Cambia el cursor al pasar por encima */
+}
+		
+.boton-redondeado2 {
+  padding: 10px 20px; /* Ajusta el padding a tu gusto */
+  background-color: #A6A09B; /* Color de fondo */
+  color: white; /* Color del texto */
+  border: none; /* Opcional: elimina el borde predeterminado */
+  border-radius: 8px; /* Bordes redondeados */
+  cursor: pointer; /* Cambia el cursor al pasar por encima */
+}
+
+/* Estilo al pasar el ratón */
+button:hover {
+  background-color: red; /* Cambia a rojo cuando el mouse está encima */
+  color: white;
+}
+		
+  	</style>
+</head>
+<body>
+
+<div class="contenedor">
+  <img id="logo" src="logo-donado3.jpg" alt="Tu Logo">
+
+  <br>
+  <br>
+  <h2>Ingreso al Sistema</h2>
+
+  <input style="padding: 10px 40px;" type="email" id="email" placeholder="Email"><br>  
+  <br>
+  <input style="padding: 10px 40px;" type="password" id="password" placeholder="Contraseña"><br>
+  <br>
+  <br>
+  <button class="boton-redondeado" style="padding: 10px 40px;" onclick="login()">Ingresar</button>
+
+  <br>
+  <br>
+  </div>
+
+  <script>
+    // --- Configuración Firebase ---
+    const firebaseConfig = {
+	  apiKey: "AIzaSyAo0PavzSFhTVMJ7zbjK77gRgoLCTXYmqo",
+	  authDomain: "donado-2.firebaseapp.com",
+	  projectId: "donado-2",
+	  storageBucket: "donado-2.firebasestorage.app",
+	  messagingSenderId: "460436618597",
+	  appId: "1:460436618597:web:c8501eeaf13f6ab155b58c",
+	  measurementId: "G-C8TGJ69VJZ"  
+    };
+
+  if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+  }
+  const auth = firebase.auth();
+  
+  // Limpiar datos previos al entrar a login
+  localStorage.removeItem("usuarioData");
+  
+  
+	function login() {
+	  const email = document.getElementById("email").value.trim();
+	  const password = document.getElementById("password").value;
+
+	  if (!email || !password) {
+		alert("Por favor, complete ambos campos.");
+		return;
+	  }
+
+	  auth.signInWithEmailAndPassword(email, password)
+		.then(userCredential => {
+				// Guardar datos básicos
+				localStorage.setItem("usuarioEmail", userCredential.user.email);
+				localStorage.setItem("usuarioUID", userCredential.user.uid);
+				window.location.href = "index.html";
+		})
+		.catch(error => {
+		  //alert("Error: " + error.message);
+		  alert("ERROR: " + "\n" + "No se pudo autenticar al usuario - Verifique los datos ingresados");
+		});
+	}
+	
+</script>
+
+</body>
+</html>

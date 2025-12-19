@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cierres Históricos</title>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+  <script src="js/auth.js"></script>  <!-- Aqui se verifica la autenticacion-->
+
+  <!-- Librerías export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <style>
+    body { font-family: Arial; background-color: #8AC0FF; margin:0; padding:20px; }
+    .contenedor{background:#fff;border-radius:10px;max-width:950px;margin:0 auto;padding:25px;box-shadow:0 0 10px rgba(0,0,0,0.2);}
+    h2 {text-align:center;background-color:#8AC0FF;border-radius:8px;padding:10px;margin-bottom:25px;}
+    .filtros { text-align:center;margin-bottom:20px; }
+    input { padding:6px; }
+    button { padding:8px 16px;background:#007bff;color:white;border:none;border-radius:6px;cursor:pointer }
+    button:hover { background:red;color:white; }
+    table { width:100%;border-collapse:collapse;margin-top:15px;font-size:13px; }
+    th,td { border:1px solid #0E0D0C;padding:8px;text-align:center; }
+    th { background:#f2f2f2; }
+    .exportar { display:flex;justify-content:center;gap:10px;margin-top:20px; }
+    .resumen { margin-top:30px;padding:15px;border-radius:8px;background:#e8f5e9; }
+  </style>
+</head>
+<body>
+  <div class="contenedor">
+    <h2>Consultar cierres Históricos</h2>
+
+    <div class="filtros">
+      <label>Fecha del cierre: <input type="date" id="fechaConsulta"></label>
+      <button onclick="consultarCierre()">Consultar</button>
+    </div>
+
+    <div id="resultado"></div>
+
+    <div class="exportar" id="botonesExportar" style="display:none;">
+      <button id="btnPDF" onclick="exportarPDF()">📄 Exportar a PDF</button>
+      <button id="btnExcel" onclick="exportarExcel()">📊 Exportar a Excel</button>
+    </div>
+
+    <div style="text-align:center;margin-top:18px;">
+      <button onclick="window.location.href='menu-caja.html'">&#8617; Volver</button>
+    </div>
+  </div>
+
+  <script>
+
+verificarSesion();
+
+    const formateadorMoneda = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
+
+    // fecha por defecto hoy
+    const hoy = new Date();
+    const yyyy = hoy.getFullYear();
+    const mm = String(hoy.getMonth()+1).padStart(2,'0');
+    const dd = String(hoy.getDate()).padStart(2,'0');
+    document.getElementById("fechaConsulta").value = `${yyyy}-${mm}-${dd}`;
+
+    // Normalizar
+    function normalizarFecha(fecha) {
+      if (!fecha) return "";
+      if (fecha.includes("/")) {
+        const [d,m,y]=fecha.split("/");
+        return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+      }
+      return fecha;
+    }
+    function fechaArg(norm) {
+      const p=norm.split("-");
+      return `${p[2]}-${p[1]}-${p[0]}`;
+    }
+    function descripcionTipoVenta(id) {
+      switch (id) {
+        case 1: return "Delivery propio";
+        case 2: return "Rappi";
+        case 3: return "PedidosYa";
+        case 4: return "Mostrador";
+        default: return "-- Indefinida --";
+      }
+    }
+
+    let ultimoResultadoHTML = ""; // para exportaciones
+    let fechaExport = "";
+
+    async function consultarCierre() {
+      const fecha = document.getElementById("fechaConsulta").value;
+      if (!fecha) { alert("Seleccione fecha"); return; }
+      const fechaNorm = normalizarFecha(fecha);
+      fechaExport = fechaNorm;
+      document.getElementById("resultado").innerHTML = "<p><b>Buscando cierre...</b></p>";
+      document.getElementById("botonesExportar").style.display = "none";
+
+      try {
+        // Formas de pago
+        const fpSnap = await db.collection("F_PAGO").get();
+        const formasPago = {};
+        fpSnap.forEach(d => { const x=d.data(); formasPago[x.id_fpago] = `${x.id_fpago} - ${x.descripcion}`; });
+
+        // Cabeceras
+        const cabSnap = await db.collection("CIERRES_CAB").where("fecha", "==", fechaNorm).get();
+        if (cabSnap.empty) {
+          document.getElementById("resultado").innerHTML = "<p>No hay cierre registrado para esta fecha.</p>";
+          return;
+        }
+
+        let html = `<h3>📅 Cierre del día ${fechaArg(fechaNorm)}</h3>`;
+        // recorrer cierres (normalmente 1)
+        for (const doc of cabSnap.docs) {
+          const cab = doc.data();
+          const fh = cab.fecha_hora_grabacion?.toDate ? cab.fecha_hora_grabacion.toDate().toLocaleString("es-AR") : (cab.fecha_string || "");
+
+          html += `<p><b>ID Cierre:</b> ${cab.id_cierre} &nbsp; &nbsp; <b>Usuario:</b> ${cab.usuario || ""} &nbsp; &nbsp; <b>Fecha/Hora grabación:</b> ${fh}</p>`;
+          html += `<p><b>Total General:</b> ${formateadorMoneda.format(cab.total_general)}</p>`;
+
+          // detalle
+          const detSnap = await db.collection("CIERRES_DET").where("id_cierre","==",cab.id_cierre).get();
+          if (detSnap.empty) {
+            html += "<p><i>No hay detalle registrado.</i></p>";
+            continue;
+          }
+
+          // agrupar por tipo
+          const agrup = {};
+          detSnap.forEach(d => {
+            const data = d.data();
+            if (!agrup[data.id_tipo_venta]) agrup[data.id_tipo_venta] = [];
+            agrup[data.id_tipo_venta].push(data);
+          });
+
+          for (const tipo in agrup) {
+            html += `<h4>${descripcionTipoVenta(parseInt(tipo))}</h4>`;
+            html += `<table class="tabla-tipo" data-tipo="${tipo}"><thead><tr><th>Forma de Pago</th><th>Total</th></tr></thead><tbody>`;
+            let subtotal = 0;
+            agrup[tipo].forEach(f => {
+              html += `<tr><td>${formasPago[f.id_fpago] || f.id_fpago}</td><td data-raw="${f.total}">${formateadorMoneda.format(f.total)}</td></tr>`;
+              subtotal += f.total;
+            });
+            html += `<tr style="font-weight:bold;background:#e8f5e9"><td style="text-align:right">Total ${descripcionTipoVenta(parseInt(tipo))}</td><td data-raw="${subtotal}">${formateadorMoneda.format(subtotal)}</td></tr>`;
+            html += `</tbody></table><br>`;
+          }
+
+          html += `<hr>`;
+        }
+
+        document.getElementById("resultado").innerHTML = html;
+        ultimoResultadoHTML = html;
+        document.getElementById("botonesExportar").style.display = "flex";
+
+      } catch (e) {
+        console.error(e);
+        document.getElementById("resultado").innerHTML = `<p style="color:red">${e.message}</p>`;
+      }
+    }
+
+    // Exportar a PDF
+    function exportarPDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      doc.html(document.getElementById("resultado"), {
+        callback: function(pdf) {
+          const nombre = `cierre-${fechaExport.split("-").reverse().join("-")}.pdf`;
+          pdf.save(nombre);
+        },
+        x:10, y:10
+      });
+    }
+
+    // Exportar a Excel: un solo sheet, concatenando todas las tablas visibles
+    function exportarExcel() {
+      // Queremos transformar las tablas en una sola hoja, respetando orden visual
+      const resultadoDiv = document.getElementById("resultado");
+      const tablas = resultadoDiv.querySelectorAll("table");
+      if (!tablas.length) { alert("No hay tablas para exportar"); return; }
+
+      const wb = XLSX.utils.book_new();
+      const rowsAll = [];
+
+      // Recorremos cada tabla en orden y agregamos filas al array
+      tablas.forEach((table, idx) => {
+        // título encima de la tabla (h4 o texto previo)
+        // buscar el título anterior (h4) o un texto con tipo
+        let titulo = "";
+        const prev = table.previousElementSibling;
+        if (prev && prev.tagName==="H4") titulo = prev.innerText;
+        else titulo = `Tabla ${idx+1}`;
+
+        rowsAll.push([titulo]);
+        const headerCells = Array.from(table.querySelectorAll("thead tr th")).map(th => th.innerText);
+        rowsAll.push(headerCells);
+
+        const trs = table.querySelectorAll("tbody tr");
+        trs.forEach(tr => {
+          const cells = Array.from(tr.querySelectorAll("td")).map(td => {
+            // si tiene atributo data-raw -> devolver número
+            const raw = td.getAttribute("data-raw");
+            if (raw !== null && raw !== undefined && !isNaN(parseFloat(raw))) {
+              return parseFloat(raw);
+            }
+            // remover símbolos $ y espacios y convertir comas a punto si parece numero
+            const txt = td.innerText.replace(/\s/g,"");
+            const numCandidate = txt.replace(/\$/g,"").replace(/\./g,"").replace(/,/g,".");
+            if (!isNaN(parseFloat(numCandidate))) return parseFloat(numCandidate);
+            return td.innerText;
+          });
+          rowsAll.push(cells);
+        });
+
+        rowsAll.push([]); // fila vacía separadora
+      });
+
+      // Convertir rowsAll (array de arrays) a worksheet
+      const ws = XLSX.utils.aoa_to_sheet(rowsAll);
+      XLSX.utils.book_append_sheet(wb, ws, "Cierre");
+      const nombre = `cierre-${fechaExport.split("-").reverse().join("-")}.xlsx`;
+      XLSX.writeFile(wb, nombre);
+    }
+  </script>
+
+<script src="js/medidor.js"></script>
+
+</body>
+</html>

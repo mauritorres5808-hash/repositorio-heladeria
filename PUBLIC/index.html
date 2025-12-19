@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Menú principal</title>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+<script src="js/auth.js"></script>  <!-- 🔹 Aquí se verifica la autenticacion-->
+
+	<style>
+    table {
+      width: 60%;
+      border-collapse: collapse;
+      margin: 20px auto;
+    }
+
+	body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 10px;
+            /* OPCIÓN 1: Fondo de color. Descomenta para usar. */
+             background-color: #8AC0FF; /*#B8E6FE;*/
+            
+            /* OPCIÓN 2: Imagen de fondo. Descomenta estas líneas para usar. */
+             /*background-image: url('https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80');*/  /* Reemplaza con tu URL o ruta local */
+			 /*background-image: url('fondo-claro.jpeg');*/
+			 /*background-image: url('1.jpg');*/
+			 
+             background-size: cover; 
+             background-repeat: no-repeat; 
+             background-position: center; 
+             background-attachment: fixed;  /* Opcional: fija la imagen al scroll */
+        }
+
+
+    .contenedor {
+      max-width: 520px;
+      margin: auto;
+      background: #FEF5E7; /*#FFFDE6;  /* #fff; */
+      padding: 10px;
+      font-size: 18px;
+      border-radius: 8px;
+	  border: 1px solid #0E0D0C;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    }
+
+
+    /* Centrar el contenido dentro de cada celda */
+    td {
+      text-align: center;
+      vertical-align: middle;
+      padding: 10px;
+      border: 0px solid #0E0D0C;
+    }
+	
+.boton-redondeado,
+.boton-redondeado3 {
+  width: 180px;              /* Mismo ancho */
+  height: 70px;              /* Mismo alto */
+  background-color: #007bff; /* Color por defecto */
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+  display: flex;             /* Centrar texto dentro */
+  flex-direction: column;    /* Permitir varias líneas */
+  justify-content: center;   /* Centrado vertical */
+  align-items: center;       /* Centrado horizontal */
+  text-align: center;        /* Centrar texto */
+  line-height: 1.2;          /* Espaciado entre líneas */
+  padding: 5px;              /* Menor padding para evitar desbordes */
+  box-sizing: border-box;    /* Incluye padding en el alto total */
+}
+
+.boton-redondeado2 {
+  width: 180px;              /* Mismo ancho */
+  height: 70px;              /* Mismo alto */
+  background-color: #4E4E55; /* Color por defecto */
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+  display: flex;             /* Centrar texto dentro */
+  flex-direction: column;    /* Permitir varias líneas */
+  justify-content: center;   /* Centrado vertical */
+  align-items: center;       /* Centrado horizontal */
+  text-align: center;        /* Centrar texto */
+  line-height: 1.2;          /* Espaciado entre líneas */
+  padding: 5px;              /* Menor padding para evitar desbordes */
+  box-sizing: border-box;    /* Incluye padding en el alto total */
+}
+
+.boton-salirvolver {
+  background-color: #555;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 30px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+	
+/* Botón verde (solo cambia color base) */
+.boton-redondeado3 {
+  background-color: green;
+}
+/* Opcional: hacer que <small> se vea armónico */
+button small {
+  font-size: 13px;
+  font-weight: normal;
+  opacity: 0.9;
+}
+
+    
+	#logo {
+            /* position: absolute;*/ /* Fija la posición */
+            left: 120px; /* Margen izquierdo */
+            top: 20px; /* Margen superior */
+            width: 250px; /* Tamaño pequeño */
+            height: auto; /* Mantiene proporciones */
+            z-index: 1; /* Por encima de otros elementos si es necesario */
+            border-radius: 15px; /* Opcional: bordes redondeados */
+            box-shadow: 0 12px 15px rgba(0,0,0,0.2); /* Opcional: sombra para resaltar */
+        }  
+	#logo2 {
+            /* position: absolute;*/ /* Fija la posición */
+            left: 120px; /* Margen izquierdo */
+            top: 20px; /* Margen superior */
+            width: 147px; /* Tamaño pequeño */
+            height: auto; /* Mantiene proporciones */
+            z-index: 1; /* Por encima de otros elementos si es necesario */
+            border-radius: 15px; /* Opcional: bordes redondeados */
+            box-shadow: 0 12px 15px rgba(0,0,0,0.2); /* Opcional: sombra para resaltar */
+        }  
+	#logo3 {
+            /* position: absolute;*/ /* Fija la posición */
+            left: 120px; /* Margen izquierdo */
+            top: 20px; /* Margen superior */
+            width: 170px; /* Tamaño pequeño */
+            height: auto; /* Mantiene proporciones */
+            z-index: 1; /* Por encima de otros elementos si es necesario */
+            border-radius: 15px; /* Opcional: bordes redondeados */
+            box-shadow: 0 12px 15px rgba(0,0,0,0.2); /* Opcional: sombra para resaltar */
+        }  
+
+    /* Efecto hover */
+    button:hover {
+      background-color: red;
+      color: white;
+    }
+
+	h4 {
+		text-align: center;
+		background-color: #8AC0FF;
+		padding: 8px;
+		border-radius: 8px;
+		margin-top: 0;
+		margin-bottom: 0;
+	}
+
+
+/* El modal en sí */
+.modal {
+  display: none; /* Oculto por defecto */
+  position: fixed; /* Se queda fijo en la pantalla */
+  z-index: 1; /* Por encima de todo */
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto; /* Permite scroll si el contenido es grande */
+  background-color: rgba(0,0,0,0.4); /* Fondo semitransparente */
+}
+
+/* Contenido del modal */
+.modal-content {
+  background-color: #E7FDF9; /*#007bff;/*#fefefe;*/
+  margin: 15% auto; /* Centra el modal */
+  padding: 20px;
+  border: 5px solid white;/* #888;*/
+  border-radius: 28px;
+  width: 20%;
+  color: black;
+}
+
+/* El botón para cerrar */
+.close {
+  color: #aaa;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.close:hover,
+.close:focus {
+  color: black;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+
+	</style>
+	<link rel="stylesheet" href="css/style.css">
+
+</head>
+
+<body>
+	<img id="logo" src="logo-donado3.jpg" alt="Tu Logo">
+	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	<img id="logo2" src="mi-logo2-dedo.png" alt="Tu Logo" title="haga click para ver contacto" onclick="contacto()" style="cursor:pointer">
+<br><br>
+
+<!-- La ventana modal que se mostrará -->
+<div id="miModal" class="modal">
+  <div class="modal-content">
+    <span class="close">&times;</span>
+	<img id="logo3" src="mi-logo2.png" alt="Tu Logo">
+<br><br>	
+	<h4 class="titulo">Contacto y Soporte Tecnico</h4>
+    <h3><b>Mauricio Torres</h3>
+    <p>T.E.: 113469-2013</p>
+    <p>torres_m_a@hotmail.com</b></p>
+  </div>
+</div>
+
+	<div id="resultado"></div>
+<br>
+<div style=" max-width: 520px; margin: auto;" >Usuario: <b><span id="userLabel"></span></div>
+<br>
+	<div class="contenedor">
+
+<!--   <h5 id="tit-fecha"></h5> -->
+  <h4 class="titulo">MENU PRINCIPAL</h4>
+   <!-- <div id="usuario" style="text-align:center;margin-bottom:8px; font-size:14px"></div> -->
+
+
+    <div class="contenedor-nu">
+      <table>
+<!--
+        <tr>
+			<td>
+			  <button class="boton-redondeado3" onclick="location.href='totales_caja-sincro.html'">Totales x Forma de Pago<br><small>(con sincronizacion)</small></button>
+			</td>
+			<td>
+			  <button class="boton-redondeado3" onclick="location.href='stock-sincro.html'">Stock de Productos<br><small>(con sincronizacion)</small></button>
+			</td>
+        </tr>
+-->
+        <tr>
+			<td>
+			  <button class="boton-redondeado" onclick="location.href='menu-tablas.html'">&#128221; Tablas</button>
+			</td>
+			<td>
+			  <button class="boton-redondeado" onclick="location.href='menu-ventas.html'">&#128178; Ventas</button>
+			</td>
+        </tr>
+
+        <tr>
+			<td>
+			  <button class="boton-redondeado" onclick="location.href='menu-compras.html'">&#127981; Compras</button>
+			</td>
+			<td>
+			  <button class="boton-redondeado" onclick="location.href='menu-caja.html'">&#128176; Caja</button>
+			</td>
+        </tr>
+        <tr>
+			<td>
+			  <button class="boton-redondeado" onclick="location.href='menu-general.html'">&#128273; General</button>
+			</td>
+			<td>
+		<!--	  <button class="boton-redondeado" onclick="location.href='otra.html'">otra opcion</button> -->
+			</td>
+        </tr>
+      </table>
+
+<div style="text-align: center; margin-top: 20px;">
+  <button class="boton-salirvolver" onclick="logout()">Salir</button>
+</div>
+
+    </div>
+    </div>
+
+  <script>
+
+/*
+  // Mostrar la fecha actual con formato DD/MM/YYYY
+  const hoy = new Date();
+  const fechaFormateada = hoy.toLocaleDateString('es-AR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  });
+
+  // Mostrar el dia de la semana
+  const opciones = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+  const diaDeLaSemana = hoy.toLocaleDateString('es-ES', { weekday: 'long' });
+document.getElementById("tit-fecha").textContent = "___________ " + diaDeLaSemana + " " + fechaFormateada + " ___________";
+*/
+
+verificarSesion(); 
+document.getElementById("userLabel").textContent = localStorage.getItem("usuarioEmail");
+
+function mostrarEmpresa(data) {
+    let html = `  
+        <h4 style="color: black; background:white; border-radius:8px; font-size:20px; padding:5px; max-width: 520px;margin: auto; box-shadow: 0 12px 15px rgba(0,0,0,0.2);">
+            Bienvenido a: `;
+
+    if (!data) {
+        html += "<span style='color:red'>No se encontraron los datos de la empresa</span></h4>";
+    } else {
+        html += `<span style="color: blue;">${data.nombre_empresa}</span></h4>`;
+    }
+
+    document.getElementById("resultado").innerHTML = html;
+}
+
+function buscarDatosEmpresa() {
+    const empresaGuardada = localStorage.getItem("empresaData");
+
+    // 🔹 Si ya tenemos los datos guardados → NO leer Firestore
+    if (empresaGuardada) {
+        mostrarEmpresa(JSON.parse(empresaGuardada));
+        return;
+    }
+
+    // 🔹 Si no está guardado → leer Firestore UNA sola vez
+    db.collection("EMPRESA")
+        .get()
+        .then((querySnapshot) => {
+            if (querySnapshot.empty) {
+                mostrarEmpresa(null);
+                return;
+            }
+
+            // Asumo que solo hay un documento en EMPRESA
+            const data = querySnapshot.docs[0].data();
+
+            // Guardar en localStorage
+            localStorage.setItem("empresaData", JSON.stringify(data));
+
+            // Mostrar datos
+            mostrarEmpresa(data);
+        })
+        .catch((error) => {
+            console.error("Error buscando datos de la empresa: ", error);
+        });
+}
+
+function logout() {
+    firebase.auth().signOut();
+    localStorage.removeItem("usuarioData");
+    window.location.href = "login.html";
+}
+
+	// Inicializar datos al cargar la página
+    window.onload = buscarDatosEmpresa;
+
+
+// Obtener los elementos del DOM
+var modal = document.getElementById("miModal");
+var img = document.querySelector("logo2"); // Selecciona la imagen
+var span = document.getElementsByClassName("close")[0];
+
+// Cuando el usuario hace clic en la imagen, abrir el modal
+function contacto() {
+  modal.style.display = "block";
+}
+
+// Cuando el usuario hace clic en el span (X), cerrar el modal
+span.onclick = function() {
+  modal.style.display = "none";
+}
+
+// Cierra el modal si el usuario hace clic fuera de él
+window.onclick = function(event) {
+  if (event.target == modal) {
+    modal.style.display = "none";
+  }
+}
+
+  </script>
+</body>
+</html>

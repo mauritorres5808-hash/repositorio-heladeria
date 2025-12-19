@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Modificar Formas de Pago - Compras</title>
+
+  <!-- Firebase v8 (compatible con firestore) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<script src="js/auth.js"></script>  <!-- Aqui se verifica la autenticacion-->
+
+  <style>
+    /* Estilos coherentes con tus otras páginas */
+    body { font-family: Arial; background:#8AC0FF; margin:0; padding:20px; }
+    .contenedor { max-width:1050px; margin:auto; background:#fff; padding:20px; border-radius:8px; box-shadow:0 0 8px rgba(0,0,0,0.15); }
+    h2 { text-align:center; background:#8AC0FF; padding:10px; border-radius:8px; margin-top:0; }
+    .filtros { text-align:center; margin-bottom:16px; }
+    label { margin-right:10px; }
+    input[type=date] { padding:6px; }
+	input, select {
+      padding: 6px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      margin-top: 4px;
+      font-size: 14px;
+    }
+    button { padding:8px 14px; background:#007bff; color:#fff; border:none; border-radius:6px; cursor:pointer; }
+
+    button:hover { background-color: red; color: white; }
+
+    table { width:100%; border-collapse:collapse; margin-top:12px; font-size:13px; }
+    th, td { border:1px solid #0E0D0C; padding:8px; text-align:center; }
+    th { background:#f2f2f2; }
+    .acciones button { margin:2px; }
+    .nota { text-align:center; margin-top:10px; color:#555; }
+    /* Modal simple */
+    .modal { display:none; position:fixed; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.5); justify-content:center; align-items:center; z-index:1000; }
+    .modal-contenido { background:#fff; padding:18px; border-radius:8px; width:90%; max-width:800px; max-height:85vh; overflow:auto; box-shadow:0 6px 18px rgba(0,0,0,0.25); }
+    .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+    .modal-header h3 { margin:0; }
+    .close { cursor:pointer; color:red; font-weight:bold; }
+    .fila { display:flex; gap:12px; align-items:center; margin:8px 0; flex-wrap:wrap; }
+    .label { width:160px; font-weight:bold; text-align:right; }
+    select, input[readonly] { padding:6px; min-width:200px; }
+    .text-right { text-align:right; }
+    .btn-confirm { background:#28a745; }
+    .btn-confirm:hover { background:#1f8f3a; }
+    .btn-cancel { background:#6c757d; }
+    .btn-cancel:hover { background:#51585d; }
+    .msg { margin-top:10px; font-weight:bold; text-align:center; }
+  </style>
+</head>
+<body>
+  <div class="contenedor">
+    <h2>Modificar Formas de Pago - Compras (sin cierre)</h2>
+
+    <div id="usuario" style="text-align:center;margin-bottom:8px"></div>
+
+    <br>
+    <div class="filtros">
+      <label>Fecha: <input type="date" id="fechaConsulta"></label>
+      <button onclick="buscarComprasPorFecha()">&#128269; Buscar</button>
+    </div>
+
+    <div id="resultado">
+      <!-- Aquí se mostrará la tabla de compras -->
+    </div>
+
+    <br>
+    <div style="margin-top:18px;display:flex;justify-content:center;gap:10px;">
+      <button onclick="window.location.href='menu-compras.html'">&#8617; Volver</button>
+    </div>
+  </div>
+
+  <!-- Modal: Modificar formas de pago -->
+  <div id="modalModificar" class="modal">
+    <div class="modal-contenido">
+      <div class="modal-header">
+        <h3 id="modalTitulo" style="color:red;">Modificar forma de pago</h3>
+        <span class="close" onclick="cerrarModalModificar()">×</span>
+      </div>
+
+      <div id="modalBody">
+        <div class="fila"><div class="label">Nro Compra:</div><div id="m_nrocompra"></div>
+        <div class="fila"><div class="label">Fecha:</div><div id="m_fecha"></div></div>
+        <div class="fila"><div class="label">Total:</div><div id="m_total"></div></div>
+</div>
+        <hr>
+
+        <div class="fila">
+          <div class="label">Forma Pago actual: </div>
+          <div id="m_fpago1_actual"></div>
+          <div class="label">Importe : </div>
+          <div id="m_imp1_actual" class="text-right"></div>
+        </div>
+
+        <div class="fila">
+          <div class="label">Nueva forma pago: </div>
+          <select id="m_fpago1_nuevo" onchange="recalcularImportesModal(0)">
+            <option value="">-- (vacío) --</option>
+          </select>
+          <div class="label" style="display:none">Importe nuevo: </div>
+          <input id="m_imp1_nuevo" style="display:none" />
+        </div>
+
+        <hr>
+
+        <br>
+        <div class="msg" style="color:red" id="msgModal"></div>
+
+        <div style="display:flex;justify-content:center;gap:10px;margin-top:12px;">
+          <button class="btn-confirm" onclick="confirmarCambio()">&#128190; Guardar cambios</button>
+          <button class="btn-cancel" onclick="cerrarModalModificar()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Detalle (productos) -->
+  <div id="modalDetalle" class="modal">
+    <div class="modal-contenido">
+      <div class="modal-header">
+        <h3>Detalle de productos</h3>
+        <span class="close" onclick="cerrarModalDetalle()">×</span>
+      </div>
+      <div id="detalleContenido"></div>
+    </div>
+  </div>
+
+<script>
+
+verificarSesion();
+
+
+  const formateador = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
+
+  // comprobar auth
+  firebase.auth().onAuthStateChanged(user => {
+    if (!user) {
+      window.location.href = "login.html";
+      return;
+    }
+    document.getElementById("usuario").innerHTML = `Usuario: <b>${user.email}</b>`;
+  });
+
+  // helpers de fecha
+  function normalizarFechaDesdeDDMMYYYY_a_YYYYMMDD(fechaStr) {
+    // espera "DD/MM/YYYY" -> devuelve "YYYY-MM-DD"
+    if (!fechaStr) return "";
+    if (fechaStr.includes("/")) {
+      const [d,m,y] = fechaStr.split("/");
+      return `${y}-${m.padStart(2,"0")}-${d.padStart(2,"0")}`;
+    }
+    // si ya viene "YYYY-MM-DD" devolver igual
+    if (fechaStr.includes("-")) return fechaStr;
+    return fechaStr;
+  }
+
+  // Map de formas de pago (id -> "id - descripcion")
+  let MAP_FP = {};
+
+  // cargar formas de pago habilitadas (deshabilitado != "S")
+  async function cargarFormasPagoMapa() {
+    MAP_FP = {};
+    try {
+      const snap = await db.collection("F_PAGO").orderBy("descripcion").get();
+      snap.forEach(doc => {
+        const d = doc.data();
+        // incluir todas, pero marcar deshabilitado si corresponde
+        //MAP_FP[d.id_fpago] = `${d.id_fpago} - ${d.descripcion}`;
+        MAP_FP[d.id_fpago] = `${d.descripcion}`;
+      });
+    } catch (e) {
+      console.error("Error cargando formas de pago:", e);
+    }
+  }
+
+  // Buscar compras por fecha (input YYYY-MM-DD) -> comparar con campo fecha 'DD/MM/YYYY'
+  async function buscarComprasPorFecha() {
+    const fechaInput = document.getElementById("fechaConsulta").value;
+    const resultado = document.getElementById("resultado");
+    if (!fechaInput) { alert("Seleccione una fecha."); return; }
+    resultado.innerHTML = "<p style='text-align:center'>🔄 Buscando compras...</p>";
+
+    await cargarFormasPagoMapa();
+
+    try {
+      // traigo todas las compras del día comparando normalizadas
+      const snap = await db.collection("COMPRAS_CAB").get();
+      const compras = snap.docs.map(d => ({ docId: d.id, ...d.data() })).filter(v => {
+        const fNorm = normalizarFechaDesdeDDMMYYYY_a_YYYYMMDD(v.fecha);
+		const estados = v.anulada === "N";
+		const cierres = v.id_cierre === 0;
+        return fNorm === fechaInput && estados && cierres;
+      });
+
+      if (compras.length === 0) {
+        resultado.innerHTML = "<p style='text-align:center'>No se encontraron compras para esa fecha.</p>";
+        return;
+      }
+
+      // construir tabla
+      let html = `<table>
+        <thead><tr>
+          <th>Hora Compra</th><th>N° Compra</th><th>Total</th>
+          <th>FPago </th><th>Acciones</th>
+        </tr></thead><tbody>`;
+
+      for (const v of compras.sort((a,b)=> (a.hora||"") < (b.hora||"") ? -1 : 1)) {
+
+        const fp1txt = MAP_FP[v.f_pago1] || (v.f_pago1 ? v.f_pago1 : "");
+
+        const imp1 = v.importe_fp1 || 0;
+
+        const tieneCierre = (typeof v.id_cierre !== "undefined" && v.id_cierre !== 0 && v.id_cierre !== null && v.id_cierre !== "");
+        html += `<tr>
+          <td>${v.hora || ""}</td>
+          <td>${v.id_compra}</td>
+          <td>${formateador.format(v.total || 0)}</td>
+          <td>${fp1txt}</td>
+          <td class="acciones">
+            <button onclick="verDetalleCompra(${v.id_compra})">Ver</button>
+            ${tieneCierre ? '' : `<button onclick="abrirModalModificar(${v.id_compra})">&#9999;&#65039; Modificar FP</button>`}
+          </td>
+        </tr>`;
+      }
+
+      html += `</tbody></table>`;
+      resultado.innerHTML = html;
+
+    } catch (e) {
+      console.error(e);
+      resultado.innerHTML = `<p style="color:red;text-align:center">Error: ${e.message}</p>`;
+    }
+  }
+
+
+
+  // ---------------- Modal Modificar ----------------
+  let compraEditando = null; // objeto de la compra seleccionada (campos del documento + docId)
+
+  async function abrirModalModificar(idCompra) {
+    // buscamos el documento por id_compra
+    try {
+      const snap = await db.collection("COMPRAS_CAB").where("id_compra", "==", idCompra).limit(1).get();
+      if (snap.empty) { alert("No se encontró la compra."); return; }
+      const doc = snap.docs[0];
+      compraEditando = { docId: doc.id, ...doc.data() };
+
+      // cargar formas de pago disponibles (deshabilitado != "S")
+      const fpsnap = await db.collection("F_PAGO").orderBy("descripcion").get();
+      const fpSelect1 = document.getElementById("m_fpago1_nuevo");
+      fpSelect1.innerHTML = `<option value="">-- (vacío) --</option>`;
+      fpsnap.forEach(fdoc => {
+        const f = fdoc.data();
+        if (f.deshabilitado === "S") return; // no incluir deshabilitadas
+        //const label = `${f.id_fpago} - ${f.descripcion}`;
+        const label = `${f.descripcion}`;
+        fpSelect1.innerHTML += `<option value="${f.id_fpago}">${label}</option>`;
+      });
+
+      // Rellenar datos actuales en modal
+      document.getElementById("m_nrocompra").textContent = compraEditando.id_compra;
+      document.getElementById("m_fecha").textContent = compraEditando.fecha || "";
+      document.getElementById("m_total").textContent = formateador.format(compraEditando.total || 0);
+
+      document.getElementById("m_fpago1_actual").textContent = MAP_FP[compraEditando.f_pago1] || (compraEditando.f_pago1 ? compraEditando.f_pago1 : "");
+      document.getElementById("m_imp1_actual").textContent = formateador.format(compraEditando.total || 0);
+
+      // inicializar selects -> por defecto mostrar las formas actuales si están habilitadas
+      // si la forma actual está deshabilitada, dejamos vacío para forzar nueva selección
+      const trySelectOption = (selectEl, val) => {
+        if (!val && (val !== 0)) { selectEl.value = ""; return; }
+        // buscar si la opción existe en el select
+        const opt = Array.from(selectEl.options).find(o => o.value == String(val));
+        if (opt) selectEl.value = String(val);
+        else selectEl.value = "";
+      };
+
+      trySelectOption(document.getElementById("m_fpago1_nuevo"), compraEditando.f_pago1);
+
+      // set importes nuevos inicialmente iguales a actuales (si select vacío, se manejará en recalc)
+      document.getElementById("m_imp1_nuevo").value = (compraEditando.total || 0).toFixed(2);
+
+      // abrir modal
+      document.getElementById("msgModal").textContent = "";
+      document.getElementById("modalModificar").style.display = "flex";
+
+      // recalcular para forzar lógica (en caso de selects vacíos)
+      recalcularImportesModal(0);
+
+    } catch (e) {
+      console.error(e);
+      alert("Error al cargar la compra: " + e.message);
+    }
+  }
+
+  function cerrarModalModificar() {
+    compraEditando = null;
+    document.getElementById("modalModificar").style.display = "none";
+  }
+
+  // recalcula importes del modal segun selección
+  function recalcularImportesModal(pCual) {
+    if (!compraEditando) return;
+    const total = parseFloat(compraEditando.total || 0);
+    const orig1 = parseFloat(compraEditando.importe_fp1 || 0);
+	//alert("orig1:" + orig1);
+
+    let nuevo1 = parseFloat(document.getElementById("m_imp1_nuevo").value) || 0;
+	//alert("nuevo1:" + nuevo1);
+
+    const sel1 = document.getElementById("m_fpago1_nuevo").value;
+
+	//segun el importe que se modifico - controlo contra el total
+	if (pCual==1) // se modifico el importe 1
+		{ 
+			 imp1 = nuevo1;
+		} 
+		else // no se modifico ningun importe
+			{
+				 imp1 = nuevo1;
+			}
+
+    // asegurar que suma sea igual al total (pequeñas diferencias por float)
+    const suma = +(imp1 + 0).toFixed(2);
+//alert("suma:" + suma);
+//alert("total:" + total);
+
+/*
+    // si el total difiere y total != suma, ajustar imp1 para que coincida (evita validación estricta)
+    if (Math.abs(suma - total) > 0.009) {
+      // preferimos mantener proporción original si hay importes no cero
+      const sumaOrig = orig1 + orig2 || 1;
+      const factor = total / sumaOrig;
+      imp1 = +(orig1 * factor).toFixed(2);
+      imp2 = +(orig2 * factor).toFixed(2);
+      // ajustar último centavo
+      const diff = +(total - (imp1 + imp2)).toFixed(2);
+      imp1 = +(imp1 + diff).toFixed(2);
+    }
+*/
+
+    document.getElementById("m_imp1_nuevo").value = imp1.toFixed(2);
+
+    // limpiar mensaje
+    document.getElementById("msgModal").textContent = "";
+  }
+
+  // confirmar cambio -> validaciones y escribir en Firestore
+  async function confirmarCambio() {
+    if (!compraEditando) return alert("No hay compra seleccionada.");
+	
+    const sel0 = compraEditando.f_pago1; // forma de pago actual
+    const sel1 = document.getElementById("m_fpago1_nuevo").value; // forma de pago nueva
+    const imp1 = parseFloat(document.getElementById("m_imp1_nuevo").value) || 0;
+    const total = parseFloat(compraEditando.total || 0);
+
+    // Validaciones
+    if (!sel1) {
+      document.getElementById("msgModal").textContent = "Seleccione una forma de pago nueva.";
+      return;
+    }
+	
+    if (sel1 == sel0) {
+      document.getElementById("msgModal").textContent = "Seleccione una forma de pago diferente a la actual.";
+      return;
+    }
+	
+    if (sel1 && imp1 ==0) {
+      document.getElementById("msgModal").textContent = "No puede dejar el importe nuevo en cero.";
+      return;
+    }
+    if (Math.abs((imp1 + 0) - total) > 0.01) {
+      document.getElementById("msgModal").textContent = "El importe no coincide con el total de la compra. - Verificar -";
+      return;
+    }
+
+    try {
+      document.getElementById("msgModal").textContent = "🔄 Guardando cambios...";
+      // buscar doc por id_compra
+      const snap = await db.collection("COMPRAS_CAB").where("id_compra", "==", compraEditando.id_compra).limit(1).get();
+      if (snap.empty) { alert("No se encontró el documento para actualizar."); document.getElementById("msgModal").textContent = ""; return; }
+      const docRef = snap.docs[0].ref;
+
+      // preparar objeto update (nuevos valores)
+      const updateObj = {
+        f_pago1: sel1 ? parseInt(sel1) : 0,
+        importe_fp1: +(imp1.toFixed(2)),		  
+		fp_descrip: MAP_FP[sel1]
+      };
+
+      await docRef.update(updateObj);
+
+		// === Registrar auditoría ===
+		try {
+		  const user = firebase.auth().currentUser;
+		  const emailUser = user ? user.email : "desconocido";
+  
+		  // buscar el usuario por email para obtener su id_usuario
+		  let idUsuario = 0;
+		  const snapUsr = await db.collection("USUARIOS").where("email", "==", emailUser).limit(1).get();
+		  if (!snapUsr.empty) idUsuario = snapUsr.docs[0].data().id_usuario;
+
+		  const fecha = new Date();
+		  const fechaStr = fecha.toLocaleDateString("es-AR");
+		  const horaStr = fecha.toLocaleTimeString("es-AR", { hour12: false });
+
+		  const auditoriaData = {
+			id_usuario: idUsuario,
+			email: emailUser,
+			tipo: "FP", // cambio de forma de pago
+			fecha: fechaStr,
+			hora: horaStr,
+			id_compra: compraEditando.id_compra,
+			fecha_compra: compraEditando.fecha,
+			valor_anterior: {
+			  f_pago1: compraEditando.f_pago1 || 0,
+			  importe_fp1: compraEditando.total || 0,
+			  fp_descrip: MAP_FP[compraEditando.f_pago1]
+			},
+			valor_nuevo: updateObj
+		  };
+
+		  await db.collection("COMPRAS_AUDITORIA").add(auditoriaData);
+		  console.log("Auditoría registrada correctamente.");
+		} catch (errAud) {
+		  console.error("Error registrando auditoría:", errAud);
+		}
+
+
+		document.getElementById("msgModal").textContent = "✅ Cambios guardados.";
+		// cerrar modal tras breve delay y recargar lista
+		setTimeout(() => {
+			cerrarModalModificar();
+			buscarComprasPorFecha();
+		}, 700);
+
+    } catch (e) {
+      console.error(e);
+      document.getElementById("msgModal").textContent = "Error al guardar: " + e.message;
+    }
+  }
+
+  // ---------------- Modal Detalle ----------------
+  async function verDetalleCompra(idCompra) {
+    try {
+      const snap = await db.collection("COMPRAS_DET").where("id_compra","==", idCompra).get();
+      let html = `<h4>Compra N° ${idCompra}</h4>`;
+      if (snap.empty) {
+        html += "<p>No hay productos para esta compra.</p>";
+      } else {
+        html += `<table><thead><tr><th>Código</th><th>Descripción</th><th>Precio</th><th>Cantidad</th><th>Subtotal</th></tr></thead><tbody>`;
+        for (const d of snap.docs) {
+          const pd = d.data();
+        
+			// busco descripcion del producto
+			let descripcion = "";
+			const prodSnap = await db.collection("PRODUCTOS").where("id_producto", "==", pd.id_producto).limit(1).get();
+			descripcion = !prodSnap.empty ? prodSnap.docs[0].data().descripcion : "(No encontrada)";
+
+          html += `<tr>
+            <td>${pd.id_producto}</td>
+			<td>${descripcion}</td>
+            <td>${formateador.format(pd.precio || 0)}</td>
+            <td>${pd.cantidad}</td>
+            <td>${formateador.format(pd.subtotal || 0)}</td>
+          </tr>`;
+        }
+        html += `</tbody></table>`;
+      }
+      document.getElementById("detalleContenido").innerHTML = html;
+      document.getElementById("modalDetalle").style.display = "flex";
+    } catch (e) {
+      console.error(e);
+      alert("Error al obtener detalle: " + e.message);
+    }
+  }
+  function cerrarModalDetalle() { document.getElementById("modalDetalle").style.display = "none"; }
+
+  // cerrar clic fuera
+  window.onclick = function(ev) {
+    const modal = document.getElementById("modalModificar");
+    const modalDet = document.getElementById("modalDetalle");
+    if (ev.target === modal) cerrarModalModificar();
+    if (ev.target === modalDet) cerrarModalDetalle();
+  };
+
+  // inicializar fecha con hoy
+  (function init(){
+    const hoy = new Date();
+    const yyyy = hoy.getFullYear();
+    const mm = String(hoy.getMonth()+1).padStart(2,'0');
+    const dd = String(hoy.getDate()).padStart(2,'0');
+    document.getElementById("fechaConsulta").value = `${yyyy}-${mm}-${dd}`;
+    // preload map
+    cargarFormasPagoMapa();
+  })();
+
+</script>
+
+<script src="js/medidor.js"></script>
+
+</body>
+</html>

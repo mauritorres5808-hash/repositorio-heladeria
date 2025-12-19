@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+   <!-- Firebase v8 -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<script src="js/auth.js"></script>  <!-- Aquí se verifica la autenticacion-->
+
+  <title>Menú de Tablas</title>
+
+  <style>
+    table {
+      width: 60%;
+      border-collapse: collapse;
+      margin: 20px auto;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #8AC0FF;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .contenedor {
+      max-width: 440px;
+      margin: auto;
+      background: #FFFDE6; /* #fff; */
+      padding: 20px;
+      font-size: 18px;
+      border-radius: 8px;
+	  	  border: 1px solid #0E0D0C;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Centrar el contenido dentro de cada celda */
+    td {
+      text-align: center;
+      vertical-align: middle;
+      padding: 10px;
+      border: 0px solid #0E0D0C;
+    }
+
+.boton-redondeado,
+.boton-redondeado3 {
+  width: 180px;              /* Mismo ancho */
+  height: 70px;              /* Mismo alto */
+  background-color: #007bff; /* Color por defecto */
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+  display: flex;             /* Centrar texto dentro */
+  flex-direction: column;    /* Permitir varias líneas */
+  justify-content: center;   /* Centrado vertical */
+  align-items: center;       /* Centrado horizontal */
+  text-align: center;        /* Centrar texto */
+  line-height: 1.2;          /* Espaciado entre líneas */
+  padding: 5px;              /* Menor padding para evitar desbordes */
+  box-sizing: border-box;    /* Incluye padding en el alto total */
+}
+
+.boton-redondeado2 {
+  width: 180px;              /* Mismo ancho */
+  height: 70px;              /* Mismo alto */
+  background-color: #4E4E55; /* Color por defecto */
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+  display: flex;             /* Centrar texto dentro */
+  flex-direction: column;    /* Permitir varias líneas */
+  justify-content: center;   /* Centrado vertical */
+  align-items: center;       /* Centrado horizontal */
+  text-align: center;        /* Centrar texto */
+  line-height: 1.2;          /* Espaciado entre líneas */
+  padding: 5px;              /* Menor padding para evitar desbordes */
+  box-sizing: border-box;    /* Incluye padding en el alto total */
+}
+
+.boton-salirvolver {
+  background-color: #555;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 30px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+	
+/* Botón verde (solo cambia color base) */
+.boton-redondeado3 {
+  background-color: green;
+}
+/* Opcional: hacer que <small> se vea armónico */
+button small {
+  font-size: 11px;
+  font-weight: normal;
+  opacity: 0.9;
+}
+	
+    /* Efecto hover */
+    button:hover {
+      background-color: red;
+      color: white;
+    }
+
+    h3 {
+      text-align: center;
+      background-color: #8AC0FF;
+      padding: 10px;
+      border-radius: 8px;
+    }
+  </style>
+
+</head>
+
+<body>
+  <div class="contenedor">
+    <h3>&#128221; Menú de TABLAS</h3>
+
+    <table>
+      <tr>
+        <td>
+          <button class="boton-redondeado" onclick="location.href='grupos.html'">Grupos</button>
+        </td>
+        <td>
+          <button class="boton-redondeado" onclick="location.href='productos.html'">Productos</button>
+        </td>
+      </tr>
+
+      <tr>
+        <td>
+          <button class="boton-redondeado" onclick="location.href='stock.html'">Stock de Productos</button>
+        </td>
+        <td>
+          <button class="boton-redondeado" onclick="location.href='fpago.html'">Formas de Pago</button>
+        </td>
+      </tr>
+
+      <tr>
+        <td>
+          <button class="boton-redondeado" onclick="location.href='clientes.html'">Clientes</button>
+        </td>
+        <td>
+          <button class="boton-redondeado" onclick="location.href='clientes-listado.html'">Listado de Clientes</button>
+        </td>
+      </tr>
+
+
+      <tr>
+        <td colspan="2">
+          <button class="boton-salirvolver" onclick="location.href='index.html'">&#8617; Volver</button>
+        </td>
+      </tr>
+    </table>
+<div style="text-align:center; font-size:13px; border: 0px solid #0E0D0C; max-width: 520px; margin: auto; border-radius:8px;">Usuario: <b><span id="userLabel"></span></div>
+
+  </div>
+
+<script>
+verificarSesion(); 
+document.getElementById("userLabel").textContent = localStorage.getItem("usuarioEmail");
+</script>
+
+
+</body>
+</html>

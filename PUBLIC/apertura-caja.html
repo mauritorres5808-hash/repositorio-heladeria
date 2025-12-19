@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Apertura de Caja</title>
+
+  <!-- Firebase v8 -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<script src="js/auth.js"></script>  <!-- ?? Aquí se verifica la autenticacion-->
+
+  <style>
+    body{
+      font-family: Arial;
+      background:#f3f3f3;
+      margin:0;
+      padding:20px;
+      background-color: #8AC0FF;
+    }
+    .contenedor{max-width:820px;margin:auto;background:#fff;padding:20px;border-radius:8px}
+    h2 {text-align:center;background-color:#8AC0FF;padding:10px;border-radius:8px;}
+    label {display:block;margin-top:10px;}
+	input, select {
+      padding: 6px;
+      border-radius: 5px;
+      border: 1px solid #999;
+    }	
+
+	    button { padding:8px 16px;background:#007bff;color:white;border:none;border-radius:6px;cursor:pointer }
+    button:hover { background:red;color:white; }
+
+    .info {margin-top:15px;padding:10px;background:#e9f7ef;border-radius:6px;}
+  </style>
+</head>
+<body>
+  <div class="contenedor">
+    <h2>Apertura de Caja</h2>
+
+  <div style="text-align:center; font-size:18px;">
+    Usuario conectado: <b><span id="userLabel"></span></b>
+  </div>
+  
+    <label>Importe caja inicial:
+      <input type="number" id="importeInicial" min="0" value="0" step="0.01">
+    </label>
+
+    <label>Concepto: "Saldo inicial de caja"
+   <!--   <input type="text" id="observaciones" value="Saldo inicial de caja" placeholder="Opcional">  -->
+    </label>
+<br>
+    <div style="margin-top:12px;">
+      <button id="btnApertura">&#9989; Abrir Caja</button>
+      <button onclick="window.location.href='menu-caja.html'">&#8617; Volver</button>
+    </div>
+
+    <div id="mensaje" class="info" style="display:none;"></div>
+<br>
+
+    <h3 style="margin-top:18px;">Aperturas recientes</h3>
+    <div id="listaAperturas"></div>
+  </div>
+
+  <script>
+
+
+    const usuarioDiv = document.getElementById("usuarioInfo");
+    const mensajeDiv = document.getElementById("mensaje");
+
+verificarSesion();
+      document.getElementById("userLabel").textContent = localStorage.getItem("usuarioEmail");
+
+      cargarAperturas();
+
+
+    // Obtener nuevo id_apertura incremental
+    async function obtenerNuevoIdApertura() {
+      const snap = await db.collection("APERTURAS").orderBy("id_apertura", "desc").limit(1).get();
+      if (snap.empty) return 1;
+      return (snap.docs[0].data().id_apertura || 0) + 1;
+    }
+
+    document.getElementById("btnApertura").onclick = async () => {
+      const importe = parseFloat(document.getElementById("importeInicial").value) || 0;
+      //const obs = document.getElementById("observaciones").value;
+      const obs = "Saldo inicial de caja";
+
+      try {
+        const user = firebase.auth().currentUser;
+        if (!user) { alert("No autenticado"); return; }
+
+verificarCajaYaAbierta("menu-caja.html");
+
+        // Generar id apertura
+        const id = await obtenerNuevoIdApertura();
+        const now = new Date();
+
+        await db.collection("APERTURAS").add({
+          id_apertura: id,
+          fecha_hora_apertura: now,
+          fecha_string: now.toLocaleDateString("es-AR"),
+          importe_inicial: importe,
+          observaciones: obs,
+          usuario: user.email,
+          estado: "ABIERTA" // o CERRADA
+        });
+
+		let fecha=now.toISOString().split("T")[0];
+
+		await db.collection("MOVIMIENTOS").add({
+			fecha,
+			importe,
+			descripcion: obs,
+			tipo: "S",
+			anulado: "N",
+			id_cierre: 0
+		});
+
+        mensajeDiv.style.display = "block";
+        mensajeDiv.innerHTML = `✅ Apertura creada (ID ${id}) por ${user.email}.`;
+        cargarAperturas();
+      } catch (e) {
+        console.error(e);
+        alert("Error al crear apertura: " + e.message);
+      }
+    };
+
+    async function cargarAperturas() {
+      const snap = await db.collection("APERTURAS").orderBy("id_apertura", "desc").limit(10).get();
+      let html = "<table style='width:100%;border-collapse:collapse'><tr style='background:#f2f2f2'><th>ID</th><th>Fecha/Hora</th><th>Usuario</th><th>Importe</th><th>Estado</th></tr>";
+      snap.forEach(doc => {
+        const d = doc.data();
+        const fh = d.fecha_hora_apertura && d.fecha_hora_apertura.toDate ? d.fecha_hora_apertura.toDate().toLocaleString("es-AR") : (d.fecha_string || "");
+        html += `<tr><td>${d.id_apertura}</td><td>${fh}</td><td>${d.usuario || ""}</td><td>${d.importe_inicial?.toFixed?.(2) || d.importe_inicial}</td><td>${d.estado || ""}</td></tr>`;
+      });
+      html += "</table>";
+      document.getElementById("listaAperturas").innerHTML = html;
+    }
+  </script>
+
+<script src="./js/controlCaja.js"></script>
+<script>
+  verificarCajaYaAbierta("menu-caja.html");
+</script>
+
+<script src="js/medidor.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Consulta de Compras</title>
+
+  <!-- Firebase v8 -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<script src="js/auth.js"></script>  <!-- Aquí se verifica la autenticacion -->
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body {
+      font-family: Arial;
+      background: #8AC0FF;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .contenedor {
+      max-width: 1050px;
+      margin: auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+    }
+
+    h2 {
+      text-align: center;
+      background-color: #8AC0FF;
+      padding: 10px;
+      border-radius: 8px;
+    }
+
+    .table0 {
+      width: 30%;
+      margin-top: 20px;
+      font-size: 12px;
+    }
+    .table0 th, td {
+      padding: 8px;
+      border: 0px solid #0E0D0C;
+      text-align: center;
+    }
+    .table0 th { background-color: white; }
+	
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      font-size: 14px;
+    }
+	
+    th, td {
+      padding: 8px;
+      border: 1px solid #0E0D0C;
+      text-align: center;
+    }
+
+    th { background-color: #f2f2f2; }
+
+    .total { font-weight: bold; background-color: #e8f5e9; }
+    .resumen { margin-top: 25px; border-top: 12px solid #333; padding-top: 10px; }
+
+    button {
+      padding: 8px 14px;
+      background: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    button:hover { background-color: red; color: white; }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-content {
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      max-width: 600px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    }
+
+    .close {
+      float: right;
+      cursor: pointer;
+      font-size: 18px;
+      color: red;
+    }
+
+.contenedor-botones , .contenedor-botones2 {
+  display: flex; /* Convierte el div en un contenedor flexible */
+  justify-content: center;
+  gap: 10px; /* Establece un espacio de xx píxeles entre los elementos */
+}
+    #graficoContainer {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-top: 30px;
+      width: 100%;
+    }
+
+    #graficoTorta {
+      max-width: 350px;
+      max-height: 350px;
+    }
+
+    .selector-grafico {
+      text-align: center;
+      margin-top: 15px;
+    }
+	.tachado {
+		text-decoration: line-through;
+	}
+
+    .alert-modern{background:#e9f7ef;border-left:6px solid red;padding:10px;border-radius:6px;margin:10px 0}
+
+	input, select {
+      padding: 6px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      margin-top: 4px;
+      font-size: 14px;
+    }
+
+  </style>
+</head>
+<body>
+  <div class="contenedor">
+    <h2>Consulta de Compras y Formas de Pago</h2>
+
+    <div align="center">
+      <label><input type="radio" name="tipoConsulta" value="fecha" checked onchange="cambiarModo()"> Por Fechas</label>
+      <label><input type="radio" name="tipoConsulta" value="nro" onchange="cambiarModo()"> Por N° de Compra</label>
+    </div>
+    <br>
+
+    <!-- 🔹 Filtros por fecha -->
+    <div id="filtrosFecha" align="center" class="contenedor-botones">
+      <label>Desde: <input  type="date" id="fechaDesde"></label>
+      <label>Hasta: <input  type="date" id="fechaHasta"></label>
+    </div>
+
+    <!-- 🔹 Filtro por número -->
+    <div id="filtroNro" align="center" style="display:none;">
+      <label>N° de Compra: <input style="height: 20px;" type="number" id="nroCompra"></label>
+    </div>
+
+	<table align=center border='none' class="table0">
+		<tr>
+		<th><label for="chk_detalle">sin listado de compras</th>
+		<th><label for="chk_cierre">solo Compras sin cierre</th>
+		</tr>
+		<tr>
+		<th><input  type="checkbox" id="chk_detalle"></label></th>
+		<th><input  type="checkbox" checked=true id="chk_cierre"></label></th>
+		</tr>
+	</table>
+	  
+    <br>
+    <div class="contenedor-botones2">
+      <button class="boton-redondeado" onclick="consultarCompras()">&#128269; Consultar</button>
+      <button onclick="window.location.href='menu-compras.html'">&#8617; Volver</button>
+    </div>
+
+    <div id="resultado"></div>
+
+    <div class="selector-grafico" style="display:none;" id="selectorGrafico">
+      <label><input type="radio" name="tipoGrafico" value="fpago" checked onchange="mostrarGrafico()"> Por Forma de Pago</label>
+      <label><input type="radio" name="tipoGrafico" value="fecha" onchange="mostrarGrafico()"> Por Fecha</label>
+    </div>
+
+    <div id="graficoContainer" style="display:none;">
+      <canvas id="graficoTorta"></canvas>
+    </div>
+
+    <div id="detalleModal" class="modal">
+      <div class="modal-content">
+        <span class="close" onclick="cerrarModal()">&times;</span>
+        <h3 id="encabezado_detalle"></h3>
+        <div id="detalleContenido"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+
+verificarSesion();
+
+    const hoy = new Date();
+    const yyyy = hoy.getFullYear();
+    const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+    const dd = String(hoy.getDate()).padStart(2, '0');
+    const fechaHoy = `${yyyy}-${mm}-${dd}`;
+    document.getElementById("fechaDesde").value = fechaHoy;
+    document.getElementById("fechaHasta").value = fechaHoy;
+
+    const formateadorMoneda = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' });
+
+    let chartInstance = null;
+    let datosFormaPago = null;
+    let datosFecha = null;
+
+    function cambiarModo() {
+      const tipo = document.querySelector('input[name="tipoConsulta"]:checked').value;
+      document.getElementById("filtrosFecha").style.display = tipo === "fecha" ? "flex" : "none";
+      document.getElementById("filtroNro").style.display = tipo === "nro" ? "block" : "none";
+    }
+
+    function normalizarFecha(fechaStr) {
+      if (fechaStr.includes("/")) {
+        const [dia, mes, año] = fechaStr.split("/");
+        return `${año}-${mes.padStart(2, "0")}-${dia.padStart(2, "0")}`;
+      }
+      return fechaStr;
+    }
+
+    async function consultarCompras() {
+      const tipoConsulta = document.querySelector('input[name="tipoConsulta"]:checked').value;
+      const resultado = document.getElementById("resultado");
+      const graficoContainer = document.getElementById("graficoContainer");
+      const selectorGrafico = document.getElementById("selectorGrafico");
+      graficoContainer.style.display = "none";
+      selectorGrafico.style.display = "none";
+      resultado.innerHTML = "<p><b>Procesando, por favor espere...</b></p>";
+
+      try {
+        const formasPagoSnap = await db.collection("F_PAGO").get();
+        const formasPago = {};
+        formasPagoSnap.forEach(d => formasPago[d.data().id_fpago] = d.data().descripcion);
+
+        let compras = [];
+//        let tipoConsulta === "fecha" : document.getElementById("tipoCompraNro").value;
+
+        if (tipoConsulta === "fecha") {
+          const fDesde = document.getElementById("fechaDesde").value;
+          const fHasta = document.getElementById("fechaHasta").value;
+          const desdeNorm = normalizarFecha(fDesde);
+          const hastaNorm = normalizarFecha(fHasta);
+			sin_det = document.getElementById("chk_detalle").checked;
+			sin_cierre = document.getElementById("chk_cierre").checked;
+
+			let query = db.collection("COMPRAS_CAB");
+			if (sin_cierre) {
+			  query = query.where("id_cierre", "==", 0);
+			}
+			const snap = await query.get();
+          compras = snap.docs.map(d => d.data())
+            .filter(v => {
+              const fNorm = normalizarFecha(v.fecha);
+              const dentroRango = fNorm >= desdeNorm && fNorm <= hastaNorm;
+              return dentroRango;
+            });
+        } else {
+     //sin_det = false;
+			sin_det = document.getElementById("chk_detalle").checked;
+			sin_cierre = document.getElementById("chk_cierre").checked;
+
+          const nro = parseInt(document.getElementById("nroCompra").value);
+			let query = db.collection("COMPRAS_CAB");
+			query = query.where("id_compra", "==", nro)
+			if (sin_cierre) {
+			  query = query.where("id_cierre", "==", 0);
+			}
+			const snap = await query.get();
+
+          compras = snap.docs.map(d => d.data())
+        }
+
+        if (compras.length === 0) {
+          resultado.innerHTML = "<p>No se encontraron compras.</p>";
+          return;
+        }
+
+        let totalGeneral = 0;
+        let resumenFP = {};
+        let resumenPorFecha = {};
+        const agrupadas = {};
+
+        compras.forEach(v => {
+          if (!agrupadas[v.fecha]) agrupadas[v.fecha] = [];
+          agrupadas[v.fecha].push(v);
+        });
+
+		if (!sin_det){
+			let html = "";
+			for (const fecha of Object.keys(agrupadas).sort()) {
+			  let totalDia = 0;
+			  html += `<h3>📅 Fecha: ${fecha}</h3>`;
+					html += ` <div id="mensajeTipo" class="alert-modern">las compras en ROJO son anuladas y no suman en el Total.</div>`
+
+				html += `<table border='1'>
+				  <tr>
+					<th>Hora</th><th>N° Compra</th>
+					<th>TOTAL</th>
+					<th>Forma Pago</th>
+					<th>Detalle</th><th>Cierre</th>
+				  </tr>`;
+
+				for (const v of agrupadas[fecha]) {
+					html += `<tr style="border: 3px solid black;" ${v.anulada === "S" ? `class="tachado"` : ""}>
+					  <td>${v.hora}</td>
+					  <td ${v.anulada === "S" ? `style="background-color: #FF6467; color:white;"` : ""}>${v.id_compra}</td>
+					  <td>${formateadorMoneda.format(v.total)}</td>
+					  <td>${formasPago[v.f_pago1] || ""}</td>
+					  <td><button onclick="verDetalle(${v.id_compra})">Ver</button></td>
+					  <td>${v.id_cierre || "-"}</td>
+					</tr>`;
+
+					if (v.anulada == "S") { // no suma en el total !!!
+					null;
+					}else{
+						totalDia += v.total;
+						totalGeneral += v.total;
+
+						resumenFP[v.f_pago1] = (resumenFP[v.f_pago1] || 0) + (v.total || 0);
+					}
+			  }
+
+			  html += `<tr class="total"><td colspan="2">Total del día</td><td>${formateadorMoneda.format(totalDia)}</td><td colspan="5"></td></tr>`;
+			  html += `</table>`;
+			  resumenPorFecha[fecha] = totalDia;
+
+			}
+			html += `<h3 style="text-align:center;">TOTAL GENERAL: ${formateadorMoneda.format(totalGeneral)}</h3>`;
+			resultado.innerHTML = html;
+		}			
+		else {
+			let html = "";
+			for (const fecha of Object.keys(agrupadas).sort()) {
+			  let totalDia = 0;
+
+			  for (const v of agrupadas[fecha]) {
+
+				if (v.anulada == "S") { // no suma en el total !!!
+				null;
+				}else{
+					totalDia += v.total;
+					totalGeneral += v.total;
+
+					resumenFP[v.f_pago1] = (resumenFP[v.f_pago1] || 0) + (v.total || 0);
+				}
+			  }
+			  resumenPorFecha[fecha] = totalDia;
+			}
+			html += `<h3 style="text-align:center;">TOTAL GENERAL: ${formateadorMoneda.format(totalGeneral)}</h3>`;
+			resultado.innerHTML = html;
+		}
+	
+	
+        datosFormaPago = {
+          etiquetas: Object.keys(resumenFP).map(fp => formasPago[fp]),
+          valores: Object.values(resumenFP)
+        };
+
+        datosFecha = {
+          etiquetas: Object.keys(resumenPorFecha).sort(),
+          valores: Object.values(resumenPorFecha)
+        };
+
+        selectorGrafico.style.display = "block";
+        mostrarGrafico();
+
+      } catch (e) {
+        console.error(e);
+        resultado.innerHTML = `<p style="color:red">Error: ${e.message}</p>`;
+      }
+    }
+
+    function mostrarGrafico() {
+      const tipoGrafico = document.querySelector('input[name="tipoGrafico"]:checked').value;
+      const graficoContainer = document.getElementById("graficoContainer");
+      const ctx = document.getElementById("graficoTorta").getContext("2d");
+
+      if (chartInstance) chartInstance.destroy();
+      graficoContainer.style.display = "flex";
+
+      if (tipoGrafico === "fpago") {
+        chartInstance = new Chart(ctx, {
+          type: "pie",
+          data: {
+            labels: datosFormaPago.etiquetas,
+            datasets: [{
+              label: "total $ ",
+              data: datosFormaPago.valores,
+              backgroundColor: ["#007bff","#28a745","#ffc107","#dc3545","#17a2b8","#6f42c1"]
+            }]
+          },
+          options: { plugins: { title: { display: true, text: "Distribución por Forma de Pago" } } }
+        });
+      } else {
+        chartInstance = new Chart(ctx, {
+          type: "bar",
+          data: {
+            labels: datosFecha.etiquetas,
+            datasets: [{
+              label: "Total por Fecha",
+              data: datosFecha.valores,
+              backgroundColor: "#007bff"
+            }]
+          },
+          options: { plugins: { title: { display: true, text: "Totales por Fecha" } } }
+        });
+      }
+    }
+
+    async function verDetalle(idCompra) {
+      const detSnap = await db.collection("COMPRAS_DET").where("id_compra", "==", idCompra).get();
+      const cont = document.getElementById("detalleContenido");
+      const encabezado = document.getElementById("encabezado_detalle");
+      encabezado.innerHTML = "Detalle de Productos - Compra Nro. " + idCompra;
+
+      if (detSnap.empty) {
+        cont.innerHTML = "<p>No se encontraron productos para esta compra.</p>";
+        document.getElementById("detalleModal").style.display = "flex";
+        return;
+      }
+
+      const cacheProductos = {};
+      let html = `<table><tr><th>Cod Producto</th><th>Descripción</th><th>Precio Unitario</th><th>Cantidad</th><th>Subtotal</th></tr>`;
+      for (const doc of detSnap.docs) {
+        const data = doc.data();
+        let descripcion = "";
+        if (cacheProductos[data.id_producto]) {
+          descripcion = cacheProductos[data.id_producto];
+        } else {
+          const prodSnap = await db.collection("PRODUCTOS").where("id_producto", "==", data.id_producto).limit(1).get();
+          descripcion = !prodSnap.empty ? prodSnap.docs[0].data().descripcion : "(No encontrada)";
+          cacheProductos[data.id_producto] = descripcion;
+        }
+        html += `<tr>
+          <td>${data.id_producto}</td>
+          <td>${descripcion}</td>
+          <td>${formateadorMoneda.format(data.precio || 0)}</td>
+          <td>${data.cantidad}</td>
+          <td>${formateadorMoneda.format(data.subtotal)}</td>
+        </tr>`;
+      }
+      html += "</table>";
+      cont.innerHTML = html;
+      document.getElementById("detalleModal").style.display = "flex";
+    }
+
+    function cerrarModal() {
+      document.getElementById("detalleModal").style.display = "none";
+    }
+	
+  </script>
+
+<script src="js/medidor.js"></script>
+
+</body>
+</html>

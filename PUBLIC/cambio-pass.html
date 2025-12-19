@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Cambiar Contraseña</title>
+
+  <!-- Firebase v8 -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script src="js/auth.js"></script>
+
+
+<style>
+    body {
+      font-family: Arial;
+      background-color: #8AC0FF;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .contenedor {
+      background: #fff;
+      border-radius: 10px;
+      max-width: 350px;
+      margin: 0 auto;
+      padding: 25px;
+      box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+    }
+
+    h2 {
+      text-align: center;
+      background-color: #8AC0FF;
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 25px;
+    }
+
+	 input {
+      padding: 6px;
+      border-radius: 5px;
+      border: 1px solid #999;
+    }
+
+    button {
+      padding: 8px 14px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+button:hover {
+  background: red;
+}
+</style>
+
+</head>
+<body>
+
+<div class="contenedor">
+  <div class="card">
+  <h2>&#128274; Cambiar mi contraseña</h2>
+    <div style="text-align:center; font-size:15px;">
+    Usuario: <b><span id="userLabel"></span></b>
+  </div>
+  <br><br>
+  <label>Contraseña Actual</label>
+  <input type="password" id="passActual">
+<br><br>
+  <label>Nueva Contraseña</label>
+  <input type="password" id="passNueva">
+<br><br><br>
+  <button onclick="cambiarPass()">💾 Cambiar Contraseña</button>
+
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button onclick="location.href='menu-general.html'">&#8617; Volver</button>
+</div>
+</div>
+
+<script>
+verificarSesion();
+document.getElementById("userLabel").textContent = localStorage.getItem("usuarioEmail");
+
+async function cambiarPass() {
+    const passActual = document.getElementById("passActual").value.trim();
+    const passNueva = document.getElementById("passNueva").value.trim();
+    const user = firebase.auth().currentUser;
+
+    if (!passActual || !passNueva) {
+        alert("Debe completar las dos contraseñas.");
+        return;
+    }
+
+    try {
+        // 1) Reautenticar al usuario con su contraseña actual
+        const cred = firebase.auth.EmailAuthProvider.credential(
+            user.email,
+            passActual
+        );
+
+        await user.reauthenticateWithCredential(cred);
+
+        // 2) Actualizar la contraseña
+        await user.updatePassword(passNueva);
+
+        alert("Contraseña cambiada correctamente.");
+        document.getElementById("passActual").value = "";
+        document.getElementById("passNueva").value = "";
+	}
+/*
+    catch (error) {
+        console.error(error);
+        //if (error.code === "auth/wrong-password") { 
+        if (error.code === "auth/invalid-login-credentials") { 
+            alert("La contraseña actual es incorrecta.");
+        } else {
+            alert("Error al cambiar la contraseña: " + error.message);
+        }
+    }
+*/
+	catch (error) {
+		console.error(error);
+
+		switch (error.code) {
+
+			case "auth/wrong-password":
+			case "auth/invalid-credential":
+			case "auth/invalid-login-credentials":
+				alert("La contraseña actual es incorrecta.");
+				break;
+
+			case "auth/weak-password":
+				alert("La nueva contraseña es demasiado débil (debe tener al menos 6 caracteres).");
+				break;
+
+			case "auth/requires-recent-login":
+				alert("Debe volver a iniciar sesión para cambiar la contraseña.");
+				break;
+
+			default:
+				alert("Error al cambiar la contraseña: " + error.code);
+		}
+	}
+
+
+
+}
+</script>
+
+<script src="js/medidor.js"></script>
+
+</body>
+</html>

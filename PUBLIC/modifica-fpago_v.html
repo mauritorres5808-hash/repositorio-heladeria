@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Modificar Formas de Pago - Ventas</title>
+
+  <!-- Firebase v8 (compatible con firestore) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<script src="js/auth.js"></script>  <!-- Aqui se verifica la autenticacion-->
+
+  <style>
+    /* Estilos coherentes con tus otras páginas */
+    body { font-family: Arial; background:#8AC0FF; margin:0; padding:20px; }
+    .contenedor { max-width:1050px; margin:auto; background:#fff; padding:20px; border-radius:8px; box-shadow:0 0 8px rgba(0,0,0,0.15); }
+    h2 { text-align:center; background:#8AC0FF; padding:10px; border-radius:8px; margin-top:0; }
+    .filtros { text-align:center; margin-bottom:16px; }
+    label { margin-right:10px; }
+    input[type=date] { padding:6px; }
+	input, select {
+      padding: 6px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      margin-top: 4px;
+      font-size: 14px;
+    }
+    button { padding:8px 14px; background:#007bff; color:#fff; border:none; border-radius:6px; cursor:pointer; }
+
+    button:hover { background-color: red; color: white; }
+
+    table { width:100%; border-collapse:collapse; margin-top:12px; font-size:13px; }
+    th, td { border:1px solid #0E0D0C; padding:8px; text-align:center; }
+    th { background:#f2f2f2; }
+    .acciones button { margin:2px; }
+    .nota { text-align:center; margin-top:10px; color:#555; }
+    /* Modal simple */
+    .modal { display:none; position:fixed; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.5); justify-content:center; align-items:center; z-index:1000; }
+    .modal-contenido { background:#fff; padding:18px; border-radius:8px; width:90%; max-width:800px; max-height:85vh; overflow:auto; box-shadow:0 6px 18px rgba(0,0,0,0.25); }
+    .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+    .modal-header h3 { margin:0; }
+    .close { cursor:pointer; color:red; font-weight:bold; }
+    .fila { display:flex; gap:12px; align-items:center; margin:8px 0; flex-wrap:wrap; }
+    .label { width:160px; font-weight:bold; text-align:right; }
+    select, input[readonly] { padding:6px; min-width:200px; }
+    .text-right { text-align:right; }
+    .btn-confirm { background:#28a745; }
+    .btn-confirm:hover { background:#1f8f3a; }
+    .btn-cancel { background:#6c757d; }
+    .btn-cancel:hover { background:#51585d; }
+    .msg { margin-top:10px; font-weight:bold; text-align:center; }
+  </style>
+</head>
+<body>
+  <div class="contenedor">
+    <h2>Modificar Formas de Pago - Ventas (sin cierre)</h2>
+
+    <div id="usuario" style="text-align:center;margin-bottom:8px"></div>
+
+    <br>
+    <div class="filtros">
+      <label>Fecha: <input type="date" id="fechaConsulta"></label>
+      <button onclick="buscarVentasPorFecha()">&#128269; Buscar</button>
+    </div>
+
+    <div id="resultado">
+      <!-- Aquí se mostrará la tabla de ventas -->
+    </div>
+
+    <br>
+    <div style="margin-top:18px;display:flex;justify-content:center;gap:10px;">
+      <button onclick="window.location.href='menu-ventas.html'">&#8617; Volver</button>
+    </div>
+  </div>
+
+  <!-- Modal: Modificar formas de pago -->
+  <div id="modalModificar" class="modal">
+    <div class="modal-contenido">
+      <div class="modal-header">
+        <h3 id="modalTitulo" style="color:red;">Modificar forma de pago</h3>
+        <span class="close" onclick="cerrarModalModificar()">×</span>
+      </div>
+
+      <div id="modalBody">
+        <div class="fila"><div class="label">Nro Venta:</div><div id="m_nroventa"></div>
+        <div class="fila"><div class="label">Fecha:</div><div id="m_fecha"></div></div>
+        <div class="fila"><div class="label">Total:</div><div id="m_total"></div></div>
+</div>
+        <hr>
+
+        <div class="fila">
+          <div class="label">Forma Pago 1 actual:</div>
+          <div id="m_fpago1_actual"></div>
+          <div class="label">Importe 1:</div>
+          <div id="m_imp1_actual" class="text-right"></div>
+        </div>
+
+        <div class="fila">
+          <div class="label">Nueva forma pago 1:</div>
+          <select id="m_fpago1_nuevo" onchange="recalcularImportesModal(0)">
+            <option value="">-- (vacío) --</option>
+          </select>
+          <div class="label">Importe 1 nuevo:</div>
+          <input id="m_imp1_nuevo" onchange="recalcularImportesModal(1)" />
+        </div>
+
+        <hr>
+
+        <div class="fila">
+          <div class="label">Forma Pago 2 actual:</div>
+          <div id="m_fpago2_actual"></div>
+          <div class="label">Importe 2:</div>
+          <div id="m_imp2_actual" class="text-right"></div>
+        </div>
+
+        <div class="fila">
+          <div class="label">Nueva forma pago 2:</div>
+          <select id="m_fpago2_nuevo" onchange="recalcularImportesModal(0)">
+            <option value="">-- (vacío) --</option>
+          </select>
+          <div class="label">Importe 2 nuevo:</div>
+          <input id="m_imp2_nuevo" onchange="recalcularImportesModal(2)" />
+        </div>
+
+        <br>
+        <div class="msg" style="color:red" id="msgModal"></div>
+
+        <div style="display:flex;justify-content:center;gap:10px;margin-top:12px;">
+          <button class="btn-confirm" onclick="confirmarCambio()">&#128190; Guardar cambios</button>
+          <button class="btn-cancel" onclick="cerrarModalModificar()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Detalle (productos) -->
+  <div id="modalDetalle" class="modal">
+    <div class="modal-contenido">
+      <div class="modal-header">
+        <h3>Detalle de productos</h3>
+        <span class="close" onclick="cerrarModalDetalle()">×</span>
+      </div>
+      <div id="detalleContenido"></div>
+    </div>
+  </div>
+
+<script>
+
+verificarSesion();
+
+
+  const formateador = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
+
+  // comprobar auth
+  firebase.auth().onAuthStateChanged(user => {
+    if (!user) {
+      window.location.href = "login.html";
+      return;
+    }
+    document.getElementById("usuario").innerHTML = `Usuario: <b>${user.email}</b>`;
+  });
+
+   function convertirFecha(fechaStr) {
+      const [dia, mes, año] = fechaStr.split("/");
+	          return `${año}-${mes.padStart(2, "0")}-${dia.padStart(2, "0")}`;
+      //return `${año}-${mes}-${dia}`;
+    }
+function convertirFechaInput(fechaStr) {
+  const [año, mes, dia] = fechaStr.split("-");
+  return `${año}-${mes.padStart(2, "0")}-${dia.padStart(2, "0")}`;
+  //return `${dia}/${mes}/${año}`;
+}
+
+  // Map de formas de pago (id -> "id - descripcion")
+  let MAP_FP = {};
+
+  // cargar formas de pago habilitadas (deshabilitado != "S")
+  async function cargarFormasPagoMapa() {
+    MAP_FP = {};
+    try {
+      const snap = await db.collection("F_PAGO").orderBy("descripcion").get();
+      snap.forEach(doc => {
+        const d = doc.data();
+        // incluir todas, pero marcar deshabilitado si corresponde
+        //MAP_FP[d.id_fpago] = `${d.id_fpago} - ${d.descripcion}`;
+        MAP_FP[d.id_fpago] = `${d.descripcion}`;
+      });
+    } catch (e) {
+      console.error("Error cargando formas de pago:", e);
+    }
+  }
+
+  // Buscar ventas por fecha (input YYYY-MM-DD) -> comparar con campo fecha 'DD/MM/YYYY'
+  async function buscarVentasPorFecha() {
+    const fechaInput = document.getElementById("fechaConsulta").value;
+    const resultado = document.getElementById("resultado");
+    if (!fechaInput) { alert("Seleccione una fecha."); return; }
+const fechaNorm = convertirFechaInput(fechaInput);
+    resultado.innerHTML = "<p style='text-align:center'>🔄 Buscando ventas...</p>";
+    await cargarFormasPagoMapa();
+
+    try {
+      // traigo todas las ventas del día comparando normalizadas
+      const snap = await db.collection("VENTAS_CAB").get();
+      const ventas = snap.docs.map(d => ({ docId: d.id, ...d.data() })).filter(v => {
+        const fNorm = convertirFecha(v.fecha);
+		const estados = v.anulada === "N";
+		const cierres = v.id_cierre === 0;
+        return fNorm === fechaNorm && estados && cierres;
+      });
+
+      if (ventas.length === 0) {
+        resultado.innerHTML = "<p style='text-align:center'>No se encontraron ventas para esa fecha.</p>";
+        return;
+      }
+
+      // construir tabla
+      let html = `<table>
+        <thead><tr>
+          <th>Hora Venta</th><th>N° Venta</th><th>Tipo Venta</th><th>Subtotal</th><th>Descuento</th><th>Recargo</th><th>Total</th>
+          <th>FPago 1</th><th>Imp 1</th><th>FPago 2</th><th>Imp 2</th><th>Acciones</th>
+        </tr></thead><tbody>`;
+
+      for (const v of ventas.sort((a,b)=> (a.hora||"") < (b.hora||"") ? -1 : 1)) {
+
+        const fp1txt = MAP_FP[v.f_pago1] || (v.f_pago1 ? v.f_pago1 : "");
+        const fp2txt = MAP_FP[v.f_pago2] || (v.f_pago2 ? v.f_pago2 : "");
+
+        const imp1 = v.importe_fp1 || 0;
+        const imp2 = v.importe_fp2 || 0;
+
+        const tieneCierre = (typeof v.id_cierre !== "undefined" && v.id_cierre !== 0 && v.id_cierre !== null && v.id_cierre !== "");
+        html += `<tr>
+          <td>${v.hora || ""}</td>
+          <td>${v.id_venta}</td>
+          <td>${descripcionTipoVenta(v.tipo_venta)}</td>
+          <td>${formateador.format(v.subtotal || 0)}</td>
+          <td>${formateador.format(v.descuento || 0)}</td>
+          <td>${formateador.format(v.recargo || 0)}</td>
+          <td>${formateador.format(v.total || 0)}</td>
+          <td>${fp1txt}</td>
+          <td>${formateador.format(imp1)}</td>
+          <td>${fp2txt}</td>
+          <td>${formateador.format(imp2)}</td>
+          <td class="acciones">
+            <button onclick="verDetalleVenta(${v.id_venta})">Ver</button>
+            ${tieneCierre ? '' : `<button onclick="abrirModalModificar(${v.id_venta})">&#9999;&#65039; Modificar FP</button>`}
+          </td>
+        </tr>`;
+      }
+
+      html += `</tbody></table>`;
+      resultado.innerHTML = html;
+
+    } catch (e) {
+      console.error(e);
+      resultado.innerHTML = `<p style="color:red;text-align:center">Error: ${e.message}</p>`;
+    }
+  }
+
+  function descripcionTipoVenta(id) {
+    switch (id) {
+      case 1: return "Delivery propio";
+      case 2: return "Rappi";
+      case 3: return "PedidosYa";
+      case 4: return "Mostrador";
+      case 5: return "Vta OnLine";
+      default: return "-- Indefinida --";
+    }
+  }
+
+  // ---------------- Modal Modificar ----------------
+  let ventaEditando = null; // objeto de la venta seleccionada (campos del documento + docId)
+
+  async function abrirModalModificar(idVenta) {
+    // buscamos el documento por id_venta
+    try {
+      const snap = await db.collection("VENTAS_CAB").where("id_venta", "==", idVenta).limit(1).get();
+      if (snap.empty) { alert("No se encontró la venta."); return; }
+      const doc = snap.docs[0];
+      ventaEditando = { docId: doc.id, ...doc.data() };
+
+      // cargar formas de pago disponibles (deshabilitado != "S")
+      const fpsnap = await db.collection("F_PAGO").orderBy("descripcion").get();
+      const fpSelect1 = document.getElementById("m_fpago1_nuevo");
+      const fpSelect2 = document.getElementById("m_fpago2_nuevo");
+      fpSelect1.innerHTML = `<option value="">-- (vacío) --</option>`;
+      fpSelect2.innerHTML = `<option value="">-- (vacío) --</option>`;
+      fpsnap.forEach(fdoc => {
+        const f = fdoc.data();
+        if (f.deshabilitado === "S") return; // no incluir deshabilitadas
+        //const label = `${f.id_fpago} - ${f.descripcion}`;
+        const label = `${f.descripcion}`;
+        fpSelect1.innerHTML += `<option value="${f.id_fpago}">${label}</option>`;
+        fpSelect2.innerHTML += `<option value="${f.id_fpago}">${label}</option>`;
+      });
+
+      // Rellenar datos actuales en modal
+      document.getElementById("m_nroventa").textContent = ventaEditando.id_venta;
+      document.getElementById("m_fecha").textContent = ventaEditando.fecha || "";
+      document.getElementById("m_total").textContent = formateador.format(ventaEditando.total || 0);
+
+      document.getElementById("m_fpago1_actual").textContent = MAP_FP[ventaEditando.f_pago1] || (ventaEditando.f_pago1 ? ventaEditando.f_pago1 : "");
+      document.getElementById("m_imp1_actual").textContent = formateador.format(ventaEditando.importe_fp1 || 0);
+
+      document.getElementById("m_fpago2_actual").textContent = MAP_FP[ventaEditando.f_pago2] || (ventaEditando.f_pago2 ? ventaEditando.f_pago2 : "");
+      document.getElementById("m_imp2_actual").textContent = formateador.format(ventaEditando.importe_fp2 || 0);
+
+      // inicializar selects -> por defecto mostrar las formas actuales si están habilitadas
+      // si la forma actual está deshabilitada, dejamos vacío para forzar nueva selección
+      const trySelectOption = (selectEl, val) => {
+        if (!val && (val !== 0)) { selectEl.value = ""; return; }
+        // buscar si la opción existe en el select
+        const opt = Array.from(selectEl.options).find(o => o.value == String(val));
+        if (opt) selectEl.value = String(val);
+        else selectEl.value = "";
+      };
+
+      trySelectOption(document.getElementById("m_fpago1_nuevo"), ventaEditando.f_pago1);
+      trySelectOption(document.getElementById("m_fpago2_nuevo"), ventaEditando.f_pago2);
+
+      // set importes nuevos inicialmente iguales a actuales (si select vacío, se manejará en recalc)
+      document.getElementById("m_imp1_nuevo").value = (ventaEditando.importe_fp1 || 0).toFixed(2);
+      document.getElementById("m_imp2_nuevo").value = (ventaEditando.importe_fp2 || 0).toFixed(2);
+
+      // abrir modal
+      document.getElementById("msgModal").textContent = "";
+      document.getElementById("modalModificar").style.display = "flex";
+
+      // recalcular para forzar lógica (en caso de selects vacíos)
+      recalcularImportesModal(0);
+
+    } catch (e) {
+      console.error(e);
+      alert("Error al cargar la venta: " + e.message);
+    }
+  }
+
+  function cerrarModalModificar() {
+    ventaEditando = null;
+    document.getElementById("modalModificar").style.display = "none";
+  }
+
+  // recalcula importes del modal segun selección
+  function recalcularImportesModal(pCual) {
+    if (!ventaEditando) return;
+    const total = parseFloat(ventaEditando.total || 0);
+    const orig1 = parseFloat(ventaEditando.importe_fp1 || 0);
+    const orig2 = parseFloat(ventaEditando.importe_fp2 || 0);
+	//alert("orig1:" + orig1);
+	//alert("orig2:" + orig2);
+
+    let nuevo1 = parseFloat(document.getElementById("m_imp1_nuevo").value) || 0;
+    let nuevo2 = parseFloat(document.getElementById("m_imp2_nuevo").value) || 0;
+	//alert("nuevo1:" + nuevo1);
+	//alert("nuevo2:" + nuevo2);
+
+    const sel1 = document.getElementById("m_fpago1_nuevo").value;
+    const sel2 = document.getElementById("m_fpago2_nuevo").value;
+
+    // Si un combo está vacío poner en cero el importe y pasarle el total al otro
+    if (!sel1 && sel2) 
+		{
+			nuevo1 = 0;
+			nuevo2 = total;
+		} else if (sel1 && !sel2) 
+			{
+				nuevo1 = total;
+				nuevo2 = 0;
+			} else if (!sel1 && !sel2) 
+			{
+			  // no puede pasar, pero en este caso dejamos los importes originales
+			  nuevo1 = orig1;
+			  nuevo2 = orig2;
+			}
+
+    let imp1 = 0;
+    let imp2 = 0;
+
+	//segun el importe que se modifico recalculo el otro importe
+	if (pCual==1) // se modifico el importe 1
+		{ 
+			 imp1 = nuevo1;
+			 imp2 = total-nuevo1;
+		} 
+		else if (pCual==2) // se modifico el importe 2
+		{
+			 imp1 = total-nuevo2;
+			 imp2 = nuevo2;
+		}
+			else // no se modifico ningun importe
+			{
+				 imp1 = nuevo1;
+				 imp2 = nuevo2;
+			}
+
+    // asegurar que suma sea igual al total (pequeñas diferencias por float)
+    const suma = +(imp1 + imp2).toFixed(2);
+//alert("suma:" + suma);
+//alert("total:" + total);
+
+/*
+    // si el total difiere y total != suma, ajustar imp1 para que coincida (evita validación estricta)
+    if (Math.abs(suma - total) > 0.009) {
+      // preferimos mantener proporción original si hay importes no cero
+      const sumaOrig = orig1 + orig2 || 1;
+      const factor = total / sumaOrig;
+      imp1 = +(orig1 * factor).toFixed(2);
+      imp2 = +(orig2 * factor).toFixed(2);
+      // ajustar último centavo
+      const diff = +(total - (imp1 + imp2)).toFixed(2);
+      imp1 = +(imp1 + diff).toFixed(2);
+    }
+*/
+
+    document.getElementById("m_imp1_nuevo").value = imp1.toFixed(2);
+    document.getElementById("m_imp2_nuevo").value = imp2.toFixed(2);
+    // limpiar mensaje
+    document.getElementById("msgModal").textContent = "";
+  }
+
+  // confirmar cambio -> validaciones y escribir en Firestore
+  async function confirmarCambio() {
+    if (!ventaEditando) return alert("No hay venta seleccionada.");
+    const sel1 = document.getElementById("m_fpago1_nuevo").value;
+    const sel2 = document.getElementById("m_fpago2_nuevo").value;
+    const imp1 = parseFloat(document.getElementById("m_imp1_nuevo").value) || 0;
+    const imp2 = parseFloat(document.getElementById("m_imp2_nuevo").value) || 0;
+    const total = parseFloat(ventaEditando.total || 0);
+
+    // Validaciones
+    if (!sel1 && !sel2) {
+      document.getElementById("msgModal").textContent = "Seleccione al menos una forma de pago nueva.";
+      return;
+    }
+    if (sel1 && sel2 && sel1 === sel2) {
+      document.getElementById("msgModal").textContent = "Las dos formas de pago no pueden ser iguales.";
+      return;
+    }
+    if (sel1 && imp1 ==0) {
+      document.getElementById("msgModal").textContent = "Si selecciono la forma de pago 1 no puede dejar el importe 1 nuevo en cero.";
+      return;
+    }
+    if (sel2 && imp2 ==0) {
+      document.getElementById("msgModal").textContent = "Si selecciono la forma de pago 2 no puede dejar el importe 2 nuevo en cero.";
+      return;
+    }
+    if (Math.abs((imp1 + imp2) - total) > 0.01) {
+      document.getElementById("msgModal").textContent = "La suma de los importes no coincide con el total de la venta. - Verificar -";
+      return;
+    }
+
+    try {
+      document.getElementById("msgModal").textContent = "🔄 Guardando cambios...";
+      // buscar doc por id_venta
+      const snap = await db.collection("VENTAS_CAB").where("id_venta", "==", ventaEditando.id_venta).limit(1).get();
+      if (snap.empty) { alert("No se encontró el documento para actualizar."); document.getElementById("msgModal").textContent = ""; return; }
+      const docRef = snap.docs[0].ref;
+
+      // preparar objeto update
+      const updateObj = {
+        f_pago1: sel1 ? parseInt(sel1) : 0,
+		fp_descrip1: MAP_FP[sel1],
+        importe_fp1: +(imp1.toFixed(2)),
+        f_pago2: sel2 ? parseInt(sel2) : 0,
+		fp_descrip2: MAP_FP[sel2],
+        importe_fp2: +(imp2.toFixed(2))
+      };
+
+      await docRef.update(updateObj);
+
+		// === Registrar auditoría ===
+		try {
+		  const user = firebase.auth().currentUser;
+		  const emailUser = user ? user.email : "desconocido";
+  
+		  // buscar el usuario por email para obtener su id_usuario
+		  let idUsuario = 0;
+		  const snapUsr = await db.collection("USUARIOS").where("email", "==", emailUser).limit(1).get();
+		  if (!snapUsr.empty) idUsuario = snapUsr.docs[0].data().id_usuario;
+
+		  const fecha = new Date();
+		  const fechaStr = fecha.toLocaleDateString("es-AR");
+		  const horaStr = fecha.toLocaleTimeString("es-AR", { hour12: false });
+
+		  const auditoriaData = {
+			id_usuario: idUsuario,
+			email: emailUser,
+			tipo: "FP", // cambio de forma de pago
+			fecha: fechaStr,
+			hora: horaStr,
+			id_venta: ventaEditando.id_venta,
+			fecha_venta: ventaEditando.fecha,
+			valor_anterior: {
+			  f_pago1: ventaEditando.f_pago1 || 0,
+  			  fp_descrip1: MAP_FP[ventaEditando.f_pago1],
+			  importe_fp1: ventaEditando.importe_fp1 || 0,
+			  f_pago2: ventaEditando.f_pago2 || 0,
+  			  fp_descrip2: MAP_FP[ventaEditando.f_pago2],
+			  importe_fp2: ventaEditando.importe_fp2 || 0
+			},
+			valor_nuevo: updateObj
+		  };
+
+		  await db.collection("VENTAS_AUDITORIA").add(auditoriaData);
+		  console.log("Auditoría registrada correctamente.");
+		} catch (errAud) {
+		  console.error("Error registrando auditoría:", errAud);
+		}
+
+
+		document.getElementById("msgModal").textContent = "✅ Cambios guardados.";
+		// cerrar modal tras breve delay y recargar lista
+		setTimeout(() => {
+			cerrarModalModificar();
+			buscarVentasPorFecha();
+		}, 700);
+
+    } catch (e) {
+      console.error(e);
+      document.getElementById("msgModal").textContent = "Error al guardar: " + e.message;
+    }
+  }
+
+  // ---------------- Modal Detalle ----------------
+  async function verDetalleVenta(idVenta) {
+    try {
+      const snap = await db.collection("VENTAS_DET").where("id_venta","==", idVenta).get();
+      let html = `<h4>Venta N° ${idVenta}</h4>`;
+      if (snap.empty) {
+        html += "<p>No hay productos para esta venta.</p>";
+      } else {
+        html += `<table><thead><tr><th>Código</th><th>Descripción</th><th>Precio</th><th>Cantidad</th><th>Subtotal</th></tr></thead><tbody>`;
+        for (const d of snap.docs) {
+          const pd = d.data();
+        
+			// busco descripcion del producto
+			let descripcion = "";
+			const prodSnap = await db.collection("PRODUCTOS").where("id_producto", "==", pd.id_producto).limit(1).get();
+			descripcion = !prodSnap.empty ? prodSnap.docs[0].data().descripcion : "(No encontrada)";
+
+          html += `<tr>
+            <td>${pd.id_producto}</td>
+			<td>${descripcion}</td>
+            <td>${formateador.format(pd.precio || 0)}</td>
+            <td>${pd.cantidad}</td>
+            <td>${formateador.format(pd.subtotal || 0)}</td>
+          </tr>`;
+        }
+        html += `</tbody></table>`;
+      }
+      document.getElementById("detalleContenido").innerHTML = html;
+      document.getElementById("modalDetalle").style.display = "flex";
+    } catch (e) {
+      console.error(e);
+      alert("Error al obtener detalle: " + e.message);
+    }
+  }
+  function cerrarModalDetalle() { document.getElementById("modalDetalle").style.display = "none"; }
+
+  // cerrar clic fuera
+  window.onclick = function(ev) {
+    const modal = document.getElementById("modalModificar");
+    const modalDet = document.getElementById("modalDetalle");
+    if (ev.target === modal) cerrarModalModificar();
+    if (ev.target === modalDet) cerrarModalDetalle();
+  };
+
+  // inicializar fecha con hoy
+  (function init(){
+    const hoy = new Date();
+    const yyyy = hoy.getFullYear();
+    const mm = String(hoy.getMonth()+1).padStart(2,'0');
+    const dd = String(hoy.getDate()).padStart(2,'0');
+    document.getElementById("fechaConsulta").value = `${yyyy}-${mm}-${dd}`;
+    // preload map
+    cargarFormasPagoMapa();
+  })();
+
+</script>
+
+<script src="js/medidor.js"></script>
+
+</body>
+</html>

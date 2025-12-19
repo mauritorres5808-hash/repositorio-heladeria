@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>ABM de Usuarios</title>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<script src="js/auth.js"></script>  <!-- Aquí se verifica la autenticacion-->
+<script src="js/permisos.js"></script>  <!-- permisos de usuarios -->
+
+<style>
+    body {
+      font-family: Arial;
+      background-color: #8AC0FF;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .contenedor {
+      background: #fff;
+      border-radius: 10px;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 25px;
+      box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+    }
+
+    h2 {
+      text-align: center;
+      background-color: #8AC0FF;
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 25px;
+    }
+	
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+      font-size: 13px;
+    }
+
+    th, td {
+      border: 1px solid #0E0D0C;
+      padding: 8px;
+      text-align: center;
+    }
+
+    th {
+      background-color: #f2f2f2;
+    }
+
+    button {
+      padding: 8px 14px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .botones-accion {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      margin-top: 25px;
+    }
+
+    button:hover {
+      background-color: red;
+      color: white;
+    }
+	
+  .modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5);
+    justify-content: center;
+    align-items: center;
+  }
+  .modal-content {
+    background: white;
+    padding: 20px;
+    border-radius: 5px;
+    width: 400px;
+  }
+    .input-pequeno {
+      width: 100px;
+      height: 14px;
+    }  
+	 input, select {
+      padding: 6px;
+      border-radius: 5px;
+      border: 1px solid #999;
+    }
+</style>
+
+</head>
+
+<body>
+  <div class="contenedor">
+  <h2>👤 Mantenimiento de Usuarios</h2>
+
+  <div class="card">
+    <label>ID Usuario </label>
+    <input  type="number" style="width: 50px;" id="id_usuario" placeholder="Ej: 1">
+&nbsp;&nbsp;&nbsp;
+    <label>Nombre </label>
+    <input size="30" type="text" id="nombre" placeholder="Nombre completo">
+
+    <br>
+    <br>
+    <label>Email </label>
+    <input size="30" type="email" id="email" placeholder="usuario@mail.com">
+&nbsp;&nbsp;&nbsp;
+    <label>Nivel </label>
+    <select id="nivel">
+      <option value="1">1 - Vendedor</option>
+      <option value="2">2 - Supervisor</option>
+    </select>
+
+    <br>
+    <br>
+    <button id="btnGuardar">💾 Guardar</button>
+    <button id="btnLimpiar">&#9851; Limpiar</button>
+	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	<button align="right"  onclick="window.location.href='menu-general.html'">&#8617; Volver</button>
+  </div>
+
+  <div class="card">
+    <h3>Listado de Usuarios</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Nombre</th>
+          <th>Email</th>
+          <th>Nivel</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="tablaUsuarios"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+verificarSesion();
+</script>
+
+  <script src="./js/usuarios.js"></script>
+
+<script src="js/medidor.js"></script>
+
+</body>
+</html>

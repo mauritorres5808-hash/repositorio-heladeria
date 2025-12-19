@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Totales de Caja</title>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+  <style>
+
+    body{
+		font-family:Arial;
+		background:#f3f3f3;
+		margin:0;
+		padding:20px;
+		background-color: #8AC0FF;
+	}
+    .contenedor{max-width:820px;margin:auto;background:#fff;padding:20px;border-radius:8px}
+   
+    h2 {
+      text-align: center;
+      background-color: #8AC0FF;
+      padding: 10px;
+      border-radius: 8px;
+    }
+	
+    table {
+      width: 80%;
+      border-collapse: collapse;
+      margin-top: 20px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    th,td {
+      padding: 8px;
+      border: 1px solid #0E0D0C;
+      text-align: center;
+    }
+	
+    tr.total-row {
+      font-weight: bold;
+      background: #e8e8e8;
+    }
+	th {
+      background: #f2f2f2;
+    }
+
+    button {
+      margin-top: 15px;
+      padding: 8px 16px;
+      cursor: pointer;
+    }
+.contenedor-botones {
+  display: flex; /* Convierte el div en un contenedor flexible */
+  justify-content: center;
+  gap: 10px; /* Establece un espacio de xx píxeles entre los elementos */
+}
+.contenedor-botones2 {
+  display: flex; /* Convierte el div en un contenedor flexible */
+    justify-content: center;
+  gap: 30px; /* Establece un espacio de xx píxeles entre los elementos */
+}
+
+.boton-redondeado {
+  padding: 10px 20px; /* Ajusta el padding a tu gusto */
+  background-color: #007bff; /* Color de fondo */
+  color: white; /* Color del texto */
+  border: none; /* Opcional: elimina el borde predeterminado */
+  border-radius: 8px; /* Bordes redondeados */
+  cursor: pointer; /* Cambia el cursor al pasar por encima */
+}
+.boton-redondeado2 {
+  padding: 10px 20px; /* Ajusta el padding a tu gusto */
+  background-color: #A6A09B; /* Color de fondo */
+  color: white; /* Color del texto */
+  border: none; /* Opcional: elimina el borde predeterminado */
+  border-radius: 8px; /* Bordes redondeados */
+  cursor: pointer; /* Cambia el cursor al pasar por encima */
+}
+/* Estilo al pasar el ratón */
+button:hover {
+  background-color: red; /* Cambia a rojo cuando el mouse está encima */
+  color: white;
+}
+
+
+  </style>
+    	<link rel="stylesheet" href="style.css">
+
+</head>
+<body>
+  <div class="contenedor">
+  
+  <h2 align=center style="background-color: #8AC0FF;">Totales de Caja por Forma de Pago</h2>
+  <div id="resultado2"></div>
+  
+<div align=center class="contenedor-botones">
+  <label for="fecha">Fecha desde:</label>
+  <input type="date" id="fecha">
+  <br></br>
+  <label for="fecha">Fecha hasta:</label>
+  <input type="date" id="fecha2">
+</div>
+<br></br>
+
+<div class="contenedor-botones2">
+  <button class="boton-redondeado" onclick="buscarTotales()">Buscar</button>
+  <button class="boton-redondeado" onclick="window.location.href='index.html'">Volver</button>
+</div>
+
+  <div id="resultado"></div>
+</div>
+
+  <script>
+  
+	const hoy = new Date();
+	const yyyy = hoy.getFullYear();
+	const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+	const dd = String(hoy.getDate()).padStart(2, '0');
+	const fechaHoy = `${yyyy}-${mm}-${dd}`;
+
+	document.getElementById("fecha").value = fechaHoy;
+	document.getElementById("fecha2").value = fechaHoy;
+	
+
+    // Configuración Firebase
+    const firebaseConfig = {
+		apiKey: "AIzaSyAo0PavzSFhTVMJ7zbjK77gRgoLCTXYmqo",
+		authDomain: "donado-2.firebaseapp.com",
+		projectId: "donado-2",
+		storageBucket: "donado-2.firebasestorage.app",
+		messagingSenderId: "460436618597",
+		appId: "1:460436618597:web:c8501eeaf13f6ab155b58c",
+		measurementId: "G-C8TGJ69VJZ"  
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+const formateadorMonedaArgentina = new Intl.NumberFormat('es-AR', {
+  style: 'currency',
+  currency: 'ARS',
+});
+
+    // Cargar ultima fecha de sincronizacion
+	async function cargarFechaSincro(pTipo) {
+	  try {
+		//alert(pTipo);
+		const querySnapshot = await db
+		  .collection("SINCRO")
+		  .where("id_tipo", "==", pTipo)
+		  .get();
+
+		let fecha_sinc = "sin fecha";
+
+		if (!querySnapshot.empty) {
+		  const data = querySnapshot.docs[0].data();
+		  fecha_sinc = data.fecha;
+		  //alert(fecha_sinc);
+		}
+
+		let html = "<h4 align=center>(ultima fecha de sincronizacion: " + fecha_sinc + ")</h4>";
+		document.getElementById("resultado2").innerHTML = html;
+	  } catch (error) {
+		console.error("Error cargando fecha de sincronización: ", error);
+		document.getElementById("resultado2").innerHTML =
+		  "<h3>Error al cargar la fecha</h3>";
+	  }
+	}
+
+function buscarTotales() {
+      const inicioInput = document.getElementById("fecha").value;
+      const finInput = document.getElementById("fecha2").value;
+
+      if (!inicioInput || !finInput) {
+        alert("Debes ingresar ambas fechas");
+        return;
+      }
+
+      const inicio = new Date(inicioInput + "T00:00:00");
+      const fin = new Date(finInput + "T23:59:59");
+
+      db.collection("TOTALES_CAJA")
+        .where("fecha", ">=", firebase.firestore.Timestamp.fromDate(inicio))
+        .where("fecha", "<=", firebase.firestore.Timestamp.fromDate(fin))
+        .orderBy("fecha")
+        .get()
+        .then(querySnapshot => {
+		
+		    // ✅ Validar si no se encontraron resultados
+    if (querySnapshot.empty) {
+      //alert("No se encontraron datos para las fechas solicitadas.");
+       document.getElementById("resultado").innerHTML = "<p>No se encontraron datos para las fechas solicitadas.</p>";
+      return; // Detener ejecución para que no siga procesando datos vacíos
+    }
+
+
+          let dataProcesada = {};
+          let resumenGlobal = {};
+          let totalGeneralCantidad = 0;
+          let totalGeneralImporte = 0;
+
+          querySnapshot.forEach(doc => {
+            const d = doc.data();
+            const fecha = d.fecha.toDate().toLocaleDateString("es-AR");
+
+            if (!dataProcesada[fecha]) {
+              dataProcesada[fecha] = {};
+            }
+
+            if (!dataProcesada[fecha][d.forma_pago]) {
+              dataProcesada[fecha][d.forma_pago] = { cantidad: 0, total: 0 };
+            }
+
+            // Acumulamos por fecha
+            dataProcesada[fecha][d.forma_pago].cantidad += d.cantidad ? d.cantidad : 1;
+            dataProcesada[fecha][d.forma_pago].total += d.total;
+
+            // Acumulamos global
+            if (!resumenGlobal[d.forma_pago]) {
+              resumenGlobal[d.forma_pago] = { cantidad: 0, total: 0 };
+            }
+            resumenGlobal[d.forma_pago].cantidad += d.cantidad ? d.cantidad : 1;
+            resumenGlobal[d.forma_pago].total += d.total;
+
+            // Gran total
+            totalGeneralCantidad += d.cantidad ? d.cantidad : 1;
+            totalGeneralImporte += d.total;
+          });
+
+          let html = "";
+
+          // Tablas por fecha
+          for (let fecha in dataProcesada) {
+            let totalFechaCantidad = 0;
+            let totalFechaImporte = 0;
+
+            html += `<h3>Fecha: ${fecha}</h3>`;
+            html += `<table border='1'>
+                      <tr><th>Forma de Pago</th><th>Cantidad</th><th>Total</th><th>% sobre día</th></tr>`;
+            for (let forma in dataProcesada[fecha]) {
+              const item = dataProcesada[fecha][forma];
+              totalFechaCantidad += item.cantidad;
+              totalFechaImporte += item.total;
+            }
+
+            // Recorremos de nuevo para calcular % sobre el total del día
+            for (let forma in dataProcesada[fecha]) {
+              const item = dataProcesada[fecha][forma];
+              const porcentaje = (item.total / totalFechaImporte * 100).toFixed(2);
+              html += `<tr>
+                        <td>${forma}</td>
+                        <td>${item.cantidad}</td>
+						<td>${formateadorMonedaArgentina.format(item.total) || ""}</td>
+                        <td>${porcentaje}%</td>
+                      </tr>`;
+            }
+
+            // 🔹 Total general por fecha
+            html += `<tr style="font-weight:bold; background:#f0f0f0">
+                      <td>Total Día</td>
+                      <td>${totalFechaCantidad}</td>
+						<td>${formateadorMonedaArgentina.format(totalFechaImporte) || ""}</td>
+                      <td>100%</td>
+                     </tr>`;
+
+            html += `</table><br>`;
+          }
+
+          // Resumen global solo si hay más de una fecha
+          const cantFechas = Object.keys(dataProcesada).length;
+          if (cantFechas > 1) {
+            html += `<h2 style="color: red;">Resumen Global por Forma de Pago</h2>`;
+            html += `<table border='1'>
+                      <tr><th>Forma de Pago</th><th>Cantidad</th><th>Total</th><th>% Global</th></tr>`;
+            for (let forma in resumenGlobal) {
+              const item = resumenGlobal[forma];
+              const porcentaje = (item.total / totalGeneralImporte * 100).toFixed(2);
+              html += `<tr>
+                        <td>${forma}</td>
+                        <td>${item.cantidad}</td>
+						<td>${formateadorMonedaArgentina.format(item.total) || ""}</td>
+                        <td>${porcentaje}%</td>
+                      </tr>`;
+            }
+            html += `<tr style="font-weight:bold; background:#f0f0f0">
+                      <td>Total Global</td>
+                      <td>${totalGeneralCantidad}</td>
+						<td>${formateadorMonedaArgentina.format(totalGeneralImporte) || ""}</td>
+                      <td>100%</td>
+                     </tr>`;
+            html += `</table><br>`;
+          }
+          document.getElementById("resultado").innerHTML = html;
+        });
+    }
+	
+// Función que se ejecutará cuando la página cargue
+function ejecutarTodas() {
+  cargarFechaSincro(2); // trae fecha de ultima sincronizacion
+}
+
+// Asigna la función lanzadera al evento onload
+window.onload = ejecutarTodas;
+
+  </script>
+</body>
+</html>

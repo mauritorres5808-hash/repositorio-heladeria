@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>Hacer Pedido - Heladería</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+  body{ font-family:Arial; margin:15px; background:#fafafa; 
+  			 background-image: url('fondo-claro.jpeg');			 
+             background-size: cover; 
+             background-repeat: no-repeat; 
+             background-position: center; 
+             background-attachment: fixed;  /* Opcional: fija la imagen al scroll */  
+  }
+  h1{ font-size:22px; margin-bottom:10px }
+  .topBar{ display:flex; gap:12px; align-items:center; margin-bottom:12px; }
+  select, input { padding:8px; border-radius:6px; border:1px solid #ccc; }
+  #listaProductos { margin-top:8px; }
+  .producto{ background:white; padding:12px; margin-bottom:12px; border-radius:10px; box-shadow:0 1px 4px rgba(0,0,0,0.08); }
+  .header{ display:flex; justify-content:space-between; align-items:center; gap:10px; }
+  .acciones-prod{ display:flex; gap:8px; align-items:center; }
+  .unidad{ background:#f3f7ff; padding:10px; margin-top:8px; border-radius:8px; }
+  .unidad .titulo{ font-weight:600; margin-bottom:6px; }
+  select.sabor { padding:6px; width:100%; margin:4px 0; }
+  button{ padding:8px 10px; border:none; border-radius:6px; cursor:pointer; }
+  .agregar{ background:#2b9bff; color:white }
+  .quitar{ background:#e74c3c; color:white }
+  #btnEnviar{background:#0dc143; padding:14px; width:30%; font-size:18px; color:white; border:none; margin-top:15px; border-radius:8px; }
+  .meta{ font-size:13px; color:#666 }
+  #totalBox{ margin-top:12px; font-size:18px; font-weight:700; }
+  #mensajeFinal { display:none; }
+  /* Carrito lateral (responsive) */
+  #carrito { position:fixed; right:18px; top:18px; width:300px; background:#FFFDE6; padding:12px; border-radius:10px; box-shadow:0 6px 18px rgba(0,0,0,5.08); max-height:80vh; overflow:auto; }
+  #carrito h3{ margin-top:0; }
+  .carrito-item{ display:flex; justify-content:space-between; gap:8px; align-items:center; padding:6px 0; border-bottom:1px dashed #eee; }
+  .carrito-controls button{ margin-left:6px; }
+  @media (max-width:900px){
+    #carrito{ position:static; width:100%; margin-top:12px; }
+  }
+  
+    .contenedor {
+      max-width: 800px;
+      margin: auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+    }  
+	
+	#logo {
+          /*   position: absolute; /* Fija la posición */
+			left: 50px; 			/* Margen izquierdo */
+            top: 20px; 			/* Margen superior */
+		width: 250px; /* Tamaño pequeño */
+            height: auto; /* Mantiene proporciones */
+            z-index: 1; /* Por encima de otros elementos si es necesario */
+            border-radius: 15px; /* Opcional: bordes redondeados */
+            box-shadow: 0 12px 15px rgba(0,0,0,5.2); /* Opcional: sombra para resaltar */
+        position:fixed;
+		}  
+
+
+
+
+.btn-validar-dom {
+    background: #ff4d4d;
+    color: white;
+    border: 1px solid #b30000;
+    border-radius: 5px;
+    padding: 6px 10px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.btn-validar-dom:hover {
+    background: #ff1a1a;
+}
+
+.msg-validacion-dom {
+    margin-top: 4px;
+    font-size: 13px;
+    font-weight: bold;
+}
+
+</style>
+</head>
+<body>
+<div style="text-align: center;">
+	<img id="logo" src="logo-donado3.jpg" alt="Tu Logo">
+</div>
+
+  <div class="contenedor">
+<form id="formPedido" onsubmit="event.preventDefault(); enviarPedido();">
+
+  <h1>Hacé tu pedido</h1>
+
+  <div class="topBar">
+    <label for="cmbGrupo">Grupo de Productos:</label>
+    <select id="cmbGrupo" onchange="onGrupoChange()">
+      <option value="">-- Seleccione un grupo --</option>
+    </select>
+
+    <input id="txtBuscar" placeholder="Buscar producto ..." oninput="renderProductos()" style="flex:1" />
+  </div>
+
+  <div id="listaProductos">Cargando productos...</div>
+
+  <h2>Tus datos</h2>
+  <input id="nombre" name="nombre" placeholder="Nombre" />
+<!--  <input id="domicilio" name="domicilio" placeholder="Dirección" /> -->
+
+	<br><br><label for="domicilio" class="lbl">Domicilio</label>
+  <div style="display:flex; gap:10px; align-items:center;">
+
+    <input type="text" id="domicilio" placeholder="Escriba la dirección completa" style="width:30%; ">
+    <button id="btnValidarDom" type="button" class="btn-validar-dom">Validar domicilio</button>
+</div>
+<div colspan=2 id="msgValidacionDom" class="msg-validacion-dom"></div>
+
+  <input id="nota" style="width:50%;" name="nota" placeholder="(nota opcional) piso-depto-timbre-puerta etc." />
+
+  <div style="margin-bottom:10px;">
+  <br>
+    <label>Teléfono (WhatsApp)</label><br>
+    <input id="telefono" name="telefono" type="text" placeholder="11 3469 2013" 
+           oninput="validarTelefonoUI(this)" 
+           style="width:30%;padding:10px;font-size:16px;border:2px solid #ccc;border-radius:6px;">
+    <div id="telefonoMsg" style="font-size:13px;margin-top:3px;color:#b00;"></div>
+  </div>
+
+  <div id="totalBox">Total: $ <span id="totalValor">0</span></div>
+
+  <button id="btnEnviar" sytle="align-context='center'" type="submit">Enviar Pedido</button>
+
+</form>
+
+<!-- Carrito lateral -->
+<div id="carrito" aria-live="polite">
+  <h3 style="color:black">🛒 Tu Pedido</h3>
+  <hr>
+  <div id="carritoItems">No hay productos seleccionados.</div>
+  <div style="margin-top:10px; font-weight:700; font-size:22px; color:blue">Total: <span id="carritoTotal">0</span></div>
+</div>
+
+<!-- Mensaje final de éxito -->
+<div id="mensajeFinal" 
+     style="
+       position: fixed;
+       top: 30%;
+       left: 50%;
+       transform: translateX(-50%);
+       background: white;
+       padding: 20px;
+       border-radius: 10px;
+       box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+       font-size: 18px;
+       text-align: center;
+       width: 80%;
+       max-width: 350px;
+       z-index: 9999;
+     ">
+  <h3 style="margin-top:0;">¡Pedido recibido! 🙌</h3>
+  <p id="mensajeFinalTxt">Tu pedido fue recibido correctamente.<br>Enseguida lo preparamos 🍦 y te contactamos 📞</p>
+  <button onclick="cerrarMensajeFinal()" 
+          style="
+            margin-top: 10px;
+            padding: 10px 20px;
+            background: #2ecc71;
+            border: none;
+            color: white;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+			">
+    Aceptar
+  </button>
+</div>
+  </div>
+<script src="pedidos-online.js"></script>
+</body>
+</html>

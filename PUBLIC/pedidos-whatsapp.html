@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Pedidos Online</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  body{font-family:Arial;margin:12px;background:#f7f8fb}
+  header{display:flex;gap:12px;align-items:center;margin-bottom:12px}
+  
+      .contenedor{max-width:920px;margin:auto;background:#fff;padding:20px;border-radius:8px}
+	  
+  input[type="search"],select{padding:8px;border-radius:6px;border:1px solid #ccc}
+  #lista{display:flex;flex-direction:column;gap:10px}
+  .pedido{background:#fff;padding:12px;border-radius:8px;
+    box-shadow:0 1px 4px rgba(0,0,0,0.08)}
+  .meta{font-size:13px;color:#666;margin-bottom:6px}
+  .unidad{margin:5px 0 10px 15px;padding:8px;background:#eef2ff;border-radius:6px}
+ button{padding:8px 14px;background:#007bff;color:#fff;border:none;border-radius:5px;cursor:pointer} 
+button:hover{background:#0056b3};
+/*  .acciones button{padding:8px 10px;border-radius:6px;border:none;cursor:pointer} */
+  .acciones button{padding:8px 14px;background:#007bff;color:#fff;border:none;border-radius:5px;cursor:pointer}
+  .convertir{background:#2ecc71;color:#fff}
+  .eliminar{background:#e74c3c;color:#fff}
+
+  /* Popup */
+  #modalPago{
+    display:none;position:fixed;top:0;left:0;width:100%;height:100%;
+    background:rgba(0,0,0,0.5);justify-content:center;align-items:center;
+    z-index:9999;
+  }
+  #modalPago .box{
+    background:white;padding:20px;border-radius:10px;
+    width:90%;max-width:560px;
+    box-shadow:0 4px 10px rgba(0,0,0,0.3);
+  }
+hr { border-color: green; } 
+/*    .alert-modern{background:#e9f7ef;border-left:6px solid #28a745;padding:5px;border-radius:6px;margin:10px 0; width:40%;} */
+    .alert-modern{background:#C3F9DF;border-left:6px solid #28a745;padding:5px;border-radius:6px;margin:10px 0; width:40%;  margin-left: auto; }
+	
+
+</style>
+</head>
+<body>
+  <div class="contenedor">
+		<h2>Pedidos Online</h2>
+
+		<header>
+		  <select id="filterEstado">
+
+			<option value="nuevo">Nuevos Pedidos</option>
+			<option value="convertido">confirmados como Venta</option>
+		  </select>
+
+		  <input id="searchBox" type="search" placeholder="Buscar por nombre o teléfono">
+		  <button onclick="cargar(true)">Buscar</button>
+		  		<button class="boton-derecha" onclick="location.href='/menu-ventas.html'">&#8617; Volver</button>
+
+
+		</header>
+
+		<div id="lista">Cargando...</div>
+  </div>
+<script>
+let sabores = [];
+let formasPago = [];
+
+let idPedidoActual = null;
+let totalPedidoActual = 0;
+
+// ---------------- Cargar sabores ----------------
+async function cargarSabores(){
+  sabores = await (await fetch("/api/sabores")).json();
+}
+cargarSabores();
+
+function saborDesc(id){
+  const s = sabores.find(x => x.id_sabor == id);
+  return s ? s.descripcion : id;
+}
+
+// ---------------- Cargar formas de pago ----------------
+async function cargarFormasPago(){
+  formasPago = await (await fetch("/api/fpago")).json();
+}
+cargarFormasPago();
+
+// ---------------- Cargar pedidos ----------------
+async function cargar(){
+  const estado = document.getElementById("filterEstado").value;
+  const q = document.getElementById("searchBox").value.trim();
+
+  let url = "/api/pedidos_whatsapp";
+  const p = new URLSearchParams();
+  if (estado) p.set("estado", estado);
+  if (q) p.set("q", q);
+  if (p.toString()) url += "?" + p.toString();
+
+  try {
+    const res = await fetch(url);
+    const items = await res.json();
+    renderList(items);
+  } catch(e){
+    console.error("Error cargando:", e);
+  }
+}
+
+// ---------------- Render lista ----------------
+function renderList(items){
+  const root = document.getElementById("lista");
+  root.innerHTML = "";
+
+  if (!items.length){
+    root.innerHTML = "<div>No hay pedidos</div>";
+    return;
+  }
+
+  items.forEach(p => {
+    const el = document.createElement("div");
+    el.className = "pedido";
+
+    let totalPedido = 0;
+
+    let html = `
+      <div style="display:flex;justify-content:space-between">
+        <div><b>Pedido #${p.id_pedido}</b> — ${p.nombre} • ${p.telefono}</div>
+        <div class="meta">Fecha/Hora: ${p.fecha} ${p.hora}</div>
+      </div>
+    <div id="mensajeTipo" class="alert-modern" style="font-size:12px">Si el telefono del cliente no existe se dara de Alta al cliente</div>
+	<div><b>Domicilio:</b> ${p.domicilio}</div>
+      <div><b>Nota:</b> ${p.nota || "—"}</div>
+      <br>
+      <b>Detalle:</b><br>
+    `;
+
+    const formateadorMoneda = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS',   minimumFractionDigits: 0, maximumFractionDigits: 0 });
+
+    (p.pedido_detalle || []).forEach((it, idx) => {
+      const subtotal = (it.precio || 0);
+      totalPedido += subtotal;
+
+/*
+      html += `<div class="unidad">
+        <b>Unidad ${idx+1}: ${it.descripcion}</b><br>
+        Precio: $${it.precio}<br>
+        Subtotal unidad: <b>$${subtotal}</b><br>
+      `;
+*/
+      html += `<div class="unidad">
+        <b>Unidad ${idx+1}: ${it.descripcion}</b><br>
+        Precio: ${formateadorMoneda.format(it.precio)}<br>
+      `;
+
+      if (it.sabores?.length){
+        html += `<u>Sabores:</u><ul>`;
+        it.sabores.forEach(s => html += `<li>${saborDesc(s)}</li>`);
+        html += `</ul>`;
+      }
+
+      html += `</div>`;
+    });
+
+
+    html += `
+      <div style="font-size:26px;font-weight:bold;margin-top:10px;">
+        Total pedido: ${formateadorMoneda.format(totalPedido)}
+      </div><br>`
+    html += `<div class="acciones">`
+	if (p.estado==="nuevo"){
+		html += `    <button class="convertir" onclick="abrirConversion(${p.id_pedido}, ${totalPedido})">Confirmar Venta</button>`
+    }
+	html += `
+        <button class="eliminar"  onclick="eliminar(${p.id_pedido})">Eliminar</button>
+		<button class="boton-derecha" onclick="location.href='/menu-ventas.html'">&#8617; Volver</button>
+		   <hr>
+      </div>`;
+
+    el.innerHTML = html;
+    root.appendChild(el);
+  });
+}
+
+// ---------------- Abrir popup de conversión ----------------
+function abrirConversion(id, total){
+  idPedidoActual = id;
+  totalPedidoActual = total;
+
+  const fp1 = document.getElementById("fp1");
+  const fp2 = document.getElementById("fp2");
+
+  fp1.innerHTML = `<option value="0">-- seleccionar --</option>`;
+  fp2.innerHTML = `<option value="0">0 - Ninguno</option>`;
+
+  formasPago.forEach(fp => {
+    const opt = `<option value="${fp.id_fpago}">${fp.id_fpago} - ${fp.descripcion}</option>`;
+    fp1.innerHTML += opt;
+    fp2.innerHTML += opt;
+  });
+
+  document.getElementById("totalShow").textContent = Number(total).toLocaleString("es-AR");
+  document.getElementById("imp1").value = total;
+  document.getElementById("imp2").value = 0;
+
+  document.getElementById("modalPago").style.display = "flex";
+}
+
+function cerrarModalPago(){
+	document.getElementById("resultado").innerHTML = ``;
+  document.getElementById("modalPago").style.display = "none";
+}
+
+// ---------------- Confirmar conversión ----------------
+async function confirmarConversion(){
+
+  const fp1 = Number(document.getElementById("fp1").value);
+  const fp2 = Number(document.getElementById("fp2").value);
+  const imp1 = Number(document.getElementById("imp1").value);
+  const imp2 = Number(document.getElementById("imp2").value);
+
+  if ((imp1 + imp2) !== totalPedidoActual){
+    alert("❌ La suma de los importes no coincide con el total ($" + totalPedidoActual + ")");
+    return;
+  }
+
+  if (imp1 > 0 && fp1 === 0){
+    alert("Debe seleccionar forma de pago 1");
+    return;
+  }
+
+  if (imp2 > 0 && fp2 === 0){
+    alert("Debe seleccionar forma de pago 2");
+    return;
+  }
+
+  if (fp1 != 0 && imp1 <= 0){
+    alert("Debe ingresar el importe para la forma de pago 1");
+    return;
+  }
+  if (fp2 != 0 && imp2 <= 0){
+    alert("Debe ingresar el importe para la forma de pago 2");
+    return;
+  }
+ document.getElementById("resultado").innerHTML = `<p><b>Procesando, por favor espere...</b></p>`;
+	
+  const res = await fetch(`/api/pedidos_whatsapp/${idPedidoActual}/convertir`,{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      f_pago1:fp1,
+      f_pago2:fp2,
+      importe_fp1:imp1,
+      importe_fp2:imp2
+    })
+  });
+
+  const j = await res.json();
+  if (!j.ok){
+	document.getElementById("resultado").innerHTML = ``;
+    alert("Error: " + j.error);
+    return;
+  }
+
+  document.getElementById("resultado").innerHTML = ``;
+  alert("Pedido convertido. Venta #" + j.id_venta);
+  cerrarModalPago();
+  cargar();
+}
+
+// ---------------- Eliminar ----------------
+async function eliminar(id){
+  if (!confirm("Eliminar pedido #" + id + "?")) return;
+  const res = await fetch(`/api/pedidos_whatsapp/${id}`, { method:"DELETE" });
+  const j = await res.json();
+  if (j.ok) alert("Pedido eliminado");
+  cargar();
+}
+
+// ---------------- Inputs sincronizados ----------------
+document.addEventListener("DOMContentLoaded", () => {
+  const imp1 = document.getElementById("imp1");
+  const imp2 = document.getElementById("imp2");
+
+  imp1.addEventListener("input", () => {
+    let v1 = Number(imp1.value);
+    if (v1 < 0) v1 = 0;
+    if (v1 > totalPedidoActual) v1 = totalPedidoActual;
+    imp1.value = v1;
+    imp2.value = totalPedidoActual - v1;
+  });
+
+  imp2.addEventListener("input", () => {
+    let v2 = Number(imp2.value);
+    if (v2 < 0) v2 = 0;
+    if (v2 > totalPedidoActual) v2 = totalPedidoActual;
+    imp2.value = v2;
+    imp1.value = totalPedidoActual - v2;
+  });
+});
+
+// inicial
+cargar();
+</script>
+
+<!-- ======================================
+     MODAL PAGO (ÚNICO Y DEFINITIVO)
+======================================= -->
+<div id="modalPago">
+  <div class="box">
+
+    <h3>Confirmar la venta &#9989;</h3>
+    <div>Total del pedido: <b>$ <span id="totalShow"></span></b></div>
+    <br>
+
+    <label>Forma de Pago 1</label>
+    <select id="fp1"></select>
+
+    <label>Importe 1</label>
+    <input id="imp1" type="number" step="0.01" style="width:20%;padding:8px;margin-bottom:12px">
+
+    <br>
+    <label>Forma de Pago 2</label>
+    <select id="fp2"></select>
+
+    <label>Importe 2</label>
+    <input id="imp2" type="number" step="0.01" style="width:20%;padding:8px;margin-bottom:12px">
+
+    <div style="display:flex;gap:10px;margin-top:10px;">
+      <button onclick="confirmarConversion()"
+        style="flex:1;padding:10px;background:#27ae60;color:white;border:none;border-radius:6px">
+        Confirmar
+      </button>
+      <button onclick="cerrarModalPago()"
+        style="flex:1;padding:10px;background:#aaa;color:white;border:none;border-radius:6px">
+        Cancelar
+      </button>
+    </div>
+	    <div id="resultado"></div>
+
+
+  </div>
+</div>
+
+</body>
+</html>

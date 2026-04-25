@@ -54,6 +54,7 @@ async function nextId(nombreColeccion, campoID) {
 //  ENDPOINT → RECIBIR PEDIDO ONLINE
 // ==========================================
 app.post("/whatsapp/pedido", async (req, res) => {
+	console.log("🔥 ENTRO A /whatsapp/pedido");
   try {
     const pedido = req.body;
 
@@ -105,24 +106,11 @@ app.post("/whatsapp/pedido", async (req, res) => {
     const fecha = ahora.toLocaleDateString("es-AR");
     const hora = ahora.toLocaleTimeString("es-AR");
 */
-/*
-const ahora = new Date();
-const fecha = [
-  String(ahora.getDate()).padStart(2, "0"),
-  String(ahora.getMonth() + 1).padStart(2, "0"),
-  ahora.getFullYear()
-].join("/");
-
-const hora = [
-  String(ahora.getHours()).padStart(2, "0"),
-  String(ahora.getMinutes()).padStart(2, "0"),
-  String(ahora.getSeconds()).padStart(2, "0")
-].join(":");
-*/
 const ahora = new Date();
 const fecha = formatearFecha(ahora);
 const hora = formatearHora(ahora);
-console.log("GUARDANDO FECHA:", fecha);
+console.log("GUARDANDO PEDIDO con FECHA:", fecha);
+console.log("GUARDANDO PEDIDO con HORA:", hora);
 
     await db.collection("PEDIDOS_WHATSAPP").add({
       id_pedido,
@@ -145,6 +133,7 @@ console.log("GUARDANDO FECHA:", fecha);
   }
 });
 
+/*
 function formatearFecha(fechaObj) {
   return [
     String(fechaObj.getDate()).padStart(2, "0"),
@@ -158,6 +147,25 @@ function formatearHora(fechaObj) {
     String(fechaObj.getMinutes()).padStart(2, "0"),
     String(fechaObj.getSeconds()).padStart(2, "0")
   ].join(":");
+}
+*/
+function formatearFecha(fechaObj) {
+  return fechaObj.toLocaleDateString("es-AR", {
+    timeZone: "America/Argentina/Buenos_Aires",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric"
+  });
+}
+
+function formatearHora(fechaObj) {
+  return fechaObj.toLocaleTimeString("es-AR", {
+    timeZone: "America/Argentina/Buenos_Aires",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false
+  });
 }
 
 // ==========================================
@@ -326,20 +334,7 @@ app.post("/api/pedidos_whatsapp/:id/convertir", async (req, res) => {
     const fecha = ahora.toLocaleDateString("es-AR");
     const hora = ahora.toLocaleTimeString("es-AR");
 */
-/*
-const ahora = new Date();
-const fecha = [
-  String(ahora.getDate()).padStart(2, "0"),
-  String(ahora.getMonth() + 1).padStart(2, "0"),
-  ahora.getFullYear()
-].join("/");
 
-const hora = [
-  String(ahora.getHours()).padStart(2, "0"),
-  String(ahora.getMinutes()).padStart(2, "0"),
-  String(ahora.getSeconds()).padStart(2, "0")
-].join(":");
-*/
 const ahora = new Date();
 const fecha = formatearFecha(ahora);
 const hora = formatearHora(ahora);
@@ -481,6 +476,7 @@ app.get("/pedidos-online", (req, res) => {
 // ==========================================
 // INICIAR SERVIDOR
 // ==========================================
+console.log("VERSION SERVER:", new Date().toISOString());
 app.listen(3000, () => {
   console.log("Servidor escuchando en http://localhost:3000");
 });

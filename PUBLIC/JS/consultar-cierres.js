@@ -17,17 +17,40 @@ async function buscarCierres() {
 
   let query = db.collection("CIERRES_CAB");
 
-  if (desde) query = query.where("fecha", ">=", fechaToDMY(desde));
-  if (hasta) query = query.where("fecha", "<=", fechaToDMY(hasta));
+//------- nuevo desde
+const snap = await db.collection("CIERRES_CAB").get();
 
-  const snap = await query.orderBy("fecha", "desc").get();
+const desdeNorm = desde; // yyyy-mm-dd
+const hastaNorm = hasta;
+
+function normalizarFecha(f) {
+  const [dd, mm, yyyy] = f.split("/");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+let docs = snap.docs.map(d => d.data());
+
+docs = docs.filter(c => {
+  const f = normalizarFecha(c.fecha);
+
+  if (desdeNorm && f < desdeNorm) return false;
+  if (hastaNorm && f > hastaNorm) return false;
+
+  return true;
+});
+
+// Ordenar manualmente
+docs.sort((a, b) => normalizarFecha(b.fecha).localeCompare(normalizarFecha(a.fecha)));
+
+//------- nuevo hasta
+
   if (snap.empty) return cont.innerHTML = "<p>No se encontraron cierres.</p>";
 
   let html = `<table class="table table-striped">
                 <thead><tr><th>ID cierre</th><th>Fecha Cierre</th><th>Hora Cierre</th><th>Usuario</th><th>Total</th><th></th></tr></thead><tbody>`;
 
-  snap.forEach(d => {
-    const c = d.data();
+  docs.forEach(c => {
+
 	
 	//	let hora_grab = format_hora(c.fecha_hora_grabacion);
 let hora_grab = c.fecha_hora_grabacion;

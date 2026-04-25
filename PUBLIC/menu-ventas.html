@@ -100,7 +100,7 @@
 	
 /* Botón verde (solo cambia color base) */
 .boton-redondeado3 {
-  background-color: green;
+  background-color: #14BD55;
 }
 
 
@@ -140,6 +140,20 @@ h3 {
 
 <body>
 
+<script>
+  const PAGINA_PEDIDOS =
+    location.hostname === "localhost"
+      ? "http://localhost:3000/pedidos-whatsapp.html"
+      : "https://donado-2.web.app/pedidos-whatsapp.html";
+
+  function irAPedidos() {
+    location.href = PAGINA_PEDIDOS;
+  }
+</script>
+
+
+
+
   <div class="contenedor">
     <h3>&#128178; Menú de VENTAS</h3>
 
@@ -176,7 +190,7 @@ h3 {
            <button class="boton-redondeado" id="btnCambiarFP" onclick="location.href='modifica-fpago_v.html'">Cambiar Forma de Pago</button>
         </td>
         <td>
-           <button class="boton-redondeado3" id="btnPedidos-wsp" onclick="location.href='http://localhost:3000/pedidos-whatsapp'">Pedidos Online</button>
+           <button class="boton-redondeado3" id="btnPedidos-wsp"  onclick="irAPedidos()">Pedidos Online</button>
         </td>
       </tr>
 

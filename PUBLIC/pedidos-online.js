@@ -2,6 +2,7 @@
 // Lógica adaptada: GRUPOS -> PRODUCTOS filtrados en front, carrito, sabores, envío.
 // Mantiene la lógica original del proyecto.
 
+
 const formateadorMoneda = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS',   minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
 let grupos = [];
@@ -14,9 +15,9 @@ async function cargarDatos() {
   // cargar grupos, productos y sabores
   try {
     const [gRes, pRes, sRes] = await Promise.all([
-      fetch("/api/grupos"),
-      fetch("/api/productos"),
-      fetch("/api/sabores")
+      fetch(`${API_BASE}/api/grupos`),
+      fetch(`${API_BASE}/api/productos`),
+      fetch(`${API_BASE}/api/sabores`)
     ]);
 
     grupos = await gRes.json();
@@ -338,7 +339,7 @@ function validarSabores() {
 // ------------------ VALIDAR DIRECCIÓN (via backend) ------------------
 async function validarDireccionBackend(direccion) {
   try {
-    const resp = await fetch("/api/verificar-direccion", {
+    const resp = await fetch(`${API_BASE}/api/verificar-direccion`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ direccion })
@@ -413,7 +414,7 @@ async function enviarPedido(){
   }
 
   try {
-    let r = await fetch("/whatsapp/pedido", {
+    let r = await fetch(`${API_BASE}/whatsapp/pedido`, {
       method:"POST",
       headers:{ "Content-Type":"application/json" },
       body:JSON.stringify({ nombre, domicilio, telefono:tel, nota, pedido:pedidoBackend })

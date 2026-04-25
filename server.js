@@ -12,6 +12,8 @@ const path = require("path");
 // ==========================================
 //  Inicializar Firebase Admin
 // ==========================================
+require("dotenv").config();
+
 admin.initializeApp({
   credential: admin.credential.cert({
     projectId: process.env.FIREBASE_PROJECT_ID,
@@ -98,9 +100,29 @@ app.post("/whatsapp/pedido", async (req, res) => {
     // 2) GUARDAR PEDIDO
     const id_pedido = await nextId("PEDIDOS_WHATSAPP", "id_pedido");
 
+/*
     const ahora = new Date();
     const fecha = ahora.toLocaleDateString("es-AR");
     const hora = ahora.toLocaleTimeString("es-AR");
+*/
+/*
+const ahora = new Date();
+const fecha = [
+  String(ahora.getDate()).padStart(2, "0"),
+  String(ahora.getMonth() + 1).padStart(2, "0"),
+  ahora.getFullYear()
+].join("/");
+
+const hora = [
+  String(ahora.getHours()).padStart(2, "0"),
+  String(ahora.getMinutes()).padStart(2, "0"),
+  String(ahora.getSeconds()).padStart(2, "0")
+].join(":");
+*/
+const ahora = new Date();
+const fecha = formatearFecha(ahora);
+const hora = formatearHora(ahora);
+console.log("GUARDANDO FECHA:", fecha);
 
     await db.collection("PEDIDOS_WHATSAPP").add({
       id_pedido,
@@ -123,6 +145,20 @@ app.post("/whatsapp/pedido", async (req, res) => {
   }
 });
 
+function formatearFecha(fechaObj) {
+  return [
+    String(fechaObj.getDate()).padStart(2, "0"),
+    String(fechaObj.getMonth() + 1).padStart(2, "0"),
+    fechaObj.getFullYear()
+  ].join("/");
+}
+function formatearHora(fechaObj) {
+  return [
+    String(fechaObj.getHours()).padStart(2, "0"),
+    String(fechaObj.getMinutes()).padStart(2, "0"),
+    String(fechaObj.getSeconds()).padStart(2, "0")
+  ].join(":");
+}
 
 // ==========================================
 //  API: validar domicilio
@@ -285,10 +321,29 @@ app.post("/api/pedidos_whatsapp/:id/convertir", async (req, res) => {
       .get();
 
     const id_venta = last.empty ? 1 : last.docs[0].data().id_venta + 1;
-
+/*
     const ahora = new Date();
     const fecha = ahora.toLocaleDateString("es-AR");
     const hora = ahora.toLocaleTimeString("es-AR");
+*/
+/*
+const ahora = new Date();
+const fecha = [
+  String(ahora.getDate()).padStart(2, "0"),
+  String(ahora.getMonth() + 1).padStart(2, "0"),
+  ahora.getFullYear()
+].join("/");
+
+const hora = [
+  String(ahora.getHours()).padStart(2, "0"),
+  String(ahora.getMinutes()).padStart(2, "0"),
+  String(ahora.getSeconds()).padStart(2, "0")
+].join(":");
+*/
+const ahora = new Date();
+const fecha = formatearFecha(ahora);
+const hora = formatearHora(ahora);
+console.log("GUARDANDO venta con FECHA:", fecha);
 
     // CABECERA
     await db.collection("VENTAS_CAB").add({
@@ -362,6 +417,7 @@ app.get("/api/grupos", async (req, res) => {
     const datos = snap.docs.map(d => d.data());
     res.json(datos);
 });
+
 
 
 // ==========================================

@@ -62,6 +62,12 @@ hr { border-color: green; }
 		<div id="lista">Cargando...</div>
   </div>
 <script>
+
+const API_BASE = 
+  location.hostname === "localhost"
+    ? "http://localhost:3000"
+    : "https://whatsapp-backend-tp21.onrender.com";
+	
 let sabores = [];
 let formasPago = [];
 
@@ -70,7 +76,7 @@ let totalPedidoActual = 0;
 
 // ---------------- Cargar sabores ----------------
 async function cargarSabores(){
-  sabores = await (await fetch("/api/sabores")).json();
+  sabores = await (await fetch(`${API_BASE}/api/sabores`)).json();
 }
 cargarSabores();
 
@@ -81,7 +87,7 @@ function saborDesc(id){
 
 // ---------------- Cargar formas de pago ----------------
 async function cargarFormasPago(){
-  formasPago = await (await fetch("/api/fpago")).json();
+  formasPago = await (await fetch(`${API_BASE}/api/fpago`)).json();
 }
 cargarFormasPago();
 
@@ -90,7 +96,7 @@ async function cargar(){
   const estado = document.getElementById("filterEstado").value;
   const q = document.getElementById("searchBox").value.trim();
 
-  let url = "/api/pedidos_whatsapp";
+  let url = `${API_BASE}/api/pedidos_whatsapp`;
   const p = new URLSearchParams();
   if (estado) p.set("estado", estado);
   if (q) p.set("q", q);
@@ -170,7 +176,7 @@ function renderList(items){
 		html += `    <button class="convertir" onclick="abrirConversion(${p.id_pedido}, ${totalPedido})">Confirmar Venta</button>`
     }
 	html += `
-        <button class="eliminar"  onclick="eliminar(${p.id_pedido})">Eliminar</button>
+        <button class="eliminar"  onclick="eliminar(${p.id_pedido})">Eliminar Pedido</button>
 		<button class="boton-derecha" onclick="location.href='/menu-ventas.html'">&#8617; Volver</button>
 		   <hr>
       </div>`;
@@ -242,7 +248,7 @@ async function confirmarConversion(){
   }
  document.getElementById("resultado").innerHTML = `<p><b>Procesando, por favor espere...</b></p>`;
 	
-  const res = await fetch(`/api/pedidos_whatsapp/${idPedidoActual}/convertir`,{
+  const res = await fetch(`${API_BASE}/api/pedidos_whatsapp/${idPedidoActual}/convertir`,{
     method:"POST",
     headers:{"Content-Type":"application/json"},
     body:JSON.stringify({
@@ -269,7 +275,7 @@ async function confirmarConversion(){
 // ---------------- Eliminar ----------------
 async function eliminar(id){
   if (!confirm("Eliminar pedido #" + id + "?")) return;
-  const res = await fetch(`/api/pedidos_whatsapp/${id}`, { method:"DELETE" });
+  const res = await fetch(`${API_BASE}/api/pedidos_whatsapp/${id}`, { method:"DELETE" });
   const j = await res.json();
   if (j.ok) alert("Pedido eliminado");
   cargar();

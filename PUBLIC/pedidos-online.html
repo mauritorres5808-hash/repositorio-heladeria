@@ -47,7 +47,7 @@
     }  
 	
 	#logo {
-          /*   position: absolute; /* Fija la posición */
+             position: absolute; /* Fija la posición */
 			left: 50px; 			/* Margen izquierdo */
             top: 20px; 			/* Margen superior */
 		width: 250px; /* Tamaño pequeño */
@@ -87,7 +87,7 @@
 <div style="text-align: center;">
 	<img id="logo" src="logo-donado3.jpg" alt="Tu Logo">
 </div>
-
+<br><br><br><br>
   <div class="contenedor">
 <form id="formPedido" onsubmit="event.preventDefault(); enviarPedido();">
 
@@ -175,6 +175,14 @@
   </button>
 </div>
   </div>
+<script src="/js/config.js"></script>
+
+<script>
+  window.API_BASE =
+    location.hostname === "localhost"
+      ? "http://localhost:3000"
+      : "https://whatsapp-backend-tp21.onrender.com";
+</script>
 <script src="pedidos-online.js"></script>
 </body>
 </html>

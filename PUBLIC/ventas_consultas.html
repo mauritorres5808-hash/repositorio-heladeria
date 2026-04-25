@@ -207,6 +207,8 @@
 
     <div id="resultado"></div>
 
+<div id="resumenFPContainer" style="display:none; margin-top:20px;"></div>
+
     <div class="selector-grafico" style="display:none;" id="selectorGrafico">
       <label><input type="radio" name="tipoGrafico" value="fpago" checked onchange="mostrarGrafico()"> Por Forma de Pago</label>
       <label><input type="radio" name="tipoGrafico" value="fecha" onchange="mostrarGrafico()"> Por Fecha</label>
@@ -320,6 +322,7 @@ verificarSesion();
 
         if (ventas.length === 0) {
           resultado.innerHTML = "<p>No se encontraron ventas.</p>";
+		  document.getElementById("resumenFPContainer").style.display = "none";
           return;
         }
 
@@ -455,6 +458,37 @@ verificarSesion();
           etiquetas: Object.keys(resumenPorFecha).sort(),
           valores: Object.values(resumenPorFecha)
         };
+
+// ===== RESUMEN POR FORMA DE PAGO =====
+let htmlFP = `<h3>Totales por Forma de Pago</h3>`;
+htmlFP += `<table>
+<tr>
+  <th>Forma de Pago</th>
+  <th>Importe</th>
+  <th>%</th>
+</tr>`;
+
+Object.keys(resumenFP).forEach(fp => {
+    const importe = resumenFP[fp] || 0;
+    if (importe === 0) return;
+
+    const porcentaje = totalGeneral > 0 
+        ? ((importe / totalGeneral) * 100).toFixed(2)
+        : 0;
+
+    htmlFP += `<tr>
+        <td>${formasPago[fp] || fp}</td>
+        <td>${formateadorMoneda.format(importe)}</td>
+        <td>${porcentaje} %</td>
+    </tr>`;
+});
+
+htmlFP += `</table>`;
+
+// Mostrar bloque
+const contFP = document.getElementById("resumenFPContainer");
+contFP.innerHTML = htmlFP;
+contFP.style.display = "block";
 
         selectorGrafico.style.display = "block";
         mostrarGrafico();

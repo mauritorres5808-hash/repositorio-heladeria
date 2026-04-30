@@ -2,12 +2,12 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>ABM de Formas de Pago</title>
+  <title>ABM de Sabores</title>
 
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-<script src="js/auth.js"></script>  <!-- 🔹 Aquí se verifica la autenticacion-->
+<script src="js/auth.js"></script>  <!-- Aqui se verifica la autenticacion-->
 
   <style>
     body {
@@ -39,15 +39,14 @@
       width: 250px;
       margin-bottom: 10px;
     }
-    button {
-      padding: 8px 16px;
-      margin: 5px;
-      cursor: pointer;
-      border: none;
-      background-color: #007bff;
-      color: white;
-      border-radius: 5px;
+	input, select {
+      padding: 6px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      margin-top: 4px;
+      font-size: 14px;
     }
+
     button:hover {
       background-color: #0056b3;
     }
@@ -78,7 +77,7 @@
       padding: 6px;
       text-align: left;
     }
-	
+
 	th { background-color: #f2f2f2; }
 
     tr:hover {
@@ -89,14 +88,16 @@
       width: 100px;
       height: 14px;
     }
-	input, select {
-      padding: 6px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-      margin-top: 4px;
-      font-size: 14px;
+
+    button {
+      padding: 8px 16px;
+      margin: 5px;
+      cursor: pointer;
+      border: none;
+      background-color: #007bff;
+      color: white;
+      border-radius: 5px;
     }
-	
 .boton-redondeado {
       padding: 8px 16px;
       margin: 5px;
@@ -112,22 +113,22 @@
   color: #666666 !important;
   cursor: not-allowed !important;
 }
+
   </style>
-            <link rel="stylesheet" href="css/estilos.css">
-			
-			
+          <link rel="stylesheet" href="css/estilos.css">
+
 </head>
 <body>
   <div class="contenedor">
-    <h2>Mantenimiento de Formas de Pago</h2>
+    <h2>Mantenimiento de Sabores</h2>
 
     <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
       <div>
-        <label for="id_fpago">Codigo de Forma de Pago</label>
-        <input class="input-pequeno" type="number" id="id_fpago" placeholder="Ingrese código" />
+        <label for="id_sabor">Codigo de Sabor</label>
+        <input class="input-pequeno" type="number" id="id_sabor" placeholder="Ingrese código" />
         <button id="btnVerificar">&#9989; Verificar</button>
         <button id="btnBuscar">&#128269; Buscar</button>
-			<button id="btnVaciar" onclick="limpiarCampos()">&#9851; Limpiar</button>
+		<button id="btnVaciar" onclick="limpiarCampos()">&#9851; Limpiar</button>
       </div>
     </div>
 
@@ -152,12 +153,12 @@
 
     <div id="listado">    </div>
 
-    <!-- Modal de búsqueda -->
+    <!-- Modal de busqueda -->
     <div id="modalBusqueda">
       <div id="contenidoModal" align="center">
-        <h3>Buscar F.Pago por descripcion</h3>
+        <h3>Buscar Sabor por descripcion</h3>
         <input type="text" id="txtBuscarNombre" placeholder="Ingrese parte de la descripcion" />
-        <button id="btnBuscarFPago">Buscar</button>
+        <button id="btnBuscarSabor">Buscar</button>
         <table id="tablaResultados">
           <thead>
             <tr><th>ID</th><th>Descripcion</th></tr>
@@ -174,7 +175,6 @@
 
 verificarSesion();
 
-
 document.addEventListener("DOMContentLoaded", () => {
 	aplicarPermisos();
 });
@@ -188,8 +188,7 @@ window.aplicarPermisos = function() {
     const btn = document.getElementById("btnAlta");
     const btn2 = document.getElementById("btnModificar");
 
-    if (!tienePermiso(12)) {
-        //if (btn) btn.style.display = "none";
+    if (!tienePermiso(11)) {
 		if (btn) btn.disabled = true;
 		btn.title = "No tiene permiso para usar esta funcion";
 		if (btn2) btn2.disabled = true;
@@ -199,42 +198,42 @@ window.aplicarPermisos = function() {
 
 ArmarTabla();
 
-    const idFpago = document.getElementById("id_fpago");
+    const idSabor = document.getElementById("id_sabor");
     const descripcion = document.getElementById("descripcion");
 
     // --- Verificar existencia ---
     document.getElementById("btnVerificar").onclick = async () => {
-      const codigo = parseInt(idFpago.value);
-      if (!codigo) return alert("Ingrese un código válido.");
-      const docSnap = await db.collection("F_PAGO").doc(String(codigo)).get();
+      const codigo = parseInt(idSabor.value);
+      if (!codigo) return alert("Ingrese un codigo valido.");
+      const docSnap = await db.collection("SABORES").doc(String(codigo)).get();
       if (docSnap.exists) {
         const data = docSnap.data();
         descripcion.value = data.descripcion;
         document.getElementById("deshabili").checked = (data.deshabilitado === "S");
       } else {
-        alert("Forma de Pago no encontrada.");
+        alert("Sabor no encontrado.");
         limpiarCampos();
       }
     };
 
     // --- Alta ---
     document.getElementById("btnAlta").onclick = async () => {
-      if (idFpago.value)
+      if (idSabor.value)
         return alert("Para dar de alta NO debe ingresar un codigo."+"\n"+"Este se genera automaticamente."+"\n"+"Borrar el codigo ,cargar los demas campos y volver a presionar el boton de ALTA");;
       if (!await validarCampos()) return;
 
-      const snapshot = await db.collection("F_PAGO")
-        .orderBy("id_fpago", "desc").limit(1).get();
+      const snapshot = await db.collection("SABORES")
+        .orderBy("id_sabor", "desc").limit(1).get();
       let nuevoId = 1;
-      if (!snapshot.empty) nuevoId = snapshot.docs[0].data().id_fpago + 1;
+      if (!snapshot.empty) nuevoId = snapshot.docs[0].data().id_sabor + 1;
 
-      await db.collection("F_PAGO").doc(String(nuevoId)).set({
-        id_fpago: nuevoId,
+      await db.collection("SABORES").doc(String(nuevoId)).set({
+        id_sabor: nuevoId,
         descripcion: descripcion.value.trim(),
         deshabilitado: document.getElementById("deshabili").checked ? "S" : "N"
       });
 
-      alert(`Forma de Pago agregada con código ${nuevoId}`);
+      alert(`Sabor agregado con codigo ${nuevoId}`);
       limpiarCampos();
 	  ArmarTabla();
 
@@ -242,17 +241,17 @@ ArmarTabla();
 
     // --- Modificar ---
     document.getElementById("btnModificar").onclick = async () => {
-      const codigo = parseInt(idFpago.value);
-      if (!codigo) return alert("Ingrese un código válido.");
+      const codigo = parseInt(idSabor.value);
+      if (!codigo) return alert("Ingrese un codigo valido.");
       if (!await validarCampos()) return;
 
       const deshab = document.getElementById("deshabili").checked ? "S" : "N";
 
-      await db.collection("F_PAGO").doc(String(codigo)).update({
+      await db.collection("SABORES").doc(String(codigo)).update({
         descripcion: descripcion.value.trim(),
         deshabilitado: deshab
       });
-      alert("Forma de Pago actualizada correctamente.");
+      alert("Sabor actualizado correctamente.");
       limpiarCampos();
 	  ArmarTabla();
 
@@ -264,31 +263,31 @@ ArmarTabla();
     }
 
     function limpiarCampos() {
-      idFpago.value = "";
+      idSabor.value = "";
       descripcion.value = "";
       document.getElementById("deshabili").checked = false;
     }
 
-    // --- Modal búsqueda ---
+    // --- Modal busqueda ---
     const modal = document.getElementById("modalBusqueda");
     document.getElementById("btnBuscar").onclick = () => modal.style.display = "flex";
     document.getElementById("btnCerrarModal").onclick = () => modal.style.display = "none";
 
-    document.getElementById("btnBuscarFPago").onclick = async () => {
+    document.getElementById("btnBuscarSabor").onclick = async () => {
       const texto = document.getElementById("txtBuscarNombre").value.trim().toLowerCase();
       if (!texto) return alert("Ingrese texto a buscar.");
 
       const tablaBody = document.querySelector("#tablaResultados tbody");
       tablaBody.innerHTML = "";
 
-      const snapshot = await db.collection("F_PAGO").get();
+      const snapshot = await db.collection("SABORES").get();
       snapshot.forEach(doc => {
         const data = doc.data();
         if (data.descripcion.toLowerCase().includes(texto)) {
           const fila = document.createElement("tr");
-          fila.innerHTML = `<td>${data.id_fpago}</td><td>${data.descripcion}</td>`;
+          fila.innerHTML = `<td>${data.id_sabor}</td><td>${data.descripcion}</td>`;
           fila.onclick = () => {
-            idFpago.value = data.id_fpago;
+            idSabor.value = data.id_sabor;
             descripcion.value = data.descripcion;
             document.getElementById("deshabili").checked = (data.deshabilitado === "S");
             modal.style.display = "none";
@@ -297,24 +296,24 @@ ArmarTabla();
         }
       });
     };
-
-	// listado de los fpagos
+	
+	// listado de los sabores
     function ArmarTabla() {
 	
-      db.collection("F_PAGO")
+      db.collection("SABORES")
 		.get()
         .then((querySnapshot) => {
           let html = "";
 
         if (querySnapshot.empty) {
-            html += "<p>No se encontraron formas de pago.</p>";
+            html += "<p>No se encontraron sabores.</p>";
           } else {
             html += "<table><tr><th>Codigo</th><th>Descripcion</th><th>Deshabilitado</th></tr>";
 			let cant = 0;
             querySnapshot.forEach((doc) => {
               const data = doc.data();
               html += `<tr>
-                <td>${data.id_fpago}</td>
+                <td>${data.id_sabor}</td>
                 <td>${data.descripcion}</td>
                 <td>${data.deshabilitado || "N"}</td>
               </tr>`;
@@ -330,7 +329,7 @@ ArmarTabla();
           document.getElementById("listado").innerHTML = html;
         })
         .catch((error) => {
-          console.error("Error buscando grupos: ", error);
+          console.error("Error buscando sabores: ", error);
         });
     }
 

@@ -120,6 +120,15 @@ button small {
       padding: 10px;
       border-radius: 8px;
     }
+	
+/* Estado deshabilitado (sin perder estilo) */
+.boton-redondeado:disabled,
+.boton-redondeado3:disabled {
+  background-color: #cccccc !important;
+  color: #666666 !important;
+  cursor: not-allowed !important;
+}
+	
   </style>
 
 </head>
@@ -131,35 +140,40 @@ button small {
     <table>
       <tr>
         <td>
-          <button class="boton-redondeado" onclick="location.href='grupos.html'">Grupos</button>
+          <button class="boton-redondeado" id="btnGrupos" onclick="location.href='grupos.html'">Grupos</button>
         </td>
         <td>
-          <button class="boton-redondeado" onclick="location.href='productos.html'">Productos</button>
-        </td>
-      </tr>
-
-      <tr>
-        <td>
-          <button class="boton-redondeado" onclick="location.href='stock.html'">Stock de Productos</button>
-        </td>
-        <td>
-          <button class="boton-redondeado" onclick="location.href='fpago.html'">Formas de Pago</button>
+          <button class="boton-redondeado" id="btnProductos" onclick="location.href='productos.html'">Productos</button>
         </td>
       </tr>
 
       <tr>
         <td>
-          <button class="boton-redondeado" onclick="location.href='clientes.html'">Clientes</button>
+          <button class="boton-redondeado" id="btnSabores" onclick="location.href='sabores.html'">Sabores</button>
         </td>
         <td>
-          <button class="boton-redondeado" onclick="location.href='clientes-listado.html'">Listado de Clientes</button>
+          <button class="boton-redondeado" id="btnFP" onclick="location.href='fpago.html'">Formas de Pago</button>
+        </td>
+      </tr>
+
+      <tr>
+        <td>
+          <button class="boton-redondeado" id="btnClientes" onclick="location.href='clientes.html'">Clientes</button>
+        </td>
+        <td>
+          <button class="boton-redondeado" id="btnLisClie" onclick="location.href='clientes-listado.html'">Listado de Clientes</button>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <button class="boton-redondeado" id="btnStock" onclick="location.href='stock.html'">Stock de Productos</button>
         </td>
       </tr>
 
 
       <tr>
         <td colspan="2">
-          <button class="boton-salirvolver" onclick="location.href='index.html'">&#8617; Volver</button>
+          <button id="btnVolver" class="boton-salirvolver" onclick="location.href='index.html'">&#8617; Volver</button>
         </td>
       </tr>
     </table>
@@ -170,7 +184,73 @@ button small {
 <script>
 verificarSesion(); 
 document.getElementById("userLabel").textContent = localStorage.getItem("usuarioEmail");
+
+// BLOQUEA TODOS LOS BOTONES AL CARGAR LA PÁGINA (menos boton Volver)
+document.addEventListener("DOMContentLoaded", () => {
+
+    // Deshabilitar todos los botones
+    const botones = document.querySelectorAll("button");
+    botones.forEach(btn => {
+        if (btn.id !== "btnVolver") {
+            btn.disabled = true;
+            btn.title = "No tiene permiso para usar esta función";
+        }
+    });
+	aplicarPermisos();
+});
 </script>
+
+
+<script src="js/permisos.js"></script>
+
+<script>
+window.aplicarPermisos = function() {
+    const btn = document.getElementById("btnGrupos");
+    if (tienePermiso(10)) {
+		if (btn) btn.disabled = false;
+		btn.title = "";
+    }
+    const btn2 = document.getElementById("btnProductos");
+    if (tienePermiso(11)) {
+		if (btn2) btn2.disabled = false;
+		btn2.title = "";
+    }
+    const btn3 = document.getElementById("btnSabores");
+    if (tienePermiso(11)) {
+		if (btn3) btn3.disabled = false;
+		btn3.title = "";
+    }
+	
+    const btn4 = document.getElementById("btnFP");
+    if (tienePermiso(12)) {
+		if (btn4) btn4.disabled = false;
+		btn4.title = "";
+    }
+	
+    const btn5 = document.getElementById("btnClientes");
+    if (tienePermiso(13)) {
+		if (btn5) btn5.disabled = false;
+		btn5.title = "";
+    }
+
+    const btn6 = document.getElementById("btnLisClie");
+    if (tienePermiso(13)) {
+		if (btn6) btn6.disabled = false;
+		btn6.title = "";
+    }
+	
+    const btn7 = document.getElementById("btnLisClie");
+    if (tienePermiso(13)) {
+		if (btn7) btn7.disabled = false;
+		btn7.title = "";
+    }
+	
+    const btn8 = document.getElementById("btnStock");
+    if (tienePermiso(11)) {
+		if (btn8) btn8.disabled = false;
+		btn8.title = "";
+    }
+};</script>
 
 
 </body>

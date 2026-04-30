@@ -128,6 +128,7 @@
         <input class="input-pequeno" type="number" id="id_grupo" placeholder="Ingrese código" />
         <button id="btnVerificar">&#9989; Verificar</button>
         <button id="btnBuscar">&#128269; Buscar</button>
+		<button id="btnVaciar" onclick="limpiarCampos()">&#9851; Limpiar</button>
       </div>
     </div>
 
@@ -218,7 +219,7 @@ ArmarTabla();
     // --- Alta ---
     document.getElementById("btnAlta").onclick = async () => {
       if (idGrupo.value)
-        return alert("Para dar de alta NO debe ingresar un codigo."+"\n"+"Este se genera automaticamente."+"\n"+"Borrarlo y volver a presionar el boton de ALTA");;
+        return alert("Para dar de alta NO debe ingresar un codigo."+"\n"+"Este se genera automaticamente."+"\n"+"Borrar el codigo ,cargar los demas campos y volver a presionar el boton de ALTA");;
       if (!await validarCampos()) return;
 
       const snapshot = await db.collection("GRUPOS")

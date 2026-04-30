@@ -175,7 +175,7 @@ const formateadorMonedaArgentina = new Intl.NumberFormat('es-AR', {
         if (querySnapshot.empty) {
             html += "<p>No se encontraron productos en este grupo.</p>";
           } else {
-            html += "<table><tr><th>Codigo</th><th>Nombre</th><th>Stock</th><th>Minimo</th><th>Precio</th><th>Stock valorizado</th><th>Deshabilitado</th></tr>";
+            html += "<table><tr><th>Codigo</th><th>Nombre</th><th>Stock</th><th>Minimo</th><th>Precio Vta</th><th>Stock valorizado</th><th>Deshabilitado</th></tr>";
 			let totalValor = 0;
             querySnapshot.forEach((doc) => {
               const data = doc.data();

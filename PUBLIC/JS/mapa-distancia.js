@@ -116,7 +116,7 @@ document.getElementById("distanciaTexto").innerText = "buscando direcciones.....
     }
 
     const distanciaKm = (data.routes[0].distance / 1000).toFixed(2);
-    document.getElementById("distanciaTexto").innerText = `(en auto/moto)    Distancia: ${distanciaKm} km`;
+    document.getElementById("distanciaTexto").innerText = `Hasta ${dir2} --- (en auto/moto)   Distancia: ${distanciaKm} km`;
 
     // Inicializar o recrear mapa
     if (window.mapaLeaflet) {

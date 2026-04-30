@@ -277,8 +277,8 @@ verificarSesion();
 				totalDia += v.total;
 				totalGeneral += v.total;
 
-				resumenFP[v.f_pago1] = (resumenFP[v.f_pago1] || 0) + (v.importe_fp1 || 0);
-				resumenFP[v.f_pago2] = (resumenFP[v.f_pago2] || 0) + (v.importe_fp2 || 0);
+				resumenFP[v.f_pago1] = (resumenFP[v.f_pago1] || 0) + (v.total || 0);
+							
 				html += `<tr>
 				  <td>${v.hora}</td>
 				  <td>${v.id_compra}</td>
@@ -297,10 +297,31 @@ verificarSesion();
         html += `<h3 style="text-align:center;">TOTAL GENERAL: ${formateadorMoneda.format(totalGeneral)}</h3>`;
         resultado.innerHTML = html;
 
+/*
         datosFormaPago = {
+
           etiquetas: Object.keys(resumenFP).map(fp => formasPago[fp]),
           valores: Object.values(resumenFP)
-        };
+};
+*/
+const totalFP = Object.values(resumenFP).reduce((a, b) => a + b, 0);
+
+const etiquetas = [];
+const valores = [];
+
+Object.keys(resumenFP).forEach(fp => {
+  const valor = resumenFP[fp];
+  const porcentaje = ((valor / totalFP) * 100).toFixed(1);
+
+  etiquetas.push(`${fp} - ${formasPago[fp]} (${porcentaje}%)`);
+  valores.push(valor);
+});
+
+datosFormaPago = { etiquetas, valores };
+
+
+
+
 
         datosFecha = {
           etiquetas: Object.keys(resumenPorFecha).sort(),

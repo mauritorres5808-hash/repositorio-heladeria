@@ -58,9 +58,6 @@
         position:fixed;
 		}  
 
-
-
-
 .btn-validar-dom {
     background: #ff4d4d;
     color: white;
@@ -84,11 +81,16 @@
 </style>
 </head>
 <body>
+
 <div style="text-align: center;">
 	<img id="logo" src="logo-donado3.jpg" alt="Tu Logo">
 </div>
 <br><br><br><br>
   <div class="contenedor">
+<div id="loadingMsg" style="text-align:center; font-weight:bold; margin:10px;">
+  ⏳ Un momento, cargando los productos...
+</div>
+
 <form id="formPedido" onsubmit="event.preventDefault(); enviarPedido();">
 
   <h1>Hacé tu pedido</h1>
@@ -99,16 +101,16 @@
       <option value="">-- Seleccione un grupo --</option>
     </select>
 
-    <input id="txtBuscar" placeholder="Buscar producto ..." oninput="renderProductos()" style="flex:1" />
   </div>
+    <input id="txtBuscar" placeholder="Buscar producto ..." oninput="renderProductos()" style="flex:1" />
 
-  <div id="listaProductos">Cargando productos...</div>
+  <div id="listaProductos"></div>
 
   <h2>Tus datos</h2>
   <input id="nombre" name="nombre" placeholder="Nombre" />
 <!--  <input id="domicilio" name="domicilio" placeholder="Dirección" /> -->
 
-	<br><br><label for="domicilio" class="lbl">Domicilio</label>
+	<br><br><label for="domicilio" class="lbl">Domicilio (SOLO calle+nro+"Bs As" o "Caba") --> Ejm:Junin 523 Bs As</label>
   <div style="display:flex; gap:10px; align-items:center;">
 
     <input type="text" id="domicilio" placeholder="Escriba la dirección completa" style="width:30%; ">
@@ -116,7 +118,8 @@
 </div>
 <div colspan=2 id="msgValidacionDom" class="msg-validacion-dom"></div>
 
-  <input id="nota" style="width:50%;" name="nota" placeholder="(nota opcional) piso-depto-timbre-puerta etc." />
+	<br><label for="nota" class="lbl">Piso-Dpto o alguna nota</label>
+  <br><input id="nota" style="width:50%;" name="nota" placeholder="piso-depto-timbre-puerta etc." />
 
   <div style="margin-bottom:10px;">
   <br>

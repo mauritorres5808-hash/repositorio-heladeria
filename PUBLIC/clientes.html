@@ -153,6 +153,7 @@
         <input class="input-pequeno" type="number" id="id_cliente" placeholder="Ingrese codigo" />
         <button id="btnVerificar">&#9989; Verificar</button>
         <button id="btnBuscar">&#128269; Buscar</button>
+			<button id="btnVaciar" onclick="limpiarCampos()">&#9851; Limpiar</button>
       </div>
     </div>
 
@@ -165,7 +166,7 @@
 <!--         <label for="domicilio" style="font-size:14px">Domicilio (escriba domicilio , CABA o Buenos Aires)</label> -->
 <!--         <input type="text" id="domicilio" placeholder="domicilio, provincia validas"/> -->
  
-<label for="domicilio" style="font-size:14px">Domicilio (escriba domicilio , CABA o Buenos Aires)</label>
+<label for="domicilio" style="font-size:14px">Domicilio (SOLO calle+nro+"Bs As" o "Caba") --> Ejm:Junin 523 Bs As</label>
 <div style="display:flex; gap:8px; align-items:center;">
     <input type="text" id="domicilio" placeholder="domicilio, provincia validas" style="flex:1;"/>
     <button id="btnValidarDom" class="btn-validar">validar domicilio</button>
@@ -185,7 +186,7 @@
 			<input class="input-pequeno" type="checkbox" id="deshabili">
 		</div>
       <div>
-        <label for="telefono">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Nota</label>
+        <label for="telefono">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Piso-Dpto o alguna nota</label>
         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input type="text" id="nota" />
       </div>
     </div>
@@ -300,8 +301,12 @@ const idCliente = document.getElementById("id_cliente");
     document.getElementById("btnAlta").onclick = async () => {
 
       if (idCliente.value)
-        return alert("Para dar de alta NO debe ingresar un codigo."+"\n"+"Este se genera automaticamente."+"\n"+"Borrarlo y volver a presionar el boton de ALTA");;
+        return alert("Para dar de alta NO debe ingresar un codigo."+"\n"+"Este se genera automaticamente."+"\n"+"Borrar el codigo ,cargar los demas campos y volver a presionar el boton de ALTA");;
       if (!await validarCampos()) return;
+	  if (!validarFormatoDomicilio(domicilio.value)) {
+			alert("El domicilio debe terminar en 'Bs As' o 'CABA'.\n Ej: Junin 523 CABA");
+			return;
+		}
 
 	// VALIDAR DIRECCIÓN
 	const direccionValida = await validarDireccion(domicilio.value.trim());
@@ -349,6 +354,11 @@ const idCliente = document.getElementById("id_cliente");
       const codigo = parseInt(idCliente.value);
       if (!codigo) return alert("Ingrese un código de cliente válido.");
       if (!await validarCampos()) return;
+	  if (!validarFormatoDomicilio(domicilio.value)) {
+			alert("El domicilio debe terminar en 'Bs As' o 'CABA'.\n Ej: Junin 523 CABA");
+			return;
+		}
+	  
 
       const deshab = document.getElementById("deshabili").checked ? "S" : "N";
 
@@ -395,6 +405,10 @@ const idCliente = document.getElementById("id_cliente");
       nota.value = "";
     }
 
+function validarFormatoDomicilio(dom) {
+  const d = dom.trim().toLowerCase();
+  return d.endsWith("bs as") || d.endsWith("caba");
+}
 
 
 async function validarDireccion(direccion) {

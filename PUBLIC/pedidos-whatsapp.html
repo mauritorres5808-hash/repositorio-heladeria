@@ -3,6 +3,17 @@
 <head>
 <meta charset="utf-8">
 <title>Pedidos Online</title>
+
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<script src="js/auth.js"></script>  <!-- Aqui se verifica la autenticacion -->
+
+<!-- MAPA -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  
+  
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
   body{font-family:Arial;margin:12px;background:#f7f8fb}
@@ -61,6 +72,7 @@ hr { border-color: green; }
 
 		<div id="lista">Cargando...</div>
   </div>
+
 <script>
 
 const API_BASE = 
@@ -68,6 +80,13 @@ const API_BASE =
     ? "http://localhost:3000"
     : "https://whatsapp-backend-tp21.onrender.com";
 	
+verificarSesion();
+  
+//notificacion con sonido de pedido NUEVO
+let pedidosNotificados = new Set();
+let audioNotif = new Audio("notificacion2.mp3");
+
+
 let sabores = [];
 let formasPago = [];
 
@@ -105,6 +124,16 @@ async function cargar(){
   try {
     const res = await fetch(url);
     const items = await res.json();
+		// 🔔 detectar nuevos pedidos SOLO en estado "nuevo"
+		if (estado === "nuevo") {
+		  items.forEach(p => {
+			if (!pedidosNotificados.has(p.id_pedido)) {
+			  pedidosNotificados.add(p.id_pedido);
+			  notificarPedido(p);
+			}
+		  });
+		}
+
     renderList(items);
   } catch(e){
     console.error("Error cargando:", e);
@@ -174,6 +203,7 @@ function renderList(items){
     html += `<div class="acciones">`
 	if (p.estado==="nuevo"){
 		html += `    <button class="convertir" onclick="abrirConversion(${p.id_pedido}, ${totalPedido})">Confirmar Venta</button>`
+		html += `    <button onclick="distancia('${p.domicilio}')">&#128663; Ver distancia</button>`
     }
 	html += `
         <button class="eliminar"  onclick="eliminar(${p.id_pedido})">Eliminar Pedido</button>
@@ -281,8 +311,51 @@ async function eliminar(id){
   cargar();
 }
 
+// mostrar el mapa del domicilio del cliente
+async function distancia(domicilioCliente) {
+
+    const info = await obtenerDatosEmpresa();
+    if (!info) {
+        alert("No se pudo obtener el domicilio de la empresa");
+        return;
+    }
+
+    const origen = info.domicilio;
+    const destino = domicilioCliente;
+
+    mostrarMapaDistancia(origen, destino);
+}
+
+async function obtenerDatosEmpresa() {
+    try {
+        const snap = await db.collection("EMPRESA").get();
+
+        if (snap.empty) {
+            console.warn("No se encontró documento en EMPRESA");
+            return null;
+        }
+
+        const data = snap.docs[0].data();
+
+        return {
+            nombre: data.nombre_empresa,
+            domicilio: data.domicilio
+        };
+
+    } catch (err) {
+        console.error("Error obteniendo datos de EMPRESA:", err);
+        return null;
+    }
+}
+
+
 // ---------------- Inputs sincronizados ----------------
 document.addEventListener("DOMContentLoaded", () => {
+
+if (Notification.permission !== "granted") {
+  Notification.requestPermission();
+}
+
   const imp1 = document.getElementById("imp1");
   const imp2 = document.getElementById("imp2");
 
@@ -303,9 +376,32 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
+function notificarPedido(p) {
+
+  // sonido
+  try {
+    audioNotif.currentTime = 0;
+    audioNotif.play();
+  } catch(e){}
+
+  // notificación
+  if (Notification.permission === "granted") {
+    new Notification("🛎️ Nuevo pedido", {
+      body: `${p.nombre} - ${p.domicilio}`,
+    });
+  }
+}
+
 // inicial
 cargar();
+
+setInterval(() => {
+  cargar();
+}, 5000); // cada 5 segundos
+
 </script>
+
+<script src="js/mapa-distancia.js"></script>
 
 <!-- ======================================
      MODAL PAGO (ÚNICO Y DEFINITIVO)

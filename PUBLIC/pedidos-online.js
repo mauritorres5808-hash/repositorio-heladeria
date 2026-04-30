@@ -12,6 +12,10 @@ let carrito = {}; // { id_producto: [ { sabores: [] }, ... ] }
 
 // ------------------ carga inicial ------------------
 async function cargarDatos() {
+
+  const loading = document.getElementById("loadingMsg");
+  if (loading) loading.style.display = "block";
+
   // cargar grupos, productos y sabores
   try {
     const [gRes, pRes, sRes] = await Promise.all([
@@ -31,12 +35,19 @@ async function cargarDatos() {
     renderGrupos();
     renderProductos();
     actualizarTotalUI();
+
+document.getElementById("loadingMsg").style.display = "none";
 	
 const cont = document.getElementById("listaProductos");
 cont.innerHTML = "";
   } catch (err) {
     console.error("Error cargando datos:", err);
     document.getElementById("listaProductos").innerText = "Error cargando productos.";
+	  if (loading) loading.innerText = "Error cargando productos.";
+    return;
+  } finally {
+    // 👇 SIEMPRE se ejecuta, haya error o no
+    if (loading) loading.style.display = "none";
   }
 }
 
@@ -73,18 +84,26 @@ function renderProductos(){
   const idGrupo = getGrupoSeleccionado();
   const q = getTextoBusqueda();
 
-  // si no hay grupo seleccionado mostrar mensaje
-  const lista = productos.filter(p => {
-    if (idGrupo !== null && Number(p.id_grupo) !== idGrupo) return false;
-    if (q) {
-      const text = (p.descripcion || "").toString().toLowerCase();
-      return text.includes(q);
-    }
-    return true;
-  });
+	const lista = productos.filter(p => {
 
+	  // 🔴 CASO 1: hay texto de búsqueda → manda el texto (independiente del grupo)
+	  if (q) {
+		const text = (p.descripcion || "").toString().toLowerCase();
+		return text.includes(q);
+	  }
+
+	  // 🟡 CASO 2: NO hay texto → usar SOLO el grupo
+	  if (idGrupo !== null) {
+		return Number(p.id_grupo) === idGrupo;
+	  }
+
+	  // ⚫ CASO 3: no hay nada → no mostrar nada
+	  return false;
+	});
+
+  // si no hay grupo seleccionado mostrar mensaje
   if (lista.length === 0) {
-    cont.innerHTML = `<div class="meta">No hay productos para mostrar. Seleccioná otro grupo o limpia la búsqueda.</div>`;
+    cont.innerHTML = `<div class="meta">No hay productos para mostrar. Seleccioná otro grupo o escribe en la búsqueda.</div>`;
     actualizarTotalUI();
     actualizarCarritoUI();
     return;
@@ -360,6 +379,14 @@ async function validarDireccionBackend(direccion) {
 async function enviarPedido(){
   const nombre = document.getElementById("nombre").value.trim();
   const domicilio = document.getElementById("domicilio").value.trim();
+  
+  const domLower = domicilio.toLowerCase();
+
+if (!(domLower.endsWith("bs as") || domLower.endsWith("caba"))) {
+  alert("El domicilio debe terminar con 'Bs As' o 'CABA'.\nEj: Av Triunvirato 123, CABA");
+  return;
+}
+
   const nota = document.getElementById("nota").value.trim();
   const tel = normalizarTelefono(document.getElementById("telefono").value);
 

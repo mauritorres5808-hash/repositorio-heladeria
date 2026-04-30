@@ -366,11 +366,28 @@ verificarSesion();
 			resultado.innerHTML = html;
 		}
 	
-	
+/*	
         datosFormaPago = {
           etiquetas: Object.keys(resumenFP).map(fp => formasPago[fp]),
           valores: Object.values(resumenFP)
         };
+*/
+
+const totalFP = Object.values(resumenFP).reduce((a, b) => a + b, 0);
+
+const etiquetas = [];
+const valores = [];
+
+Object.keys(resumenFP).forEach(fp => {
+  const valor = resumenFP[fp];
+  const porcentaje = ((valor / totalFP) * 100).toFixed(1);
+
+  etiquetas.push(`${fp} - ${formasPago[fp]} (${porcentaje}%)`);
+  valores.push(valor);
+});
+
+datosFormaPago = { etiquetas, valores };
+
 
         datosFecha = {
           etiquetas: Object.keys(resumenPorFecha).sort(),

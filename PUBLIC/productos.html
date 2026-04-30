@@ -147,6 +147,18 @@ button:hover {
 .btn-confirm { background:#28a745; }
     .alert-modern{background:#e9f7ef;border-left:6px solid red;padding:10px;border-radius:6px;margin:10px 0}
 
+.fila {
+  display: flex;
+  align-items: center; /* alinea verticalmente */
+  gap: 15px; /* espacio entre campos */
+}
+
+.fila label {
+  display: flex;
+  align-items: center;
+  gap: 5px; /* espacio entre texto e input */
+}
+
   </style>
             <link rel="stylesheet" href="css/estilos.css">
 
@@ -162,6 +174,7 @@ button:hover {
 			<input class="input-pequeno" width="5px" type="number" id="id_producto" placeholder="Ingrese codigo" />
 			<button id="btnVerificar">&#9989; Verificar</button>
 			<button id="btnBuscar">&#128269; Buscar</button>
+			<button id="btnVaciar" onclick="limpiar_datos()">&#9851; Limpiar</button>
 		</div>
 	</div>
 
@@ -182,7 +195,7 @@ button:hover {
 
     <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
 		<div>
-			<label for="precio">Precio</label>
+			<label for="precio">Precio Venta</label>
 			<input class="input-pequeno" type="number" id="precio" step="0.01" />
 		</div>
 		<div>
@@ -199,11 +212,16 @@ button:hover {
 		</div>
 		<div>
 		</div>
-		<div>
-			<label for="deshabili">Deshabilitado?</label>
-			<input class="input-pequeno" type="checkbox" id="deshabili">
-			<label for="modif_precio">Modifica precio durante la venta?</label>
-			<input class="input-pequeno" type="checkbox" id="modif_precio">
+		<div class="fila">
+			<label for="requiere_sab">Requiere Sabores?
+			<input class="input-pequeno" type="checkbox" id="requiere_sab"></label>
+			<label for="cant_sabores">Cant Max Sabores
+			<input class="input-pequeno" type="number" placeholder="Max.sabores" id="cant_sabores"/></label>
+			
+			<label for="modif_precio">Modifica precio durante la venta?
+			<input class="input-pequeno" type="checkbox" id="modif_precio"></label>
+			<label for="deshabili">Deshabilitado?
+			<input class="input-pequeno" type="checkbox" id="deshabili"></label>
 		</div>
 	</div>
 
@@ -300,43 +318,43 @@ window.aplicarPermisos = function() {
   }
     cargarGrupos();
 
-document.getElementById("btnVerificar").onclick = () => {
-  if (!idProd.value.trim()) return alert("Ingrese un código válido.");
-  verificarProducto();
-};
-document.getElementById("id_producto").addEventListener("blur", () => {
-  if (idProd.value.trim() !== "") verificarProducto();
-});
+	document.getElementById("btnVerificar").onclick = () => {
+	  if (!idProd.value.trim()) return alert("Ingrese un código válido.");
+	  verificarProducto();
+	};
+	document.getElementById("id_producto").addEventListener("blur", () => {
+	  if (idProd.value.trim() !== "") verificarProducto();
+	});
 
     // --- Verificar existencia de producto ---
-async function verificarProducto() {
-  const codigo = parseInt(idProd.value);
-  if (!codigo) return;  // No mostrar alerta en blur, solo en botón
+	async function verificarProducto() {
+	  const codigo = parseInt(idProd.value);
+	  if (!codigo) return;  // No mostrar alerta en blur, solo en botón
 
-  const doc = await db.collection("PRODUCTOS").doc(String(codigo)).get();
-  if (doc.exists) {
-    const data = doc.data();
-    desc.value = data.descripcion;
-    grupo.value = data.id_grupo;
-    precio.value = data.precio;
-    cod_barra.value = data.cod_barra;
-    stock.value = data.stock;
-    stock_min.value = data.stock_min;
-    document.getElementById("deshabili").checked = (data.deshabilitado === "S");
-    document.getElementById("modif_precio").checked = (data.modifica === "S");
-  } else {
-    alert("Producto no encontrado.");
-    limpiar_datos();
-  }
-}
-
-
+	  const doc = await db.collection("PRODUCTOS").doc(String(codigo)).get();
+	  if (doc.exists) {
+		const data = doc.data();
+		desc.value = data.descripcion;
+		grupo.value = data.id_grupo;
+		precio.value = data.precio;
+		cod_barra.value = data.cod_barra;
+		stock.value = data.stock;
+		stock_min.value = data.stock_min;
+		cant_sabores.value = data.max_sabores;
+		document.getElementById("deshabili").checked = (data.deshabilitado === "S");
+		document.getElementById("modif_precio").checked = (data.modifica === "S");
+		document.getElementById("requiere_sab").checked = (data.sabores === "S");
+	  } else {
+		alert("Producto no encontrado.");
+		limpiar_datos();
+	  }
+	}
 
     // --- Alta de producto ---
     document.getElementById("btnAlta").onclick = async () => {
       const grupoSel = parseInt(grupo.value);
 	  const codigo = parseInt(idProd.value) || 0;;
-		if (codigo !== 0) return alert("Para dar de alta NO debe ingresar un codigo."+"\n"+"Este se genera automaticamente."+"\n"+"Borrarlo y volver a presionar el boton de ALTA");
+		if (codigo !== 0) return alert("Para dar de alta NO debe ingresar un codigo."+"\n"+"Este se genera automaticamente."+"\n"+"Borrar el codigo ,cargar los demas campos y volver a presionar el boton de ALTA");
 		if (!(await valida_campos())) return;
 
       // Buscar ultimo producto del grupo
@@ -360,8 +378,10 @@ async function verificarProducto() {
         cod_barra: cod_barra.value,
         stock: stock.value,
         stock_min: stock_min.value,
+        max_sabores: cant_sabores.value,
 		deshabilitado: document.getElementById("deshabili").checked ? "S" : "N" ,
-		modifica: document.getElementById("modif_precio").checked ? "S" : "N" 
+		modifica: document.getElementById("modif_precio").checked ? "S" : "N" ,
+		sabores: document.getElementById("requiere_sab").checked ? "S" : "N" 
       });
 
       alert(`Producto agregado con codigo ${nuevoCodigo}`);
@@ -380,6 +400,8 @@ async function verificarProducto() {
 		const Desha = checkDeshabili.checked ? "S" : "N";
 		const checkModi = document.getElementById('modif_precio');
 		const ModiP = checkModi.checked ? "S" : "N";
+		const checkRequiere = document.getElementById('requiere_sab');
+		const requi = checkRequiere.checked ? "S" : "N";
 
       await db.collection("PRODUCTOS").doc(String(codigo)).update({
         descripcion: desc.value.trim(),
@@ -389,7 +411,9 @@ async function verificarProducto() {
         stock_min: parseFloat(stock_min.value),
         precio: parseFloat(precio.value),
         deshabilitado: Desha,
-        modifica: ModiP
+        modifica: ModiP,
+        sabores: requi,
+        max_sabores: parseFloat(cant_sabores.value)
       });
       alert("Producto actualizado correctamente.");
 	  limpiar_datos();
@@ -413,7 +437,7 @@ async function valida_campos() {
 	  return false;
 	  };
       if (precio.value == 0 || typeof precio.value === 'undefined' || precio.value === null) {
-		alert("Ingrese el precio");
+		alert("Ingrese el precio de Venta");
 	  return false;
 	  };
       if (stock.value == 0 || typeof stock.value === 'undefined' || stock.value === null) {
@@ -424,6 +448,12 @@ async function valida_campos() {
 		alert("Ingrese el stock minimo");
 	  return false;
 	  };
+
+      if (requiere_sab.checked && cant_sabores.value == 0 || typeof cant_sabores.value === 'undefined' || cant_sabores.value === null) {
+		alert("Ingrese la cantidad de Sabores");
+	  return false;
+	  };
+
 	  return true;
 };
 
@@ -438,6 +468,8 @@ async function limpiar_datos() {
     document.getElementById("stock_min").value = "0";
     document.getElementById("deshabili").checked = "";
     document.getElementById("modif_precio").checked = "";
+    document.getElementById("requiere_sab").checked = "";
+    document.getElementById("cant_sabores").value = "0";
 };
 
     // === Modal de busqueda (producto principal) ===

@@ -162,12 +162,6 @@ header {
 .img-wrapper {
   position: relative;
 }
-
-.tooltip {
-  position: absolute;
-  bottom: 105%;
-  left: 50%;
-  transform: translateX(-50%);
   
  /* background: rgba(0,0,0,0.25); */
   /* color: #fff; 
@@ -277,6 +271,8 @@ font-weight:bold;
     <img id="modalImg" src="" />
 
     <h3 id="modalTitulo"></h3>
+
+    <p id="modalCantidad"></p>
 
     <p id="modalContenido"></p>
 
@@ -406,6 +402,12 @@ function abrirModal(p) {
 
   document.getElementById("modalImg").src = p.imagen || "img/no-image.jpg";
   document.getElementById("modalTitulo").innerText = p.descripcion;
+  if (p.max_sabores > 0) { 
+	document.getElementById("modalCantidad").innerText = "Cantidad maxima de sabores: " + (p.max_sabores || "");
+  } else {
+	document.getElementById("modalCantidad").innerText = "";
+	}
+  
   document.getElementById("modalContenido").innerHTML =
     (p.contenido || "").replace(/\n/g, "<br>");
   document.getElementById("modalPrecio").innerText = "$" + p.precio;

@@ -131,11 +131,19 @@
 		<button id="btnVaciar" onclick="limpiarCampos()">&#9851; Limpiar</button>
       </div>
     </div>
+<div>
+  <label for="tipo_sabor">Tipo de Sabor</label>
+  <select id="tipo_sabor"></select>
+</div>
 
     <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
       <div>
         <label for="descripcion">Descripcion</label>
         <input type="text" id="descripcion" />
+      </div>
+      <div>
+        <label for="contenido">Contenido</label>
+        <input type="text" id="contenido" />
       </div>
 	  <div>
 		<label for="deshabili">Deshabilitado?</label>
@@ -196,10 +204,14 @@ window.aplicarPermisos = function() {
     }
 };
 
+let tiposSabores = [];
+
+ cargarTiposSabores();
 ArmarTabla();
 
     const idSabor = document.getElementById("id_sabor");
     const descripcion = document.getElementById("descripcion");
+    const contenido = document.getElementById("contenido");
 
     // --- Verificar existencia ---
     document.getElementById("btnVerificar").onclick = async () => {
@@ -209,7 +221,9 @@ ArmarTabla();
       if (docSnap.exists) {
         const data = docSnap.data();
         descripcion.value = data.descripcion;
+        contenido.value = data.contenido;
         document.getElementById("deshabili").checked = (data.deshabilitado === "S");
+		document.getElementById("tipo_sabor").value = data.id_tipo || "";
       } else {
         alert("Sabor no encontrado.");
         limpiarCampos();
@@ -230,6 +244,8 @@ ArmarTabla();
       await db.collection("SABORES").doc(String(nuevoId)).set({
         id_sabor: nuevoId,
         descripcion: descripcion.value.trim(),
+        contenido: contenido.value.trim(),
+		 id_tipo: parseInt(document.getElementById("tipo_sabor").value),
         deshabilitado: document.getElementById("deshabili").checked ? "S" : "N"
       });
 
@@ -249,6 +265,8 @@ ArmarTabla();
 
       await db.collection("SABORES").doc(String(codigo)).update({
         descripcion: descripcion.value.trim(),
+        contenido: contenido.value.trim(),
+		  id_tipo: parseInt(document.getElementById("tipo_sabor").value),
         deshabilitado: deshab
       });
       alert("Sabor actualizado correctamente.");
@@ -258,14 +276,23 @@ ArmarTabla();
     };
 
     async function validarCampos() {
-      if (!descripcion.value.trim()) { alert("Ingrese la descripcion."); return false; }
+      if (!descripcion.value.trim()) { 
+		alert("Ingrese la descripcion."); 
+		return false; 
+		}
+	 if (!document.getElementById("tipo_sabor").value) {
+		alert("Seleccione el tipo de sabor.");
+		return false;
+	  }
       return true;
     }
 
     function limpiarCampos() {
       idSabor.value = "";
       descripcion.value = "";
+      contenido.value = "";
       document.getElementById("deshabili").checked = false;
+	  document.getElementById("tipo_sabor").value = "";
     }
 
     // --- Modal busqueda ---
@@ -308,14 +335,17 @@ ArmarTabla();
         if (querySnapshot.empty) {
             html += "<p>No se encontraron sabores.</p>";
           } else {
-            html += "<table><tr><th>Codigo</th><th>Descripcion</th><th>Deshabilitado</th></tr>";
+			html += "<table><tr><th>Codigo</th><th>Descripcion</th><th>Contenido</th><th>Tipo</th><th>Deshabilitado</th></tr>";
 			let cant = 0;
             querySnapshot.forEach((doc) => {
               const data = doc.data();
+			  const tipoDesc = tiposSabores.find(t => t.id_tipo == data.id_tipo)?.descripcion || "";
               html += `<tr>
                 <td>${data.id_sabor}</td>
                 <td>${data.descripcion}</td>
-                <td>${data.deshabilitado || "N"}</td>
+                <td>${data.contenido}</td>
+				  <td>${tipoDesc}</td>
+				  <td>${data.deshabilitado || "N"}</td>
               </tr>`;
 			cant += 1;
             });
@@ -332,6 +362,28 @@ ArmarTabla();
           console.error("Error buscando sabores: ", error);
         });
     }
+
+async function cargarTiposSabores() {
+const snap = await db.collection("TIPO_SABORES")
+    .where("deshabilitado", "!=", "S")
+    .orderBy("deshabilitado")   // 🔥 requerido por Firestore
+    .orderBy("descripcion")
+    .get();
+
+  const combo = document.getElementById("tipo_sabor");
+  combo.innerHTML = `<option value="">Seleccione tipo...</option>`;
+
+  tiposSabores = [];
+
+  snap.forEach(doc => {
+    const data = doc.data();
+    tiposSabores.push(data);
+
+    combo.innerHTML += `<option value="${data.id_tipo}">
+      ${data.descripcion}
+    </option>`;
+  });
+}
 
   </script>
   

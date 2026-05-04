@@ -145,7 +145,6 @@ button:hover {
   line-height: 12px !important;
 }
 .btn-confirm { background:#28a745; }
-    .alert-modern{background:#e9f7ef;border-left:6px solid red;padding:10px;border-radius:6px;margin:10px 0}
 
 .fila {
   display: flex;
@@ -158,6 +157,10 @@ button:hover {
   align-items: center;
   gap: 5px; /* espacio entre texto e input */
 }
+
+    .alert-modern{background:#e9f7ef;border-left:6px solid red;padding:10px;border-radius:6px;margin:10px 0}
+    .alert-modern2{background:#e9f7ef;border-left:6px solid red;padding:10px;border-radius:6px;margin:10px 0}
+
 
   </style>
             <link rel="stylesheet" href="css/estilos.css">
@@ -177,6 +180,10 @@ button:hover {
 			<button id="btnVaciar" onclick="limpiar_datos()">&#9851; Limpiar</button>
 		</div>
 	</div>
+
+<label><span>Foto del Producto</label>
+	<div id="mensajeTipo" style="font-size: 12px" class="alert-modern2"> &#128073; para agregar o modificar la imagen debe contactarse con el administrador del sistema &#9888;</div>
+<img id="previewImg" src="img/no-image.jpg" style="width:120px; border:1px solid #ccc; border-radius:6px;">
 
     <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
 		<div>
@@ -207,11 +214,24 @@ button:hover {
 			<input class="input-pequeno" type="number" id="stock_min"/>
 		</div>
 		<div>
+			<label for="publica" style="font-size: 14px">Publica Producto en Home?
+			<input class="input-pequeno" type="checkbox" id="publica"></label>
+			<label for="publica_s" style="font-size: 14px">Publica stock en Home?
+			<input class="input-pequeno" type="checkbox" id="publica_s"></label>
 		</div>
+
 		<div>
 		</div>
 		<div>
 		</div>
+		<div>
+		</div>
+
+		<div>
+			<label for="contenido">Contenido</label>
+			<input size="60" type="text" id="contenido" />
+		</div>
+		
 		<div class="fila">
 			<label for="requiere_sab">Requiere Sabores?
 			<input class="input-pequeno" type="checkbox" id="requiere_sab"></label>
@@ -289,10 +309,23 @@ window.aplicarPermisos = function() {
     }
 };
 
+function mostrarImagen(idProducto) {
+  const img = document.getElementById("previewImg");
+
+  const ruta = `img/${idProducto}.png`;
+
+  img.src = ruta;
+
+  img.onerror = () => {
+    img.src = "img/no-image.jpg";
+  };
+}
+
     cargarGrupos();
 
     const idProd = document.getElementById("id_producto");
     const desc = document.getElementById("descripcion");
+    const conteni = document.getElementById("contenido");
     const grupo = document.getElementById("grupo");
     const precio = document.getElementById("precio");
 
@@ -335,6 +368,7 @@ window.aplicarPermisos = function() {
 	  if (doc.exists) {
 		const data = doc.data();
 		desc.value = data.descripcion;
+		conteni.value = data.contenido;
 		grupo.value = data.id_grupo;
 		precio.value = data.precio;
 		cod_barra.value = data.cod_barra;
@@ -342,11 +376,16 @@ window.aplicarPermisos = function() {
 		stock_min.value = data.stock_min;
 		cant_sabores.value = data.max_sabores;
 		document.getElementById("deshabili").checked = (data.deshabilitado === "S");
+		document.getElementById("publica").checked = (data.publica === "S");
+		document.getElementById("publica_s").checked = (data.publica_s === "S");
 		document.getElementById("modif_precio").checked = (data.modifica === "S");
 		document.getElementById("requiere_sab").checked = (data.sabores === "S");
+	  mostrarImagen(codigo);
+		
 	  } else {
 		alert("Producto no encontrado.");
 		limpiar_datos();
+		return;
 	  }
 	}
 
@@ -373,6 +412,7 @@ window.aplicarPermisos = function() {
       await db.collection("PRODUCTOS").doc(String(nuevoCodigo)).set({
         id_producto: nuevoCodigo,
         descripcion: desc.value.trim(),
+        contenido: desc.conteni.trim(),
         id_grupo: grupoSel,
         precio: parseFloat(precio.value),
         cod_barra: cod_barra.value,
@@ -380,6 +420,8 @@ window.aplicarPermisos = function() {
         stock_min: stock_min.value,
         max_sabores: cant_sabores.value,
 		deshabilitado: document.getElementById("deshabili").checked ? "S" : "N" ,
+		publica: document.getElementById("publica").checked ? "S" : "N" ,
+		publica_s: document.getElementById("publica_s").checked ? "S" : "N" ,
 		modifica: document.getElementById("modif_precio").checked ? "S" : "N" ,
 		sabores: document.getElementById("requiere_sab").checked ? "S" : "N" 
       });
@@ -396,6 +438,10 @@ window.aplicarPermisos = function() {
 
 		if (!(await valida_campos())) return;
 
+		const checkPublica = document.getElementById('publica');
+		const Publik = checkPublica.checked ? "S" : "N";
+		const checkPublica_s = document.getElementById('publica_s');
+		const Publik_s = checkPublica_s.checked ? "S" : "N";
 		const checkDeshabili = document.getElementById('deshabili');
 		const Desha = checkDeshabili.checked ? "S" : "N";
 		const checkModi = document.getElementById('modif_precio');
@@ -405,12 +451,15 @@ window.aplicarPermisos = function() {
 
       await db.collection("PRODUCTOS").doc(String(codigo)).update({
         descripcion: desc.value.trim(),
+        contenido: conteni.value.trim(),
         id_grupo: parseInt(grupo.value),
         cod_barra: cod_barra.value,
         stock: parseFloat(stock.value),
         stock_min: parseFloat(stock_min.value),
         precio: parseFloat(precio.value),
         deshabilitado: Desha,
+        publica: Publik,
+        publica_s: Publik_s,
         modifica: ModiP,
         sabores: requi,
         max_sabores: parseFloat(cant_sabores.value)
@@ -461,15 +510,19 @@ async function limpiar_datos() {
     // Limpiar pantalla
     document.getElementById("id_producto").value = "";
     document.getElementById("descripcion").value = "";
+    document.getElementById("contenido").value = "";
     document.getElementById("grupo").value = "0";
     document.getElementById("precio").value = "0";
     document.getElementById("cod_barra").value = "";
     document.getElementById("stock").value = "0";
     document.getElementById("stock_min").value = "0";
     document.getElementById("deshabili").checked = "";
+    document.getElementById("publica").checked = "";
+    document.getElementById("publica_s").checked = "";
     document.getElementById("modif_precio").checked = "";
     document.getElementById("requiere_sab").checked = "";
     document.getElementById("cant_sabores").value = "0";
+	document.getElementById("previewImg").src = "img/no-image.jpg";
 };
 
     // === Modal de busqueda (producto principal) ===

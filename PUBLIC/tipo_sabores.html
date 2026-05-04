@@ -2,12 +2,12 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>ABM de Grupos</title>
+  <title>ABM de Tipo de Sabores</title>
 
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-<script src="js/auth.js"></script>  <!-- Aqui se verifica la autenticacion-->
+<script src="js/auth.js"></script>  <!-- 🔹 Aquí se verifica la autenticacion-->
 
   <style>
     body {
@@ -39,14 +39,15 @@
       width: 250px;
       margin-bottom: 10px;
     }
-	input, select {
-      padding: 6px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-      margin-top: 4px;
-      font-size: 14px;
+    button {
+      padding: 8px 16px;
+      margin: 5px;
+      cursor: pointer;
+      border: none;
+      background-color: #007bff;
+      color: white;
+      border-radius: 5px;
     }
-
     button:hover {
       background-color: #0056b3;
     }
@@ -77,7 +78,7 @@
       padding: 6px;
       text-align: left;
     }
-
+	
 	th { background-color: #f2f2f2; }
 
     tr:hover {
@@ -88,16 +89,14 @@
       width: 100px;
       height: 14px;
     }
-
-    button {
-      padding: 8px 16px;
-      margin: 5px;
-      cursor: pointer;
-      border: none;
-      background-color: #007bff;
-      color: white;
-      border-radius: 5px;
+	input, select {
+      padding: 6px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      margin-top: 4px;
+      font-size: 14px;
     }
+	
 .boton-redondeado {
       padding: 8px 16px;
       margin: 5px;
@@ -113,22 +112,22 @@
   color: #666666 !important;
   cursor: not-allowed !important;
 }
-
   </style>
-          <link rel="stylesheet" href="css/estilos.css">
-
+            <link rel="stylesheet" href="css/estilos.css">
+			
+			
 </head>
 <body>
   <div class="contenedor">
-    <h2>Mantenimiento de Grupos</h2>
+    <h2>Mantenimiento de Tipo de Sabores</h2>
 
     <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
       <div>
-        <label for="id_grupo">Codigo de Grupo</label>
-        <input class="input-pequeno" type="number" id="id_grupo" placeholder="Ingrese código" />
+        <label for="id_tipo">Codigo de Tipo de Sabor</label>
+        <input class="input-pequeno" type="number" id="id_tipo" placeholder="Ingrese código" />
         <button id="btnVerificar">&#9989; Verificar</button>
         <button id="btnBuscar">&#128269; Buscar</button>
-		<button id="btnVaciar" onclick="limpiarCampos()">&#9851; Limpiar</button>
+			<button id="btnVaciar" onclick="limpiarCampos()">&#9851; Limpiar</button>
       </div>
     </div>
 
@@ -140,10 +139,6 @@
 	  <div>
 		<label for="deshabili">Deshabilitado?</label>
 		<input class="input-pequeno" type="checkbox" id="deshabili">
-	  </div>
-	  <div>
-		<label for="publica">Publica en Home?</label>
-		<input class="input-pequeno" type="checkbox" id="publica">
 	  </div>
     </div>
 
@@ -157,12 +152,12 @@
 
     <div id="listado">    </div>
 
-    <!-- Modal de busqueda -->
+    <!-- Modal de búsqueda -->
     <div id="modalBusqueda">
       <div id="contenidoModal" align="center">
-        <h3>Buscar Grupo por descripcion</h3>
+        <h3>Buscar Tipo de Sabores por descripcion</h3>
         <input type="text" id="txtBuscarNombre" placeholder="Ingrese parte de la descripcion" />
-        <button id="btnBuscarGrupo">Buscar</button>
+        <button id="btnBuscarTipo">Buscar</button>
         <table id="tablaResultados">
           <thead>
             <tr><th>ID</th><th>Descripcion</th></tr>
@@ -179,6 +174,7 @@
 
 verificarSesion();
 
+
 document.addEventListener("DOMContentLoaded", () => {
 	aplicarPermisos();
 });
@@ -192,7 +188,8 @@ window.aplicarPermisos = function() {
     const btn = document.getElementById("btnAlta");
     const btn2 = document.getElementById("btnModificar");
 
-    if (!tienePermiso(10)) {
+    if (!tienePermiso(12)) {
+        //if (btn) btn.style.display = "none";
 		if (btn) btn.disabled = true;
 		btn.title = "No tiene permiso para usar esta funcion";
 		if (btn2) btn2.disabled = true;
@@ -202,44 +199,42 @@ window.aplicarPermisos = function() {
 
 ArmarTabla();
 
-    const idGrupo = document.getElementById("id_grupo");
+    const idTipo = document.getElementById("id_tipo");
     const descripcion = document.getElementById("descripcion");
 
     // --- Verificar existencia ---
     document.getElementById("btnVerificar").onclick = async () => {
-      const codigo = parseInt(idGrupo.value);
-      if (!codigo) return alert("Ingrese un codigo valido.");
-      const docSnap = await db.collection("GRUPOS").doc(String(codigo)).get();
+      const codigo = parseInt(idTipo.value);
+      if (!codigo) return alert("Ingrese un código válido.");
+      const docSnap = await db.collection("TIPO_SABORES").doc(String(codigo)).get();
       if (docSnap.exists) {
         const data = docSnap.data();
         descripcion.value = data.descripcion;
         document.getElementById("deshabili").checked = (data.deshabilitado === "S");
-        document.getElementById("publica").checked = (data.publica === "S");
       } else {
-        alert("Grupo no encontrado.");
+        alert("Tipo de Sabor no encontrado.");
         limpiarCampos();
       }
     };
 
     // --- Alta ---
     document.getElementById("btnAlta").onclick = async () => {
-      if (idGrupo.value)
+      if (idTipo.value)
         return alert("Para dar de alta NO debe ingresar un codigo."+"\n"+"Este se genera automaticamente."+"\n"+"Borrar el codigo ,cargar los demas campos y volver a presionar el boton de ALTA");;
       if (!await validarCampos()) return;
 
-      const snapshot = await db.collection("GRUPOS")
-        .orderBy("id_grupo", "desc").limit(1).get();
+      const snapshot = await db.collection("TIPO_SABORES")
+        .orderBy("id_tipo", "desc").limit(1).get();
       let nuevoId = 1;
-      if (!snapshot.empty) nuevoId = snapshot.docs[0].data().id_grupo + 1;
+      if (!snapshot.empty) nuevoId = snapshot.docs[0].data().id_tipo + 1;
 
-      await db.collection("GRUPOS").doc(String(nuevoId)).set({
-        id_grupo: nuevoId,
+      await db.collection("TIPO_SABORES").doc(String(nuevoId)).set({
+        id_tipo: nuevoId,
         descripcion: descripcion.value.trim(),
-        deshabilitado: document.getElementById("deshabili").checked ? "S" : "N",
-        publica: document.getElementById("publica").checked ? "S" : "N"
+        deshabilitado: document.getElementById("deshabili").checked ? "S" : "N"
       });
 
-      alert(`Grupo agregado con codigo ${nuevoId}`);
+      alert(`Tipo de Sabor agregado con código ${nuevoId}`);
       limpiarCampos();
 	  ArmarTabla();
 
@@ -247,19 +242,17 @@ ArmarTabla();
 
     // --- Modificar ---
     document.getElementById("btnModificar").onclick = async () => {
-      const codigo = parseInt(idGrupo.value);
-      if (!codigo) return alert("Ingrese un codigo valido.");
+      const codigo = parseInt(idTipo.value);
+      if (!codigo) return alert("Ingrese un código válido.");
       if (!await validarCampos()) return;
 
       const deshab = document.getElementById("deshabili").checked ? "S" : "N";
-      const publik = document.getElementById("publica").checked ? "S" : "N";
 
-      await db.collection("GRUPOS").doc(String(codigo)).update({
+      await db.collection("TIPO_SABORES").doc(String(codigo)).update({
         descripcion: descripcion.value.trim(),
-        deshabilitado: deshab,
-        publica: publik
+        deshabilitado: deshab
       });
-      alert("Grupo actualizado correctamente.");
+      alert("Tipo de Sabor actualizado correctamente.");
       limpiarCampos();
 	  ArmarTabla();
 
@@ -271,62 +264,59 @@ ArmarTabla();
     }
 
     function limpiarCampos() {
-      idGrupo.value = "";
+      idTipo.value = "";
       descripcion.value = "";
       document.getElementById("deshabili").checked = false;
-      document.getElementById("publica").checked = false;
     }
 
-    // --- Modal busqueda ---
+    // --- Modal búsqueda ---
     const modal = document.getElementById("modalBusqueda");
     document.getElementById("btnBuscar").onclick = () => modal.style.display = "flex";
     document.getElementById("btnCerrarModal").onclick = () => modal.style.display = "none";
 
-    document.getElementById("btnBuscarGrupo").onclick = async () => {
+    document.getElementById("btnBuscarTipo").onclick = async () => {
       const texto = document.getElementById("txtBuscarNombre").value.trim().toLowerCase();
       if (!texto) return alert("Ingrese texto a buscar.");
 
       const tablaBody = document.querySelector("#tablaResultados tbody");
       tablaBody.innerHTML = "";
 
-      const snapshot = await db.collection("GRUPOS").get();
+      const snapshot = await db.collection("TIPO_SABORES").get();
       snapshot.forEach(doc => {
         const data = doc.data();
         if (data.descripcion.toLowerCase().includes(texto)) {
           const fila = document.createElement("tr");
-          fila.innerHTML = `<td>${data.id_grupo}</td><td>${data.descripcion}</td>`;
+          fila.innerHTML = `<td>${data.id_tipo}</td><td>${data.descripcion}</td>`;
           fila.onclick = () => {
-            idGrupo.value = data.id_grupo;
+            idTipo.value = data.id_tipo;
             descripcion.value = data.descripcion;
             document.getElementById("deshabili").checked = (data.deshabilitado === "S");
-            document.getElementById("publica").checked = (data.publica === "S");
             modal.style.display = "none";
           };
           tablaBody.appendChild(fila);
         }
       });
     };
-	
-	// listado de los grupos
+
+	// listado de los Tipo de Sabores
     function ArmarTabla() {
 	
-      db.collection("GRUPOS")
+      db.collection("TIPO_SABORES")
 		.get()
         .then((querySnapshot) => {
           let html = "";
 
         if (querySnapshot.empty) {
-            html += "<p>No se encontraron grupos.</p>";
+            html += "<p>No se encontraron Tipo de Sabores.</p>";
           } else {
-            html += "<table><tr><th>Codigo</th><th>Descripcion</th><th>Deshabilitado</th><th>Publica en Home</th></tr>";
+            html += "<table><tr><th>Codigo</th><th>Descripcion</th><th>Deshabilitado</th></tr>";
 			let cant = 0;
             querySnapshot.forEach((doc) => {
               const data = doc.data();
               html += `<tr>
-                <td>${data.id_grupo}</td>
+                <td>${data.id_tipo}</td>
                 <td>${data.descripcion}</td>
                 <td>${data.deshabilitado || "N"}</td>
-                <td>${data.publica || "N"}</td>
               </tr>`;
 			cant += 1;
             });

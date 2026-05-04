@@ -41,7 +41,7 @@ header {
 
 /* HERO */
 .hero {
-  background:linear-gradient(135deg,#ff9a9e,#fad0c4);
+  background:linear-gradient(135deg,#1591EA,#fad0c4);
   color:white;
   padding:40px 20px;
   text-align:center;
@@ -83,7 +83,7 @@ header {
 }
 
 .card {
-  height: 220px;
+  height: 240px;
   display: flex;
   flex-direction: column;
 }
@@ -340,12 +340,23 @@ function renderUI() {
   contTabs.innerHTML = "";
   contProd.innerHTML = "";
 
-  grupos.forEach(g => {
+  // 🔥 FILTRAR GRUPOS
+  const gruposVisibles = grupos.filter(g =>
+    g.publica === "S" && g.deshabilitado !== "S"
+  );
 
-    const lista = productos.filter(p => p.id_grupo == g.id_grupo);
+  gruposVisibles.forEach(g => {
+
+    // 🔥 FILTRAR PRODUCTOS
+    const lista = productos.filter(p =>
+      p.id_grupo == g.id_grupo &&
+      p.publica === "S" &&
+      p.deshabilitado !== "S"
+    );
+
     if (lista.length === 0) return;
 
-    // TAB
+    // ================= TAB =================
     const tab = document.createElement("div");
     tab.className = "tab";
     tab.textContent = g.descripcion;
@@ -359,7 +370,7 @@ function renderUI() {
 
     contTabs.appendChild(tab);
 
-    // SECCION
+    // ================= SECCION =================
     const seccion = document.createElement("div");
     seccion.id = "grupo_" + g.id_grupo;
     seccion.className = "seccion-grupo";
@@ -370,10 +381,14 @@ function renderUI() {
     grid.className = "grid";
 
     lista.forEach(p => {
+
       const card = document.createElement("div");
-		card.className = "card";
-		card.onclick = () => abrirModal(p);
-      
+      card.className = "card";
+      card.onclick = () => abrirModal(p);
+
+
+const stock = Number(p.stock) || 0;
+const sinStock = stock <= 0;
 
 card.innerHTML = `
   <div class="img-wrapper">
@@ -384,6 +399,23 @@ card.innerHTML = `
   <div class="card-body">
     <div><b>${p.descripcion}</b></div>
     <div class="precio">$${p.precio}</div>
+
+    ${
+      p.publica_s === "S" && !sinStock
+        ? `<div style="font-size:12px; color:#555;">
+             ${stock} disponibles
+           </div>`
+        : ""
+    }
+
+    ${
+      sinStock
+        ? `<div style="color:red; font-size:12px; font-weight:bold;">
+             SIN STOCK
+           </div>`
+        : ""
+    }
+
   </div>
 `;
 
@@ -394,23 +426,43 @@ card.innerHTML = `
     contProd.appendChild(seccion);
   });
 
-  if (grupos.length > 0) activarTab(grupos[0].id_grupo);
+  if (gruposVisibles.length > 0)
+    activarTab(gruposVisibles[0].id_grupo);
 }
+// ===================== fin RENDER =====================
 
 function abrirModal(p) {
   document.getElementById("modalProducto").style.display = "flex";
 
   document.getElementById("modalImg").src = p.imagen || "img/no-image.jpg";
   document.getElementById("modalTitulo").innerText = p.descripcion;
+
+const sinStock = Number(p.stock) <= 0;
+
   if (p.max_sabores > 0) { 
 	document.getElementById("modalCantidad").innerText = "Cantidad maxima de sabores: " + (p.max_sabores || "");
   } else {
 	document.getElementById("modalCantidad").innerText = "";
 	}
   
+	// 🔥 STOCK
+  if (p.publica_s === "S") {
+  if (sinStock) {
+    document.getElementById("modalContenido").innerHTML =
+  `<div style="color:red; font-size:12px; font-weight:bold;">
+           SIN STOCK
+         </div>`;
+  } else {
+    document.getElementById("modalContenido").innerHTML =
+      `<br><b>stock: ${p.stock || 0} disponibles</b><br><br>`;
+	}
+  }
+
   document.getElementById("modalContenido").innerHTML =
     (p.contenido || "").replace(/\n/g, "<br>");
+
   document.getElementById("modalPrecio").innerText = "$" + p.precio;
+
 }
 
 function cerrarModal() {

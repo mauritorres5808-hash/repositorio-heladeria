@@ -152,19 +152,22 @@ button small {
           <button class="boton-redondeado" id="btnSabores" onclick="location.href='sabores.html'">Sabores</button>
         </td>
         <td>
-          <button class="boton-redondeado" id="btnFP" onclick="location.href='fpago.html'">Formas de Pago</button>
+          <button class="boton-redondeado" id="btnTipoS" onclick="location.href='tipo_sabores.html'">Tipo de Sabores</button>
         </td>
       </tr>
 
       <tr>
         <td>
-          <button class="boton-redondeado" id="btnClientes" onclick="location.href='clientes.html'">Clientes</button>
+          <button class="boton-redondeado" id="btnFP" onclick="location.href='fpago.html'">Formas de Pago</button>
         </td>
         <td>
-          <button class="boton-redondeado" id="btnLisClie" onclick="location.href='clientes-listado.html'">Listado de Clientes</button>
+          <button class="boton-redondeado" id="btnClientes" onclick="location.href='clientes.html'">Clientes</button>
         </td>
       </tr>
       <tr>
+        <td>
+          <button class="boton-redondeado" id="btnLisClie" onclick="location.href='clientes-listado.html'">Listado de Clientes</button>
+        </td>
         <td>
           <button class="boton-redondeado" id="btnStock" onclick="location.href='stock.html'">Stock de Productos</button>
         </td>
@@ -250,6 +253,14 @@ window.aplicarPermisos = function() {
 		if (btn8) btn8.disabled = false;
 		btn8.title = "";
     }
+
+    const btn9 = document.getElementById("btnTipoS");
+    if (tienePermiso(11)) {
+		if (btn9) btn9.disabled = false;
+		btn9.title = "";
+    }
+
+
 };</script>
 
 

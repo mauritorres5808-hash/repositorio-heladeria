@@ -54,7 +54,7 @@ function renderGrupos() {
   cmb.innerHTML = `<option value="">-- Seleccione un grupo --</option>`;
 
   grupos
-    .filter(g => g.deshabilitado === "N" || g.deshabilitado === "n" || g.deshabilitado === undefined)
+    .filter(g => (String(g.deshabilitado).toUpperCase() === "N" || g.deshabilitado === undefined) && (String(g.publica).toUpperCase() === "S" || g.deshabilitado === undefined) )
     .forEach(g => {
       const opt = document.createElement("option");
       opt.value = g.id_grupo;
@@ -83,6 +83,9 @@ function renderProductos(){
 
 	const lista = productos.filter(p => {
 
+	// 🛑 PRIMERO: filtrar por stock
+	  if (Number(p.stock) <= 0) return false;
+  
 	  // 🔴 CASO 1: hay texto de búsqueda → manda el texto (independiente del grupo)
 	  if (q) {
 		const text = (p.descripcion || "").toString().toLowerCase();
@@ -384,13 +387,14 @@ if (!(domLower.endsWith("bs as") || domLower.endsWith("caba"))) {
   return;
 }
 
+const pagaCon = document.getElementById("paga_con").value.trim();
   const nota = document.getElementById("nota").value.trim();
   const tel = normalizarTelefono(document.getElementById("telefono").value);
 
-  if (!nombre || !domicilio || !tel) {
-    alert("Complete nombre, domicilio y teléfono.");
-    return;
-  }
+	if (!nombre || !domicilio || !tel || !pagaCon) {
+	  alert("Complete nombre, domicilio, teléfono y cómo piensa pagar.");
+	  return;
+	}
 
 	// Validar domicilio con backend
 	const direccionOk = await validarDireccionBackend(domicilio);
@@ -441,7 +445,7 @@ if (!(domLower.endsWith("bs as") || domLower.endsWith("caba"))) {
     let r = await fetch(`${API_BASE}/whatsapp/pedido`, {
       method:"POST",
       headers:{ "Content-Type":"application/json" },
-      body:JSON.stringify({ nombre, domicilio, telefono:tel, nota, pedido:pedidoBackend })
+      body:JSON.stringify({ nombre, domicilio, telefono:tel, nota, paga_con: pagaCon, pedido:pedidoBackend })
     });
     let data = await r.json();
 
@@ -463,6 +467,8 @@ function mostrarMensajeFinal(idPedido) {
 
 	// guardar el id para usar después
 	window.idPedidoActual = idPedido;
+	window.nombreClienteActual = document.getElementById("nombre").value.trim();
+	window.pagaConActual = document.getElementById("paga_con").value.trim();
 
 	document.getElementById("nroPedido").innerHTML = `N° de Pedido: ${idPedido}`;
 	document.getElementById("mensajeFinal").style.display = "block";
@@ -471,15 +477,11 @@ function mostrarMensajeFinal(idPedido) {
 function aceptarPedido() {
 
 	const idPedido = window.idPedidoActual;
-
-	const nombre = document.getElementById("nombre").value.trim();
-
-	const mensaje = `Hola soy ${nombre}, mi pedido es el nro ${idPedido}`;
-
+	const nombre = window.nombreClienteActual;
+	const pagaCon = window.pagaConActual;
+	const mensaje = `Hola soy *${nombre}*, mi pedido es el Nro *${idPedido}*.\nPago con: *${pagaCon}*`;
 	const mensajeCodificado = encodeURIComponent(mensaje);
-
 	const numeroEmpresa = "5491134692013"; // <-- tu número
-
 	const url = `https://wa.me/${numeroEmpresa}?text=${mensajeCodificado}`;
 
 	// 👉 esto ahora NO se bloquea

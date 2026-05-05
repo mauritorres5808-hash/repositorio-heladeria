@@ -352,7 +352,9 @@ function renderList(items){
 
     html += `
       <div style="font-size:26px;font-weight:bold;margin-top:10px;">
-        Total pedido: ${formateadorMoneda.format(totalPedido)}
+        Total pedido: ${formateadorMoneda.format(totalPedido)} 
+		<span  style="font-size:16px;font-weight:bold;margin-top:10px;"</span>
+		_________ Paga con: ${p.paga_con}
       </div><br>`
     html += `<div class="acciones">`
 	if (p.estado==="nuevo"){

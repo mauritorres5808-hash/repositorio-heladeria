@@ -119,6 +119,7 @@ console.log("GUARDANDO PEDIDO con HORA:", hora);
       nombre: pedido.nombre,
       domicilio: pedido.domicilio,
       nota: pedido.nota || "",
+	  paga_con: pedido.paga_con || "",
       pedido_detalle: pedido.pedido,
       fecha,
       hora,

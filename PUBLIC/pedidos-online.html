@@ -23,6 +23,15 @@
   .unidad .titulo{ font-weight:600; margin-bottom:6px; }
   select.sabor { padding:6px; width:100%; margin:4px 0; }
   button{ padding:8px 10px; border:none; border-radius:6px; cursor:pointer; }
+      button {
+      padding: 8px 14px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+    }
   .agregar{ background:#2b9bff; color:white }
   .quitar{ background:#e74c3c; color:white }
   #btnEnviar{background:#0dc143; padding:14px; width:30%; font-size:18px; color:white; border:none; margin-top:15px; border-radius:8px; }
@@ -93,8 +102,13 @@
 
 <form id="formPedido" onsubmit="event.preventDefault(); enviarPedido();">
 
-  <h1>Hacé tu pedido</h1>
-
+  <h1>Hacé tu pedido
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	<button onclick="window.location.href='home.html'">&#8617; Volver</button>
+	  </h1>
   <div class="topBar">
     <label for="cmbGrupo">Grupo de Productos:</label>
     <select id="cmbGrupo" onchange="onGrupoChange()">
@@ -108,7 +122,6 @@
 
   <h2>Tus datos</h2>
   <input id="nombre" name="nombre" placeholder="Nombre" />
-<!--  <input id="domicilio" name="domicilio" placeholder="Dirección" /> -->
 
 	<br><br><label for="domicilio" class="lbl">Domicilio (SOLO calle+nro+"Bs As" o "Caba") --> Ejm:Junin 523 Bs As</label>
   <div style="display:flex; gap:10px; align-items:center;">
@@ -129,6 +142,14 @@
            style="width:30%;padding:10px;font-size:16px;border:2px solid #ccc;border-radius:6px;">
     <div id="telefonoMsg" style="font-size:13px;margin-top:3px;color:#b00;"></div>
   </div>
+
+		<label for="paga_con" class="lbl">¿Cómo pensás pagar?</label>
+		<br>
+		<input id="paga_con" name="paga_con" style="width:50%;"  placeholder="Ej: Efectivo con $5000 / Transferencia / Tarjeta" />
+		<div class="meta">
+		  Si es en efectivo indicar con cuánto pagarás para calcular tu vuelto
+		</div>
+
 
   <div id="totalBox">Total: $ <span id="totalValor">0</span></div>
 

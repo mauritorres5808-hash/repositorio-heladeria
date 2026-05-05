@@ -138,16 +138,41 @@ compras.forEach(c => {
         // Calcular totales
         const resumenPorTipo = {};
         const resumenPorForma = {};
+		const cantidadPorForma = {}; 
+		
         let totalVentas = 0;
 
         ventas.forEach(v => {
           const tipo = v.tipo_venta || 0;
-          if (!resumenPorTipo[tipo]) resumenPorTipo[tipo] = { formasPago: {}, total: 0 };
+          //if (!resumenPorTipo[tipo]) resumenPorTipo[tipo] = { formasPago: {}, total: 0 };
+		  if (!resumenPorTipo[tipo]) {
+			resumenPorTipo[tipo] = {
+			  formasPago: {},
+			  cantidades: {}, 
+			  total: 0
+			};
+		  }
+  
           const addPago = (idfp, imp) => {
             if (!idfp) return;
-            resumenPorTipo[tipo].formasPago[idfp] = (resumenPorTipo[tipo].formasPago[idfp] || 0) + (parseFloat(imp)||0);
-            resumenPorForma[idfp] = (resumenPorForma[idfp] || 0) + (parseFloat(imp)||0);
+            //resumenPorTipo[tipo].formasPago[idfp] = (resumenPorTipo[tipo].formasPago[idfp] || 0) + (parseFloat(imp)||0);
+            //resumenPorForma[idfp] = (resumenPorForma[idfp] || 0) + (parseFloat(imp)||0);
+			  // Importes
+			  resumenPorTipo[tipo].formasPago[idfp] =
+				(resumenPorTipo[tipo].formasPago[idfp] || 0) + (parseFloat(imp) || 0);
+
+			  resumenPorForma[idfp] =
+				(resumenPorForma[idfp] || 0) + (parseFloat(imp) || 0);
+
+			  // Cantidades por tipo
+			  resumenPorTipo[tipo].cantidades[idfp] =
+				(resumenPorTipo[tipo].cantidades[idfp] || 0) + 1;
+
+			  // Cantidades generales
+			  cantidadPorForma[idfp] =
+				(cantidadPorForma[idfp] || 0) + 1;
           };
+		  
           addPago(v.f_pago1, v.importe_fp1);
           addPago(v.f_pago2, v.importe_fp2);
           resumenPorTipo[tipo].total += parseFloat(v.total || 0);
@@ -193,7 +218,7 @@ compras.forEach(c => {
           html += `<div class="subtitulo2">${TipoVenta}</div>`;
           html += `<table><tr><th>Forma de Pago</th><th>Total</th></tr>`;
           for (const idfp in t.formasPago) {
-            html += `<tr><td>${formasPago[idfp] || idfp}</td><td>${formateadorMoneda.format(t.formasPago[idfp])}</td></tr>`;
+            html += `<tr><td>${formasPago[idfp] || idfp}</td> <td>${formateadorMoneda.format(t.formasPago[idfp])}</td></tr>`;
           }
           html += `<tr style="font-weight:bold;background:#e8f5e9"><td style="text-align:right">Subtotal Tipo ${TipoVenta}</td><td>${formateadorMoneda.format(t.total)}</td></tr></table><br>`;
         }
@@ -201,19 +226,31 @@ compras.forEach(c => {
 		// =======================
         // ✅ NUEVA TABLA: Totales por FORMA DE PAGO (General)
 		// =======================
-        html += `<div class="subtitulo">Totales por Forma de Pago (General)</div>`;
-        html += `<table><tr><th>Forma de Pago</th><th>Total</th></tr>`;
+        html += `<div class="subtitulo" style="font-weight:bold;background:#05FA80 ;font-size=40px">Totales por Forma de Pago (General)</div>`;
+        html += `<table><tr><th>Forma de Pago</th><th>Cant.</th><th>Total</th></tr>`;
 
         let totalGeneralFP = 0;
         for (const idfp in resumenPorForma) {
           const importe = resumenPorForma[idfp];
           totalGeneralFP += importe;
-          html += `<tr><td>${formasPago[idfp] || idfp}</td><td>${formateadorMoneda.format(importe)}</td></tr>`;
+          //html += `<tr><td>${formasPago[idfp ;font-size=40px" || idfp}</td><td>${formateadorMoneda.format(importe)}</td></tr>`;
+		  html += `<tr>
+			<td>${idfp} - ${formasPago[idfp] || idfp}</td>
+			<td>${cantidadPorForma[idfp] || 0}</td>
+			<td>${formateadorMoneda.format(importe)}</td>
+			</tr>`;
+		/*		
+		html += `<tr>
+				<td>${idfp} - ${formasPago[idfp] || idfp}</td>
+				<td>${t.cantidades[idfp] || 0}</td>
+				<td>${formateadorMoneda.format(t.formasPago[idfp])}</td>
+				</tr>`;
+		*/
         }
 
         html += `<tr style="font-weight:bold;background:#d7ffd9">
                     <td style="text-align:right">Total General Formas de Pago</td>
-                    <td>${formateadorMoneda.format(totalGeneralFP)}</td>
+                    <td></td><td>${formateadorMoneda.format(totalGeneralFP)}</td>
                  </tr>
                  </table><br>`;
 
@@ -265,7 +302,11 @@ if (compras.length > 0) {
 		}
 		
      //   html += `<h3 style=" text-align:right">💰 Total General: ${formateadorMoneda.format(totalGeneral)}</h3>`;
-totalEfectivo2=resumenPorForma[1] + totalIngresos - totalEgresos - comprasPorFP[1];
+//totalEfectivo2=resumenPorForma[1] + totalIngresos - totalEgresos - comprasPorFP[1];
+const efectivoVentas = resumenPorForma[1] || 0;
+const efectivoCompras = comprasPorFP[1] || 0;
+const totalEfectivo2 = efectivoVentas + totalIngresos - totalEgresos - efectivoCompras;
+
 html += `<h3 style=" text-align:right">
 💰 Total General: ${formateadorMoneda.format(totalGeneral)} 
 &nbsp;&nbsp;&nbsp;  💵 Efectivo: ${formateadorMoneda.format(totalEfectivo2)}

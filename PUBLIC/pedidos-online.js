@@ -1,7 +1,4 @@
 // pedidos-online.js
-// Lógica adaptada: GRUPOS -> PRODUCTOS filtrados en front, carrito, sabores, envío.
-// Mantiene la lógica original del proyecto.
-
 
 const formateadorMoneda = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS',   minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
@@ -453,7 +450,7 @@ if (!(domLower.endsWith("bs as") || domLower.endsWith("caba"))) {
       return;
     }
 
-    mostrarMensajeFinal();
+    mostrarMensajeFinal(data.idPedido);
     resetAll();
   } catch (err) {
     console.error("Error enviando pedido:", err);
@@ -462,9 +459,36 @@ if (!(domLower.endsWith("bs as") || domLower.endsWith("caba"))) {
 }
 
 // ------------------ mensaje final ------------------
-function mostrarMensajeFinal() {
-  document.getElementById("mensajeFinal").style.display = "block";
+function mostrarMensajeFinal(idPedido) {
+
+	// guardar el id para usar después
+	window.idPedidoActual = idPedido;
+
+	document.getElementById("nroPedido").innerHTML = `N° de Pedido: ${idPedido}`;
+	document.getElementById("mensajeFinal").style.display = "block";
 }
+
+function aceptarPedido() {
+
+	const idPedido = window.idPedidoActual;
+
+	const nombre = document.getElementById("nombre").value.trim();
+
+	const mensaje = `Hola soy ${nombre}, mi pedido es el nro ${idPedido}`;
+
+	const mensajeCodificado = encodeURIComponent(mensaje);
+
+	const numeroEmpresa = "5491134692013"; // <-- tu número
+
+	const url = `https://wa.me/${numeroEmpresa}?text=${mensajeCodificado}`;
+
+	// 👉 esto ahora NO se bloquea
+	window.open(url, "_blank");
+
+	// cerrar popup
+	cerrarMensajeFinal();
+}
+
 
 function cerrarMensajeFinal() {
   document.getElementById("mensajeFinal").style.display = "none";

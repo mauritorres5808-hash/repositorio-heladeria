@@ -125,7 +125,7 @@ console.log("GUARDANDO PEDIDO con HORA:", hora);
       estado: "nuevo"
     });
 
-    res.json({ ok: true, msg: "Pedido guardado correctamente." });
+    res.json({ ok: true, msg: "Pedido guardado correctamente.",  idPedido: id_pedido });
 
   } catch (err) {
     console.error("ERROR en /whatsapp/pedido:", err);

@@ -13,7 +13,8 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   
-  
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
   body{font-family:Arial;margin:12px;background:#f7f8fb}
@@ -140,6 +141,159 @@ async function cargar(){
   }
 }
 
+
+async function imprimirPedido2(idPedido){  // (envia a PDF)
+  try {
+    const res = await fetch(`${API_BASE}/api/pedidos_whatsapp/${idPedido}`);
+    const p = await res.json();
+
+    if (!p || !p.id_pedido){
+      alert("No se pudo obtener el pedido");
+      return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: "mm", format: [58, 200] });
+
+    let y = 5;
+
+    doc.setFontSize(8);
+    doc.text("PEDIDO", 0, y);
+
+    y += 5;
+    doc.setFontSize(7);
+    doc.text(`Pedido #${p.id_pedido}`, 0, y);
+
+    y += 4;
+    doc.text(`${p.fecha} ${p.hora}`, 0, y);
+
+    y += 4;
+    doc.text(`Cliente: ${p.nombre}`, 0, y);
+
+    y += 4;
+    doc.text(`Tel: ${p.telefono}`, 0, y);
+
+    y += 4;
+    doc.text(`Dir: ${p.domicilio}`, 0, y);
+
+    y += 5;
+    doc.text("-----------------------------", 0, y);
+
+    y += 4;
+
+    let total = 0;
+
+    (p.pedido_detalle || []).forEach((it, idx) => {
+      doc.text(`${idx+1}) ${it.descripcion}`, 0, y);
+      y += 3;
+
+      doc.text(`$${it.precio}`, 0, y);
+      y += 4;
+
+      total += Number(it.precio || 0);
+
+      if (it.sabores?.length){
+        it.sabores.forEach(s => {
+          doc.text(`- ${saborDesc(s)}`, 2, y);
+          y += 3;
+        });
+      }
+
+      y += 2;
+    });
+
+    doc.text("-----------------------------", 0, y);
+    y += 4;
+
+    doc.setFontSize(9);
+    doc.text(`TOTAL: $${total}`, 0, y);
+
+    doc.save(`Pedido_${p.id_pedido}.pdf`);
+
+  } catch(err){
+    console.error(err);
+    alert("Error al imprimir pedido");
+  }
+}
+
+
+// 🖨️ Imprimir ticket directo (SIN PDF - impresora directa)
+async function imprimirPedido(idPedido){
+
+//---------------
+  try {
+    const res = await fetch(`${API_BASE}/api/pedidos_whatsapp/${idPedido}`);
+    const p = await res.json();
+
+    if (!p || !p.id_pedido){
+      alert("No se pudo obtener el pedido");
+      return;
+    }
+
+  
+  let contenido = `
+    <html>
+    <head>
+      <title>Ticket Pedido</title>
+      <style>
+        body{font-family:monospace;font-size:12px;width:220px}
+        .center{text-align:center}
+        hr{border-top:1px dashed #000}
+      </style>
+    </head>
+    <body>
+      <div class="center"><b>PEDIDO #${p.id_pedido}</b></div>
+      <hr>
+	  Fecha: ${p.fecha} Hora: ${p.hora}<br> 
+      Cliente: ${p.nombre}<br>
+      Tel: ${p.telefono}<br>
+      Dir: ${p.domicilio}<br>
+      <hr>
+  `;
+
+  let total = 0;
+
+  (p.pedido_detalle || []).forEach((it, i)=>{
+    total += (it.precio || 0);
+    contenido += `${i+1}) ${it.descripcion}<br>`;
+    contenido += `$ ${it.precio}<br>`;
+	if (it.sabores?.length){
+        it.sabores.forEach(s => {
+		contenido += `- ${saborDesc(s)}<br>`;
+        });
+      }
+	  
+  });
+
+  contenido += `
+      <hr>
+      <b>TOTAL: $ ${total}</b>
+      <hr>
+      Gracias por su compra
+    </body>
+    </html>
+  `;
+
+  const win = window.open('', '', 'width=300,height=600');
+  win.document.write(contenido);
+  win.document.close();
+
+  win.onload = function(){
+    win.focus();
+    win.print();   // 👈 abre impresora real
+    win.close();
+  };
+
+  } catch(err){
+    console.error(err);
+    alert("Error al imprimir pedido");
+  }
+//----------------
+
+}
+
+
+
 // ---------------- Render lista ----------------
 function renderList(items){
   const root = document.getElementById("lista");
@@ -202,6 +356,7 @@ function renderList(items){
       </div><br>`
     html += `<div class="acciones">`
 	if (p.estado==="nuevo"){
+		html += `    <button onclick="imprimirPedido(${p.id_pedido})">🖨️ Imprimir Pedido</button>`
 		html += `    <button class="convertir" onclick="abrirConversion(${p.id_pedido}, ${totalPedido})">Confirmar Venta</button>`
 		html += `    <button onclick="distancia('${p.domicilio}')">&#128663; Ver distancia</button>`
     }
@@ -391,6 +546,8 @@ function notificarPedido(p) {
     });
   }
 }
+
+
 
 // inicial
 cargar();

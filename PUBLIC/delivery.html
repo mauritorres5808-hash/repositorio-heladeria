@@ -15,6 +15,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
+<script src="js/ticket.js"></script>
 
   <style>
     body{font-family:Arial;background:#f3f3f3;margin:0;padding:20px;background-color:#8AC0FF}
@@ -624,7 +625,7 @@ if (prodDoc.exists && prodDoc.data().subproductos === "S") {
           const q = await db.collection('EMPRESA').where('id_empresa','==',1).get();
           let fempresa = 'sin empresa';
           if (!q.empty) fempresa = q.docs[0].data().nombre_empresa || fempresa;
-          generarComprobanteTermicoPDF(nuevoIdVenta, cabecera, window.productosVenta, fp1, fp2, imp1, imp2, fempresa);
+          generarComprobanteTermicoPDF(nuevoIdVenta, cabecera, window.productosVenta, fp1, fp2, imp1, imp2, fempresa, tipoVenta);
         }
 
         LimpiarPantalla();
@@ -701,53 +702,6 @@ if (prodDoc.exists && prodDoc.data().subproductos === "S") {
 
     };
 
-    // generar comprobante termico (copiado de ventas.html)
-    async function generarComprobanteTermicoPDF(idVenta, cabecera, productos, fp1, fp2, imp1, imp2, pempresa) {
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF({ unit: "mm", format: [58, 200] });
-      let y=5;
-	  let TipoVtaNom='';
-	  tipoV=document.querySelector('input[name="tipoDelivery"]:checked').value;
-	  if (tipoV === "1") {TipoVtaNom='Delivery propio'};
-	  if (tipoV === "2") {TipoVtaNom='Rappi'};
-	  if (tipoV === "3") {TipoVtaNom='Pedidos Ya'};
-	  if (tipoV === "4") {TipoVtaNom='mostrador'};
-	  
-      doc.setFontSize(8); doc.text(pempresa,0,y);
-      y+=4; doc.setFontSize(9); doc.text("TICKET",1,y); doc.setFontSize(6); doc.text("(" + TipoVtaNom + ")",14,y);
-      y+=5; doc.setFontSize(7); doc.text(`Venta N°: ${idVenta}`,1,y);
-      y+=4; doc.text(`${cabecera.fecha}`,1,y);
-      doc.text(`${cabecera.hora}`,14,y);
-      y+=2; doc.setFontSize(7);
-      y+=2; doc.text("=============================",0,y); 
-	  y+=4;
-      doc.setFontSize(5); doc.text("Cod  Descripcion",0,y); 
-	  y+=3; doc.text("Cant  P.Unit  Subtotal",0,y); 
-	  y+=3;
-      productos.forEach(p=>{
-        doc.text(`${String(p.id).substring(0,6)} ${p.nombre.substring(0,25)}`,0,y); 
-		y+=3;
-        doc.text(`${p.cantidad} x $${p.precio.toFixed(2)} = $${(p.precio*p.cantidad).toFixed(2)}`,0,y); 
-		y+=4;
-      });
-      y+=0; doc.setFontSize(7); doc.text(".........................................",0,y); 
-	  y+=3;
-      doc.setFontSize(6); doc.text(`Subtotal: $${cabecera.subtotal.toFixed(2)}`,5,y); 
-	  y+=3;
-      doc.text(`Dto: $${cabecera.descuento.toFixed(2)}`,0,y); 
-	  doc.text(`Rec: $${cabecera.recargo.toFixed(2)}`,25,y); 
-	  y+=3;
-      doc.text(`TOTAL: $${cabecera.total.toFixed(2)}`,5,y); 
-	  
-	  y+=3; doc.setFontSize(5); doc.text("Formas de Pago:",0,y); 
-	  y+=3;
-      const fpagos = {}; 
-	  const fSnap = await db.collection("F_PAGO").get(); 
-	  fSnap.forEach(d=>fpagos[d.data().id_fpago]=d.data().descripcion);
-      if (fp1) { doc.text(`${fpagos[fp1]||`FP${fp1}`}: $${(imp1).toFixed(2)}`,0,y); y+=3; }
-      if (fp2) { doc.text(`${fpagos[fp2]||`FP${fp2}`}: $${(imp2).toFixed(2)}`,0,y); y+=3; }
-      doc.save(`Ticket_Venta_${idVenta}.pdf`);
-    }
 
     // Salir
     window.SalirVenta = function(){

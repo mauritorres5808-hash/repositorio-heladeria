@@ -167,7 +167,7 @@
 
 	<table align=center border='none' class="table0">
 		<tr>
-		<th><label for="chk_detalle">sin listado de compras</th>
+		<th><label for="chk_detalle">sin detalle de compras</th>
 		<th><label for="chk_cierre">solo Compras sin cierre</th>
 		</tr>
 		<tr>
@@ -303,7 +303,11 @@ verificarSesion();
 
 		if (!sin_det){
 			let html = "";
-			for (const fecha of Object.keys(agrupadas).sort()) {
+			//for (const fecha of Object.keys(agrupadas).sort()) {
+			for (const fecha of Object.keys(agrupadas).sort((a, b) => {
+				return normalizarFecha(a).localeCompare(normalizarFecha(b));
+					})) {
+  
 			  let totalDia = 0;
 			  html += `<h3>📅 Fecha: ${fecha}</h3>`;
 					html += ` <div id="mensajeTipo" class="alert-modern">las compras en ROJO son anuladas y no suman en el Total.</div>`

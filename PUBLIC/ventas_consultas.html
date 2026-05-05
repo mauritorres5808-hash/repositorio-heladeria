@@ -14,6 +14,9 @@
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="js/ticket.js"></script>
+
   <style>
     body {
       font-family: Arial;
@@ -336,6 +339,7 @@ verificarSesion();
 
         let totalGeneral = 0;
         let resumenFP = {};
+		let cantidadFP = {};
         let resumenPorFecha = {};
         const agrupadas = {};
 
@@ -346,7 +350,10 @@ verificarSesion();
 
 		if (!sin_det){
 			let html = "";
-			for (const fecha of Object.keys(agrupadas).sort()) {
+			//for (const fecha of Object.keys(agrupadas).sort()) {
+			for (const fecha of Object.keys(agrupadas).sort((a, b) => {
+				return normalizarFecha(a).localeCompare(normalizarFecha(b));
+					})) {
 			  let totalDia = 0;
 			  html += `<h3>📅 Fecha: ${fecha}</h3>`;
 					html += ` <div id="mensajeTipo" class="alert-modern">las ventas en ROJO son anuladas y no suman en el Total.</div>`
@@ -356,7 +363,7 @@ verificarSesion();
 				<th>Hora</th><th>TipoVenta</th><th>N° Venta</th>
 				<th>Subtotal</th><th>Descuento</th><th>Recargo</th><th>TOTAL</th>
 				<th>Forma Pago 1</th><th>Importe 1</th><th>Forma Pago 2</th><th>Importe 2</th>
-				<th>Detalle</th><th>Cierre</th>
+				<th>Detalle</th><th>Reimp.</th><th>Cierre</th>
 			    </tr>`;
 
 		for (const v of agrupadas[fecha]) {
@@ -389,6 +396,7 @@ verificarSesion();
 		  <td>${formateadorMoneda.format(v.importe_fp2 || 0)}</td>
 
 		  <td><button onclick="verDetalle(${v.id_venta})">Ver</button></td>
+		  <td><button onclick="reimprimirTicket(${v.id_venta})">🖨️</button></td>
 		  <td>${v.id_cierre || "-"}</td>
 		</tr>`;
 
@@ -413,8 +421,22 @@ verificarSesion();
 				totalDia += v.total;
 				totalGeneral += v.total;
 
+				//resumenFP[v.f_pago1] = (resumenFP[v.f_pago1] || 0) + (v.importe_fp1 || 0);
+				//resumenFP[v.f_pago2] = (resumenFP[v.f_pago2] || 0) + (v.importe_fp2 || 0);
+				
+				// Importes
 				resumenFP[v.f_pago1] = (resumenFP[v.f_pago1] || 0) + (v.importe_fp1 || 0);
 				resumenFP[v.f_pago2] = (resumenFP[v.f_pago2] || 0) + (v.importe_fp2 || 0);
+
+				// Cantidades (cuenta ventas)
+				if (v.f_pago1) {
+				  cantidadFP[v.f_pago1] = (cantidadFP[v.f_pago1] || 0) + 1;
+				}
+				if (v.f_pago2) {
+				  cantidadFP[v.f_pago2] = (cantidadFP[v.f_pago2] || 0) + 1;
+				}
+
+				
 			}
 		}
 
@@ -439,8 +461,21 @@ verificarSesion();
 				totalDia += v.total;
 				totalGeneral += v.total;
 
+				//resumenFP[v.f_pago1] = (resumenFP[v.f_pago1] || 0) + (v.importe_fp1 || 0);
+				//resumenFP[v.f_pago2] = (resumenFP[v.f_pago2] || 0) + (v.importe_fp2 || 0);
+
+				// Importes
 				resumenFP[v.f_pago1] = (resumenFP[v.f_pago1] || 0) + (v.importe_fp1 || 0);
 				resumenFP[v.f_pago2] = (resumenFP[v.f_pago2] || 0) + (v.importe_fp2 || 0);
+
+				// Cantidades (cuenta ventas)
+				if (v.f_pago1) {
+				  cantidadFP[v.f_pago1] = (cantidadFP[v.f_pago1] || 0) + 1;
+				}
+				if (v.f_pago2) {
+				  cantidadFP[v.f_pago2] = (cantidadFP[v.f_pago2] || 0) + 1;
+				}
+
 			}
 		  }
           resumenPorFecha[fecha] = totalDia;
@@ -483,6 +518,7 @@ let htmlFP = `<h3>Totales por Forma de Pago</h3>`;
 htmlFP += `<table>
 <tr>
   <th>Forma de Pago</th>
+  <th>Cant. Ventas</th>
   <th>Importe</th>
   <th>%</th>
 </tr>`;
@@ -497,6 +533,7 @@ Object.keys(resumenFP).forEach(fp => {
 
     htmlFP += `<tr>
         <td>${formasPago[fp] || fp}</td>
+		<td>${cantidadFP[fp] || 0}</td>
         <td>${formateadorMoneda.format(importe)}</td>
         <td>${porcentaje} %</td>
     </tr>`;
@@ -594,6 +631,69 @@ contFP.style.display = "block";
     function cerrarModal() {
       document.getElementById("detalleModal").style.display = "none";
     }
+	
+	
+async function reimprimirTicket(idVenta) {
+
+  // CABECERA
+  const cabSnap = await db.collection("VENTAS_CAB")
+    .where("id_venta", "==", idVenta)
+    .limit(1)
+    .get();
+
+  if (cabSnap.empty) {
+    alert("Venta no encontrada");
+    return;
+  }
+
+  const cab = cabSnap.docs[0].data();
+
+  // DETALLE
+  const detSnap = await db.collection("VENTAS_DET")
+    .where("id_venta", "==", idVenta)
+    .get();
+
+  const productos = [];
+
+  for (const doc of detSnap.docs) {
+    const d = doc.data();
+
+    const prodSnap = await db.collection("PRODUCTOS")
+      .where("id_producto", "==", d.id_producto)
+      .limit(1)
+      .get();
+
+    const nombre = !prodSnap.empty
+      ? prodSnap.docs[0].data().descripcion
+      : "(Sin nombre)";
+
+    productos.push({
+      id: d.id_producto,
+      nombre: nombre,
+      precio: d.precio,
+      cantidad: d.cantidad
+    });
+  }
+
+			// buscar nombre empresa
+          const q = await db.collection('EMPRESA').where('id_empresa','==',1).get();
+          let fempresa = 'sin empresa';
+          if (!q.empty) fempresa = q.docs[0].data().nombre_empresa || fempresa;
+		  
+  await generarComprobanteTermicoPDF(
+    idVenta,
+    cab,
+    productos,
+    cab.f_pago1,
+    cab.f_pago2,
+    cab.importe_fp1,
+    cab.importe_fp2,
+    fempresa,
+    cab.tipo_venta
+  );
+}
+
+
   </script>
 
 <script src="js/medidor.js"></script>

@@ -16,7 +16,7 @@ async function cargarDatos() {
 
   // cargar grupos, productos y sabores
   try {
-    const [gRes, pRes, sRes] = await Promise.all([
+    const [gRes, pRes, sRes, eRes] = await Promise.all([
       fetch(`${API_BASE}/api/grupos`),
       fetch(`${API_BASE}/api/productos`),
       fetch(`${API_BASE}/api/sabores`),

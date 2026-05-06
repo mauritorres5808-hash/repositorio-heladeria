@@ -464,6 +464,29 @@ app.get("/api/sabores", (req, res) => res.json(cacheSabores));
 app.get("/api/fpago", (req, res) => res.json(cacheFPago));
 
 // ==========================================
+// empresa
+// ==========================================
+app.get("/api/empresa", async (req, res) => {
+  try {
+    const snap = await db.collection("EMPRESA").limit(1).get();
+
+    if (snap.empty) {
+      return res.json({ ok: false, msg: "No hay datos de empresa" });
+    }
+
+    const data = snap.docs[0].data();
+
+    res.json({
+      ok: true,
+      telefono: data.telefono || ""
+    });
+
+  } catch (err) {
+    res.json({ ok: false, error: err.message });
+  }
+});
+
+// ==========================================
 // PÁGINAS HTML
 // ==========================================
 app.get("/pedidos-whatsapp", (req, res) => {

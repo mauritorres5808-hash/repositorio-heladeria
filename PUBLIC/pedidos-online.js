@@ -6,6 +6,7 @@ let grupos = [];
 let productos = [];
 let sabores = [];
 let carrito = {}; // { id_producto: [ { sabores: [] }, ... ] }
+let telefonoEmpresa = "";
 
 // ------------------ carga inicial ------------------
 async function cargarDatos() {
@@ -18,12 +19,16 @@ async function cargarDatos() {
     const [gRes, pRes, sRes] = await Promise.all([
       fetch(`${API_BASE}/api/grupos`),
       fetch(`${API_BASE}/api/productos`),
-      fetch(`${API_BASE}/api/sabores`)
+      fetch(`${API_BASE}/api/sabores`),
+	  fetch(`${API_BASE}/api/empresa`)
     ]);
 
     grupos = await gRes.json();
     productos = await pRes.json();
     sabores = await sRes.json();
+
+const empresa = await eRes.json();
+telefonoEmpresa = empresa.telefono || "";
 
     // inicializar carrito (vacío para cada producto existente)
     carrito = {};
@@ -33,10 +38,10 @@ async function cargarDatos() {
     renderProductos();
     actualizarTotalUI();
 
-document.getElementById("loadingMsg").style.display = "none";
-	
-const cont = document.getElementById("listaProductos");
-cont.innerHTML = "";
+	document.getElementById("loadingMsg").style.display = "none";
+		
+	const cont = document.getElementById("listaProductos");
+	cont.innerHTML = "";
   } catch (err) {
     console.error("Error cargando datos:", err);
     document.getElementById("listaProductos").innerText = "Error cargando productos.";
@@ -75,11 +80,11 @@ function getTextoBusqueda() {
 
 // ------------------ render productos (filtrados por grupo y búsqueda) ------------------
 function renderProductos(){
-  const cont = document.getElementById("listaProductos");
-  cont.innerHTML = "";
+	  const cont = document.getElementById("listaProductos");
+	  cont.innerHTML = "";
 
-  const idGrupo = getGrupoSeleccionado();
-  const q = getTextoBusqueda();
+	  const idGrupo = getGrupoSeleccionado();
+	  const q = getTextoBusqueda();
 
 	const lista = productos.filter(p => {
 
@@ -481,7 +486,12 @@ function aceptarPedido() {
 	const pagaCon = window.pagaConActual;
 	const mensaje = `Hola soy *${nombre}*, mi pedido es el Nro *${idPedido}*.\nPago con: *${pagaCon}*`;
 	const mensajeCodificado = encodeURIComponent(mensaje);
-	const numeroEmpresa = "5491134692013"; // <-- tu número
+	//const numeroEmpresa = "5491134692013"; // <-- tu número
+	const numeroEmpresa = telefonoEmpresa;
+	if (!numeroEmpresa) {
+		alert("No se pudo obtener el teléfono de la empresa.");
+		return;
+	}
 	const url = `https://wa.me/${numeroEmpresa}?text=${mensajeCodificado}`;
 
 	// 👉 esto ahora NO se bloquea

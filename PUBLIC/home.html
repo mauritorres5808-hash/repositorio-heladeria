@@ -16,7 +16,7 @@ body {
 header {
   position: sticky;
   top:0;
-  background:white;
+	background:linear-gradient(135deg,#1591EA,#fad0c4);
   display:flex;
   justify-content: space-between;
   align-items:center;
@@ -25,10 +25,17 @@ header {
   z-index:1000;
 }
 
-.logo {
-  font-size:20px;
-  font-weight:bold;
-}
+	#logo {
+           /*  position: absolute;*/ /* Fija la posición */
+			left: 50px; 			/* Margen izquierdo */
+            top: 20px; 			/* Margen superior */
+		width: 210px; /* Tamaño pequeño */
+            height: 120px; /*auto;*/ /* Mantiene proporciones */
+            z-index: 1; /* Por encima de otros elementos si es necesario */
+            border-radius: 15px; /* Opcional: bordes redondeados */
+            box-shadow: 0 12px 15px rgba(0,0,0,5.2); /* Opcional: sombra para resaltar */
+        /*position:fixed;*/
+		}  
 
 .btn-pedido {
   background:#ff4d4d;
@@ -41,9 +48,9 @@ header {
 
 /* HERO */
 .hero {
-  background:linear-gradient(135deg,#1591EA,#fad0c4);
+  /*background:white;*/
   color:white;
-  padding:40px 20px;
+  padding:20px 10px;
   text-align:center;
 }
 
@@ -282,18 +289,23 @@ font-weight:bold;
 </div>
 
 <header>
-  <div class="logo">🍦 Mi Heladería</div>
-  <!-- <a href="https://donado-2.web.app/pedidos-online.html" class="btn-pedido">Hacer pedido</a>  -->
-  <a href="pedidos-online.html" class="btn-pedido">Hacer pedido</a>
-</header>
 
+  <div style="text-align: center;">
+  <img id="logo" src="img/empresa.jpg"
+         onerror="this.src='img/Sin_imagen_empresa.jpg'">
+</div>
 <div class="hero">
   <h1>El mejor helado de la zona 😍</h1>
   <p>Elegí tus sabores favoritos y pedí online</p>
 </div>
+		 
+  <!-- <a href="https://donado-2.web.app/pedidos-online.html" class="btn-pedido">Hacer pedido</a>  -->
+  <a href="pedidos-online.html" class="btn-pedido">Hacer pedido</a>
+</header>
+
 
 <div class="promos">
-  <h2>🔥 Promociones</h2>
+  <h2>&#128293; Tus Promociones &#128170;</h2>
   <div class="promo">2kg al precio de 1.5kg</div>
   <div class="promo">Envío gratis en tu primera compra</div>
 </div>
@@ -376,7 +388,7 @@ function renderUI() {
     seccion.id = "grupo_" + g.id_grupo;
     seccion.className = "seccion-grupo";
 
-    seccion.innerHTML = `<h2>${g.descripcion}</h2>`;
+    seccion.innerHTML = `<h2>&#9679; ${g.descripcion}</h2>`;
 
     const grid = document.createElement("div");
     grid.className = "grid";

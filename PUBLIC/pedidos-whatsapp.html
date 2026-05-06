@@ -204,9 +204,10 @@ async function imprimirPedido2(idPedido){  // (envia a PDF)
 
     doc.text("-----------------------------", 0, y);
     y += 4;
-
     doc.setFontSize(9);
     doc.text(`TOTAL: $${total}`, 0, y);
+    y += 4;
+    doc.text(`Paga con: ${p.paga_con}`, 0, y);
 
     doc.save(`Pedido_${p.id_pedido}.pdf`);
 
@@ -268,6 +269,9 @@ async function imprimirPedido(idPedido){
   contenido += `
       <hr>
       <b>TOTAL: $ ${total}</b>
+      <hr>
+      <hr>
+      Paga con: ${p.paga_con}
       <hr>
       Gracias por su compra
     </body>

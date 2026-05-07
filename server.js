@@ -422,7 +422,8 @@ app.get("/api/grupos", async (req, res) => {
 let cacheProductos = [];
 let cacheSabores = [];
 let cacheFPago = [];
-const CACHE_TTL = 5 * 60 * 1000;
+//const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
+const CACHE_TTL = 10 * 1000; // 10 segundos
 
 // PRODUCTOS
 async function cargarProductosFirebase() {

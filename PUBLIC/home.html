@@ -501,8 +501,6 @@ header {
   <p>Elegí tus sabores favoritos y pedí online</p>
 </div>
 		 
-  <!-- <a href="https://donado-2.web.app/pedidos-online.html" class="btn-pedido">Hacer pedido</a>  -->
-  <a href="pedidos-online.html" class="btn-pedido">🛒 Pedir</a>
 </header>
 
 
@@ -534,8 +532,12 @@ let grupos = [];
 async function cargarProductos() {
 
   const [resProd, resGrupos] = await Promise.all([
-    fetch(`${API_BASE}/api/productos`),
-    fetch(`${API_BASE}/api/grupos`)
+    fetch(`${API_BASE}/api/productos?t=${Date.now()}`, {
+  cache: "no-store"
+}),
+    fetch(`${API_BASE}/api/grupos?t=${Date.now()}`, {
+  cache: "no-store"
+})
   ]);
 
   productos = await resProd.json();

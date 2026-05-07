@@ -1,56 +1,41 @@
 <!doctype html>
 <html lang="es">
-<header class="header-main">
+<head>
 <meta charset="utf-8">
 <title>Heladería</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 
 <style>
-* {
-  box-sizing: border-box;
-}
-body {
-  overflow-x: hidden;
-}
 body {
   margin:0;
   font-family: Arial;
   background:#f7f8fb;
-}
-.header-main {
-  gap: 15px;
 }
 
 /* HEADER */
 header {
   position: sticky;
   top:0;
-  background:linear-gradient(135deg,#1591EA,#fad0c4);
-
+	background:linear-gradient(135deg,#1591EA,#fad0c4);
   display:flex;
-  flex-wrap: wrap;
-
-  justify-content:center;
+  justify-content: space-between;
   align-items:center;
-
-  gap: 15px;
-
   padding:12px 20px;
-
   box-shadow:0 2px 8px rgba(0,0,0,0.1);
   z-index:1000;
 }
 
-#logo {
-  width: 180px;
-  height: auto;
-
-  border-radius: 15px;
-  box-shadow: 0 12px 15px rgba(0,0,0,0.35);
-
-  display:block;
-  margin:auto;
-}
+	#logo {
+           /*  position: absolute;*/ /* Fija la posición */
+			left: 50px; 			/* Margen izquierdo */
+            top: 20px; 			/* Margen superior */
+		width: 180px; /* Tamaño pequeño */
+            height: 100px; /*auto;*/ /* Mantiene proporciones */
+            z-index: 1; /* Por encima de otros elementos si es necesario */
+            border-radius: 15px; /* Opcional: bordes redondeados */
+            box-shadow: 0 12px 15px rgba(0,0,0,5.2); /* Opcional: sombra para resaltar */
+        /*position:fixed;*/
+		}  
 
 .btn-pedido {
   background:#ff4d4d;
@@ -68,9 +53,7 @@ header {
   padding:10px 10px;
   text-align:center;
 }
-.hero {
-  width: 100%;
-}
+
 .hero h1 {
   margin:0;
   font-size:28px;
@@ -118,9 +101,7 @@ header {
   object-fit: contain;  /* 🔥 NO se corta */
   object-position: center;
 }
-.card img {
-  transition: transform 0.2s;
-}
+
 
 .card-body {
   flex: 1;
@@ -128,7 +109,7 @@ header {
 }
 
 .card:hover img {
-  transform: scale(1.10);
+  transform: scale(1.50);
 }
 
 
@@ -188,17 +169,23 @@ header {
 .img-wrapper {
   position: relative;
 }
-
-.tooltip {
-  color: black;
+  
+ /* background: rgba(0,0,0,0.25); */
+  /* color: #fff; 
+  color: #0a0a0a; */
+  color: black; 
+  
   padding: 8px 10px;
   border-radius: 8px;
-  font-weight:bold;
+
+font-weight:bold;
   font-size: 15px;
-  max-width: 220px;
+  max-width: 220px;     /* 🔥 clave para texto largo */
   width: max-content;
-  white-space: normal;
+
+  white-space: normal;  /* 🔥 permite múltiples líneas */
   text-align: left;
+
   opacity: 0;
   pointer-events: none;
   transition: 0.2s;
@@ -208,7 +195,6 @@ header {
 .img-wrapper:active .tooltip {
   opacity: 1;
 }
-
 .img-wrapper:hover .tooltip {
   opacity: 1;
 }
@@ -234,8 +220,6 @@ header {
   animation: aparecer 0.2s ease;
     position: relative;
   overflow: visible;  
-  max-height: 90vh;
-overflow-y: auto;
 }
 
 .modal-box img {
@@ -281,192 +265,6 @@ overflow-y: auto;
   to { transform: scale(1); opacity:1; }
 }
 
-@media (max-width: 768px) {
-
-.grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  width: 100%;
-}
-
-  /* HEADER */
-header {
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-
-  width: 100%;
-}
-
-  #logo {
-    width: 120px;
-    height: auto;
-  }
-
-  .hero h1 {
-    font-size: 22px;
-  }
-
-  .hero p {
-    font-size: 14px;
-    margin-top: 5px;
-  }
-
-  .btn-pedido {
-    width: 90%;
-    max-width: 280px;
-    text-align: center;
-    font-size: 18px;
-  }
-
-  /* PROMOS */
-  .promos {
-    padding: 12px;
-  }
-
-  .promos h2 {
-    font-size: 20px;
-  }
-
-  .promo {
-    font-size: 14px;
-  }
-
-  /* GRID PRODUCTOS */
-  .grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
-    padding: 5px;
-  }
-
-  .card {
-    height: auto;
-    min-height: 220px;
-  }
-
-  .card img {
-    height: 120px;
-  }
-
-  .card-body {
-    padding: 6px;
-    font-size: 14px;
-  }
-
-  .precio {
-    font-size: 16px;
-  }
-
-  /* TABS */
-  .tabs {
-    padding: 8px;
-    gap: 6px;
-  }
-
-  .tab {
-    font-size: 13px;
-    padding: 8px 12px;
-  }
-
-  /* BOTON FLOTANTE */
-  .flotante {
-    right: 10px;
-    bottom: 80px;
-    font-size: 15px;
-    padding: 10px 14px;
-  }
-
-  /* MODAL */
-  .modal-box {
-    width: 92%;
-    padding: 15px;
-  }
-
-  .modal-box img {
-    height: 150px;
-  }
-
-  .modal-box h3 {
-    font-size: 20px;
-  }
-
-  .modal-box p {
-    font-size: 14px;
-  }
-
-  /* EVITAR QUE EL MENU TAPE CONTENIDO */
-  body {
-    padding-bottom: 90px;
-  }
-
-}
-
-html, body {
-  width: 100%;
-  overflow-x: hidden;
-}
-
-body {
-  display: block !important;
-}
-
-#contenedorProductos {
-  width: 100%;
-  display: block;
-}
-
-.seccion-grupo {
-  width: 100%;
-  display: block;
-}
-
-.grid {
-  width: 100%;
-  display: grid;
-
-  grid-template-columns: repeat(auto-fill, minmax(160px,1fr));
-
-  gap: 10px;
-
-  padding: 10px;
-}
-
-header,
-.promos,
-.hero {
-  width: 100%;
-  display: block;
-}
-
-header {
-  text-align: center;
-}
-
-@media (max-width:768px){
-
-  .grid{
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .card{
-    width:100%;
-  }
-
-  #logo{
-    width:140px;
-    height:auto;
-  }
-
-  .hero{
-    padding:10px;
-  }
-
-  .hero h1{
-    font-size:24px;
-  }
-
-}
 </style>
 </head>
 

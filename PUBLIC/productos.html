@@ -165,7 +165,6 @@ button:hover {
   </style>
             <link rel="stylesheet" href="css/estilos.css">
 
-
 </head>
 <body>
   <div class="contenedor">
@@ -309,10 +308,11 @@ window.aplicarPermisos = function() {
     }
 };
 
-function mostrarImagen(idProducto) {
+function mostrarImagen(pRuta) {
   const img = document.getElementById("previewImg");
 
-  const ruta = `img/${idProducto}.png`;
+  //const ruta = `img/${idProducto}.png`;
+  const ruta = pRuta;
 
   img.src = ruta;
 
@@ -380,7 +380,7 @@ function mostrarImagen(idProducto) {
 		document.getElementById("publica_s").checked = (data.publica_s === "S");
 		document.getElementById("modif_precio").checked = (data.modifica === "S");
 		document.getElementById("requiere_sab").checked = (data.sabores === "S");
-	  mostrarImagen(codigo);
+	  mostrarImagen(data.imagen);
 		
 	  } else {
 		alert("Producto no encontrado.");
@@ -392,7 +392,7 @@ function mostrarImagen(idProducto) {
     // --- Alta de producto ---
     document.getElementById("btnAlta").onclick = async () => {
       const grupoSel = parseInt(grupo.value);
-	  const codigo = parseInt(idProd.value) || 0;;
+	  const codigo = parseInt(idProd.value) || 0;
 		if (codigo !== 0) return alert("Para dar de alta NO debe ingresar un codigo."+"\n"+"Este se genera automaticamente."+"\n"+"Borrar el codigo ,cargar los demas campos y volver a presionar el boton de ALTA");
 		if (!(await valida_campos())) return;
 
@@ -412,13 +412,15 @@ function mostrarImagen(idProducto) {
       await db.collection("PRODUCTOS").doc(String(nuevoCodigo)).set({
         id_producto: nuevoCodigo,
         descripcion: desc.value.trim(),
-        contenido: desc.conteni.trim(),
+        //contenido: desc.conteni.trim(),
+contenido: conteni.value.trim(),
         id_grupo: grupoSel,
         precio: parseFloat(precio.value),
         cod_barra: cod_barra.value,
-        stock: stock.value,
-        stock_min: stock_min.value,
-        max_sabores: cant_sabores.value,
+        stock: parseInt(stock.value, 10) || 0,,
+        imagen: "",
+        stock_min: parseInt(stock_min.value, 10) || 0,
+        max_sabores: parseInt(cant_sabores.value, 10) || 0, //cant_sabores.value,
 		deshabilitado: document.getElementById("deshabili").checked ? "S" : "N" ,
 		publica: document.getElementById("publica").checked ? "S" : "N" ,
 		publica_s: document.getElementById("publica_s").checked ? "S" : "N" ,
@@ -456,13 +458,14 @@ function mostrarImagen(idProducto) {
         cod_barra: cod_barra.value,
         stock: parseFloat(stock.value),
         stock_min: parseFloat(stock_min.value),
+        //imagen: "",
         precio: parseFloat(precio.value),
         deshabilitado: Desha,
         publica: Publik,
         publica_s: Publik_s,
         modifica: ModiP,
         sabores: requi,
-        max_sabores: parseFloat(cant_sabores.value)
+        max_sabores: parseInt(cant_sabores.value, 10) || 0
       });
       alert("Producto actualizado correctamente.");
 	  limpiar_datos();
@@ -471,10 +474,6 @@ function mostrarImagen(idProducto) {
 
 async function valida_campos() {
 
-//alert('desc.value:' + desc.value);
-//alert('precio.value:' + precio.value);
-//alert('stock.value:' + stock.value);
-//alert('stock_min.value:' + stock_min.value);
 	  const grupoSel = parseInt(grupo.value);
 	  
       if (desc.value === null || desc.value === 'undefined' || desc.value.trim() === '') {
@@ -550,7 +549,19 @@ async function limpiar_datos() {
             idProd.value = data.id_producto;
             desc.value = data.descripcion;
             grupo.value = data.id_grupo;
+			contenido.value=data.contenido;
             precio.value = data.precio;
+            cod_barra.value = data.precio;
+			stock.value = data.stock;
+			stock_min.value = data.stock_min;
+			cant_sabores.value = data.max_sabores;
+			document.getElementById("deshabili").checked = (data.deshabilitado === "S");
+			document.getElementById("publica").checked = (data.publica === "S");
+			document.getElementById("publica_s").checked = (data.publica_s === "S");
+			document.getElementById("modif_precio").checked = (data.modifica === "S");
+			document.getElementById("requiere_sab").checked = (data.sabores === "S");
+		  mostrarImagen(data.imagen);			
+			
             modal.style.display = "none";
           };
           tablaBody.appendChild(fila);
@@ -619,7 +630,7 @@ document.getElementById("btnSubproductos").onclick = () => {
 
 <script src="./js/productos-sub.js"></script>
 
-<script src="js/medidor.js"></script>
+<!-- <script src="js/medidor.js"></script> -->
 
 </body>
 </html>

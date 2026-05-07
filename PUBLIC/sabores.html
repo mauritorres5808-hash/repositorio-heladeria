@@ -317,6 +317,8 @@ ArmarTabla();
             idSabor.value = data.id_sabor;
             descripcion.value = data.descripcion;
             document.getElementById("deshabili").checked = (data.deshabilitado === "S");
+			contenido.value = data.contenido;
+			document.getElementById("tipo_sabor").value = data.id_tipo || "";
             modal.style.display = "none";
           };
           tablaBody.appendChild(fila);

@@ -1,8 +1,27 @@
 async function generarComprobanteTermicoPDF(
   idVenta, cabecera, productos,
   fp1, fp2, imp1, imp2,
-  pempresa, tipoVenta
-) {
+  pempresa, tipoVenta, promocionesAplicadas = []
+	) 
+{
+		// =====================================
+		// SI NO RECIBE PROMOCIONES,
+		// BUSCARLAS AUTOMATICAMENTE
+		// =====================================
+		if (!promocionesAplicadas || promocionesAplicadas.length === 0) 
+		{
+			try {
+				const resp = await fetch(`/api/ventas_promociones/${idVenta}`);
+				const data = await resp.json();
+				if (data.ok) {
+					promocionesAplicadas = data.promociones || [];
+				}
+			} catch (err) {
+				console.error('Error obteniendo promociones:',err);
+			}
+		}
+
+
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: "mm", format: [58, 200] });
 
@@ -25,12 +44,23 @@ async function generarComprobanteTermicoPDF(
   doc.text("(" + TipoVtaNom + ")", 14, y);
 
   y += 5;
+  
+			const fechaTexto = cabecera.fecha;
+			const fechaFormateada =
+				fechaTexto.substring(8,10) + "/" +
+				fechaTexto.substring(5,7) + "/" +
+				fechaTexto.substring(0,4);
+
+  console.log("cabecera.fecha:"+cabecera.fecha);
+  console.log("fechaFormateada:"+fechaFormateada);
+
+
   doc.setFontSize(7);
   doc.text(`Venta N°: ${idVenta}`, 1, y);
 
   y += 4;
-  doc.text(`${cabecera.fecha}`, 1, y);
-  doc.text(`${cabecera.hora}`, 14, y);
+  doc.text(String(fechaFormateada || ''), 1, y);
+  doc.text(String(cabecera.hora || ''), 14, y);
 
   y += 4;
   doc.text("=============================", 0, y);
@@ -51,20 +81,52 @@ async function generarComprobanteTermicoPDF(
     y += 4;
   });
 
+y += 1;
+doc.setFontSize(7);
+doc.text(".........................................", 0, y);
+
+// =====================================
+// SUBTOTAL
+// =====================================
+y += 3;
+doc.setFontSize(6);
+doc.text(`Subtotal: $${parseFloat(cabecera.subtotal || 0).toFixed(2)}`,5,y);
+
+
+// =====================================
+// PROMOCIONES
+// =====================================
+	let totalPromos = 0;
+
+	if (promocionesAplicadas && promocionesAplicadas.length > 0) 
+	{
+/*
+		y += 2;
+		doc.setFontSize(4);
+		doc.text("Promociones:", 0, y);
+*/
+		doc.setFontSize(4);
+		promocionesAplicadas.forEach(pr => {
+			y += 2;
+			const descuento = Number(pr.descuento || 0);
+			totalPromos += descuento;
+
+			doc.text(`${pr.descripcion.substring(0,28)}`+`  -$ ${descuento.toFixed(2)}`,0,y);
+			//y += 3;
+			//doc.text(`-$ ${descuento.toFixed(2)}`,5,y);
+		});
+		y += 2;
+		doc.setFontSize(4);
+		doc.text(`Total PROMOS: -$ ${totalPromos.toFixed(2)}`,0,y);
+	}
+
   y += 3;
-  doc.setFontSize(7);
-  doc.text(".........................................", 0, y);
+  doc.text(`Dto: $${parseFloat(cabecera.descuento || 0).toFixed(2)}`, 0, y);
+  doc.text(`Rec: $${parseFloat(cabecera.recargo || 0).toFixed(2)}`, 25, y);
 
   y += 3;
   doc.setFontSize(6);
-  doc.text(`Subtotal: $${cabecera.subtotal.toFixed(2)}`, 5, y);
-
-  y += 3;
-  doc.text(`Dto: $${cabecera.descuento.toFixed(2)}`, 0, y);
-  doc.text(`Rec: $${cabecera.recargo.toFixed(2)}`, 25, y);
-
-  y += 3;
-  doc.text(`TOTAL: $${cabecera.total.toFixed(2)}`, 5, y);
+  doc.text(`TOTAL: $${parseFloat(cabecera.total || 0).toFixed(2)}`, 5, y);
 
   y += 3;
   doc.setFontSize(5);
@@ -72,17 +134,25 @@ async function generarComprobanteTermicoPDF(
 
   y += 3;
 
-  const fpagos = {};
-  const fSnap = await db.collection("F_PAGO").get();
-  fSnap.forEach(d => fpagos[d.data().id_fpago] = d.data().descripcion);
+		// formas de pago
+		const fpagos = {};
+		try {
+			const resp = await fetch('/api/fpago');
+			const data = await resp.json();
+			if (data.ok) {
+				data.formasPago.forEach(f => {fpagos[f.id_fpago] = f.descripcion;});
+			}
+		} catch (err) {
+			console.error('Error obteniendo formas de pago:', err);
+		}
 
   if (fp1) {
-    doc.text(`${fp1} - ${fpagos[fp1] || ''}: $${imp1.toFixed(2)}`, 0, y);
+    doc.text(`- ${fpagos[fp1] || ''}: $${parseFloat(imp1 || 0).toFixed(2)}`, 0, y);
     y += 3;
   }
 
   if (fp2) {
-    doc.text(`${fp2} - ${fpagos[fp2] || ''}: $${imp2.toFixed(2)}`, 0, y);
+    doc.text(`- ${fpagos[fp2] || ''}: $${parseFloat(imp2 || 0).toFixed(2)}`, 0, y);
     y += 3;
   }
 

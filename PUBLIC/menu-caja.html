@@ -2,11 +2,8 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-   <!-- Firebase v8 -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-<script src="js/auth.js"></script>  <!-- Aquí se verifica la autenticacion-->
+
+<script src="js/auth.js"></script>  <!-- Aqui se verifica la autenticacion -->
 
   <title>Menú de Caja</title>
 
@@ -174,7 +171,7 @@ button small {
 
       <tr>
         <td>
-        <!--    <button class="boton-redondeado3" onclick="location.href='otra.html'">Cambiar Forma de Pago</button> -->
+          <button class="boton-redondeado" id="btnLisMovim" onclick="location.href='listado_movimientos.html'">Ver Movimientos de Caja</button>
         </td>
         <td>
        <!--    <button class="boton-redondeado3" onclick="location.href='otra.html'">Otra opción</button> -->
@@ -197,7 +194,7 @@ verificarSesion();
 document.getElementById("userLabel").textContent = localStorage.getItem("usuarioEmail");
 
 // BLOQUEA TODOS LOS BOTONES AL CARGAR LA PÁGINA (menos boton Volver)
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
 
     // Deshabilitar todos los botones
     const botones = document.querySelectorAll("button");
@@ -207,8 +204,14 @@ document.addEventListener("DOMContentLoaded", () => {
             btn.title = "No tiene permiso para usar esta función";
         }
     });
-	aplicarPermisos();
+
+    // Esperar permisos
+    await cargarPermisosUsuario();
+
+    // Aplicar permisos
+    aplicarPermisos();
 });
+
 </script>
 
 <script src="js/permisos.js"></script>
@@ -240,10 +243,15 @@ window.aplicarPermisos = function() {
 		if (btn5) btn5.disabled = false;
 		btn5.title = "";
     }
-    const btn6 = document.getElementById("btnAnulaMovim");
-    if (tienePermiso(45)) {
+    const btn6 = document.getElementById("btnLisMovim");
+    if (tienePermiso(44)) {
 		if (btn6) btn6.disabled = false;
 		btn6.title = "";
+    }
+    const btn7 = document.getElementById("btnAnulaMovim");
+    if (tienePermiso(45)) {
+		if (btn7) btn7.disabled = false;
+		btn7.title = "";
     }
 };
 </script>

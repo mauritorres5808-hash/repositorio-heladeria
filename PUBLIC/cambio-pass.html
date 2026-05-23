@@ -4,10 +4,6 @@
 <meta charset="UTF-8">
 <title>Cambiar Contraseña</title>
 
-  <!-- Firebase v8 -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
   <script src="js/auth.js"></script>
 
 
@@ -80,76 +76,78 @@ button:hover {
 </div>
 
 <script>
+
 verificarSesion();
-document.getElementById("userLabel").textContent = localStorage.getItem("usuarioEmail");
+
+document.getElementById("userLabel").textContent =
+    localStorage.getItem("usuarioEmail");
+
 
 async function cambiarPass() {
-    const passActual = document.getElementById("passActual").value.trim();
-    const passNueva = document.getElementById("passNueva").value.trim();
-    const user = firebase.auth().currentUser;
+
+    const passActual =
+        document.getElementById("passActual").value.trim();
+
+    const passNueva =
+        document.getElementById("passNueva").value.trim();
 
     if (!passActual || !passNueva) {
+
         alert("Debe completar las dos contraseñas.");
         return;
     }
 
+    if (passNueva.length < 6) {
+
+        alert("La nueva contraseña debe tener al menos 6 caracteres.");
+        return;
+    }
+
     try {
-        // 1) Reautenticar al usuario con su contraseña actual
-        const cred = firebase.auth.EmailAuthProvider.credential(
-            user.email,
-            passActual
-        );
 
-        await user.reauthenticateWithCredential(cred);
+        const resp =
+            await fetch('/api/usuarios/cambiar-password', {
 
-        // 2) Actualizar la contraseña
-        await user.updatePassword(passNueva);
+                method: 'POST',
 
-        alert("Contraseña cambiada correctamente.");
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+
+                body: JSON.stringify({
+
+                    email:
+                        localStorage.getItem("usuarioEmail"),
+
+                    passActual,
+                    passNueva
+                })
+            });
+
+        const data =
+            await resp.json();
+
+        if (!data.ok) {
+
+            alert(data.mensaje || 'Error');
+            return;
+        }
+
+        alert("✅ Contraseña cambiada correctamente.");
+
         document.getElementById("passActual").value = "";
         document.getElementById("passNueva").value = "";
-	}
-/*
-    catch (error) {
+
+    } catch (error) {
+
         console.error(error);
-        //if (error.code === "auth/wrong-password") { 
-        if (error.code === "auth/invalid-login-credentials") { 
-            alert("La contraseña actual es incorrecta.");
-        } else {
-            alert("Error al cambiar la contraseña: " + error.message);
-        }
+
+        alert("Error cambiando contraseña.");
     }
-*/
-	catch (error) {
-		console.error(error);
-
-		switch (error.code) {
-
-			case "auth/wrong-password":
-			case "auth/invalid-credential":
-			case "auth/invalid-login-credentials":
-				alert("La contraseña actual es incorrecta.");
-				break;
-
-			case "auth/weak-password":
-				alert("La nueva contraseña es demasiado débil (debe tener al menos 6 caracteres).");
-				break;
-
-			case "auth/requires-recent-login":
-				alert("Debe volver a iniciar sesión para cambiar la contraseña.");
-				break;
-
-			default:
-				alert("Error al cambiar la contraseña: " + error.code);
-		}
-	}
-
-
-
 }
+
 </script>
 
-<script src="js/medidor.js"></script>
 
 </body>
 </html>

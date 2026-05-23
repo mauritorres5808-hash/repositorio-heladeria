@@ -4,10 +4,7 @@
   <meta charset="UTF-8">
   <title>ABM de Grupos</title>
 
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-<script src="js/auth.js"></script>  <!-- Aqui se verifica la autenticacion-->
+<script src="js/auth.js"></script>  <!-- Aqui se verifica la autenticacion -->
 
   <style>
     body {
@@ -179,174 +176,380 @@
 
 verificarSesion();
 
-document.addEventListener("DOMContentLoaded", () => {
-	aplicarPermisos();
+// BLOQUEA TODOS LOS BOTONES AL CARGAR LA PÁGINA (menos boton Volver)
+document.addEventListener("DOMContentLoaded", async () => {
+
+/*
+    // Deshabilitar todos los botones
+    const botones = document.querySelectorAll("button");
+    botones.forEach(btn => {
+        if (btn.id !== "btnVolver") {
+            btn.disabled = true;
+            btn.title = "No tiene permiso para usar esta función";
+        }
+    });
+*/
+    // Esperar permisos
+    await cargarPermisosUsuario();
+
+    // Aplicar permisos
+    aplicarPermisos();
+
+    ArmarTabla();
 });
+
 </script>
 
 <script src="js/permisos.js"></script>
 
 <script>
-// control de permisos
+
+// ============================================
+// CONTROL DE PERMISOS
+// ============================================
+
 window.aplicarPermisos = function() {
+
     const btn = document.getElementById("btnAlta");
     const btn2 = document.getElementById("btnModificar");
 
     if (!tienePermiso(10)) {
-		if (btn) btn.disabled = true;
-		btn.title = "No tiene permiso para usar esta funcion";
-		if (btn2) btn2.disabled = true;
-		btn2.title = "No tiene permiso para usar esta funcion";
+
+        if (btn) btn.disabled = true;
+        btn.title = "No tiene permiso para usar esta funcion";
+
+        if (btn2) btn2.disabled = true;
+        btn2.title = "No tiene permiso para usar esta funcion";
     }
 };
 
-ArmarTabla();
+// ============================================
+// VARIABLES
+// ============================================
 
-    const idGrupo = document.getElementById("id_grupo");
-    const descripcion = document.getElementById("descripcion");
+const idGrupo = document.getElementById("id_grupo");
+const descripcion = document.getElementById("descripcion");
 
-    // --- Verificar existencia ---
-    document.getElementById("btnVerificar").onclick = async () => {
-      const codigo = parseInt(idGrupo.value);
-      if (!codigo) return alert("Ingrese un codigo valido.");
-      const docSnap = await db.collection("GRUPOS").doc(String(codigo)).get();
-      if (docSnap.exists) {
-        const data = docSnap.data();
-        descripcion.value = data.descripcion;
-        document.getElementById("deshabili").checked = (data.deshabilitado === "S");
-        document.getElementById("publica").checked = (data.publica === "S");
-      } else {
-        alert("Grupo no encontrado.");
-        limpiarCampos();
-      }
-    };
+// ============================================
+// VERIFICAR EXISTENCIA
+// ============================================
 
-    // --- Alta ---
-    document.getElementById("btnAlta").onclick = async () => {
-      if (idGrupo.value)
-        return alert("Para dar de alta NO debe ingresar un codigo."+"\n"+"Este se genera automaticamente."+"\n"+"Borrar el codigo ,cargar los demas campos y volver a presionar el boton de ALTA");;
-      if (!await validarCampos()) return;
+document.getElementById("btnVerificar").onclick = async () => {
 
-      const snapshot = await db.collection("GRUPOS")
-        .orderBy("id_grupo", "desc").limit(1).get();
-      let nuevoId = 1;
-      if (!snapshot.empty) nuevoId = snapshot.docs[0].data().id_grupo + 1;
+    const codigo = parseInt(idGrupo.value);
 
-      await db.collection("GRUPOS").doc(String(nuevoId)).set({
-        id_grupo: nuevoId,
-        descripcion: descripcion.value.trim(),
-        deshabilitado: document.getElementById("deshabili").checked ? "S" : "N",
-        publica: document.getElementById("publica").checked ? "S" : "N"
-      });
+    if (!codigo)
+        return alert("Ingrese un codigo valido.");
 
-      alert(`Grupo agregado con codigo ${nuevoId}`);
-      limpiarCampos();
-	  ArmarTabla();
+    try {
 
-    };
+        const resp = await fetch(`/api/grupos/${codigo}`);
 
-    // --- Modificar ---
-    document.getElementById("btnModificar").onclick = async () => {
-      const codigo = parseInt(idGrupo.value);
-      if (!codigo) return alert("Ingrese un codigo valido.");
-      if (!await validarCampos()) return;
+        if (!resp.ok) {
 
-      const deshab = document.getElementById("deshabili").checked ? "S" : "N";
-      const publik = document.getElementById("publica").checked ? "S" : "N";
-
-      await db.collection("GRUPOS").doc(String(codigo)).update({
-        descripcion: descripcion.value.trim(),
-        deshabilitado: deshab,
-        publica: publik
-      });
-      alert("Grupo actualizado correctamente.");
-      limpiarCampos();
-	  ArmarTabla();
-
-    };
-
-    async function validarCampos() {
-      if (!descripcion.value.trim()) { alert("Ingrese la descripcion."); return false; }
-      return true;
-    }
-
-    function limpiarCampos() {
-      idGrupo.value = "";
-      descripcion.value = "";
-      document.getElementById("deshabili").checked = false;
-      document.getElementById("publica").checked = false;
-    }
-
-    // --- Modal busqueda ---
-    const modal = document.getElementById("modalBusqueda");
-    document.getElementById("btnBuscar").onclick = () => modal.style.display = "flex";
-    document.getElementById("btnCerrarModal").onclick = () => modal.style.display = "none";
-
-    document.getElementById("btnBuscarGrupo").onclick = async () => {
-      const texto = document.getElementById("txtBuscarNombre").value.trim().toLowerCase();
-      if (!texto) return alert("Ingrese texto a buscar.");
-
-      const tablaBody = document.querySelector("#tablaResultados tbody");
-      tablaBody.innerHTML = "";
-
-      const snapshot = await db.collection("GRUPOS").get();
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        if (data.descripcion.toLowerCase().includes(texto)) {
-          const fila = document.createElement("tr");
-          fila.innerHTML = `<td>${data.id_grupo}</td><td>${data.descripcion}</td>`;
-          fila.onclick = () => {
-            idGrupo.value = data.id_grupo;
-            descripcion.value = data.descripcion;
-            document.getElementById("deshabili").checked = (data.deshabilitado === "S");
-            document.getElementById("publica").checked = (data.publica === "S");
-            modal.style.display = "none";
-          };
-          tablaBody.appendChild(fila);
+            alert("Grupo no encontrado.");
+            limpiarCampos();
+            return;
         }
-      });
-    };
-	
-	// listado de los grupos
-    function ArmarTabla() {
-	
-      db.collection("GRUPOS")
-		.get()
-        .then((querySnapshot) => {
-          let html = "";
 
-        if (querySnapshot.empty) {
-            html += "<p>No se encontraron grupos.</p>";
-          } else {
-            html += "<table><tr><th>Codigo</th><th>Descripcion</th><th>Deshabilitado</th><th>Publica en Home</th></tr>";
-			let cant = 0;
-            querySnapshot.forEach((doc) => {
-              const data = doc.data();
-              html += `<tr>
-                <td>${data.id_grupo}</td>
-                <td>${data.descripcion}</td>
-                <td>${data.deshabilitado || "N"}</td>
-                <td>${data.publica || "N"}</td>
-              </tr>`;
-			cant += 1;
-            });
-			html += `<tr class="total-row" style="font-weight:bold;background:#f2f2f2">
-			  <td colspan="1">CANTIDAD </td>
-			  <td>${cant || "0"}</td>
-			  <td></td>
-			</tr>`;
-            html += "</table>";
-          }
-          document.getElementById("listado").innerHTML = html;
-        })
-        .catch((error) => {
-          console.error("Error buscando grupos: ", error);
-        });
+        const data = await resp.json();
+
+        descripcion.value = data.descripcion;
+
+        document.getElementById("deshabili").checked =
+            (data.deshabilitado == 1);
+
+        document.getElementById("publica").checked =
+            (data.publica == 1);
+
+    } catch (error) {
+
+        console.error(error);
+
+        alert("Error consultando grupo");
+    }
+};
+
+// ============================================
+// ALTA
+// ============================================
+
+document.getElementById("btnAlta").onclick = async () => {
+
+    if (idGrupo.value) {
+
+        return alert(
+            "Para dar de alta NO debe ingresar un codigo.\n" +
+            "Este se genera automaticamente.\n" +
+            "Borrar el codigo, cargar los demas campos y volver a presionar ALTA"
+        );
     }
 
-  </script>
-  
-<script src="js/medidor.js"></script>
+    if (!validarCampos())
+        return;
 
+    try {
+
+        const resp = await fetch('/api/grupos', {
+
+            method: 'POST',
+
+            headers: {
+                'Content-Type': 'application/json'
+            },
+
+            body: JSON.stringify({
+
+                descripcion: descripcion.value.trim(),
+
+                deshabilitado:
+                    document.getElementById("deshabili").checked ? 1 : 0,
+
+                publica:
+                    document.getElementById("publica").checked ? 1 : 0
+            })
+        });
+
+        const data = await resp.json();
+
+        if (!data.ok) {
+
+            alert(data.mensaje || "Error al grabar");
+            return;
+        }
+
+        alert(`Grupo agregado con codigo ${data.id_grupo}`);
+
+        limpiarCampos();
+
+        ArmarTabla();
+
+    } catch (error) {
+
+        console.error(error);
+
+        alert("Error grabando grupo");
+    }
+};
+
+// ============================================
+// MODIFICAR
+// ============================================
+
+document.getElementById("btnModificar").onclick = async () => {
+
+    const codigo = parseInt(idGrupo.value);
+
+    if (!codigo)
+        return alert("Ingrese un codigo valido.");
+
+    if (!validarCampos())
+        return;
+
+    try {
+
+        const resp = await fetch(`/api/grupos/${codigo}`, {
+
+            method: 'PUT',
+
+            headers: {
+                'Content-Type': 'application/json'
+            },
+
+            body: JSON.stringify({
+
+                descripcion: descripcion.value.trim(),
+
+                deshabilitado: document.getElementById("deshabili").checked ? 1 : 0,
+
+                publica: document.getElementById("publica").checked ? 1 : 0
+            })
+        });
+
+        const data = await resp.json();
+
+        if (!data.ok) {
+            alert(data.mensaje || "Error modificando");
+            return;
+        }
+
+        alert("Grupo actualizado correctamente.");
+        limpiarCampos();
+        ArmarTabla();
+
+    } catch (error) {
+        console.error(error);
+        alert("Error modificando grupo");
+    }
+};
+
+// ============================================
+// VALIDAR CAMPOS
+// ============================================
+
+function validarCampos() {
+
+    if (!descripcion.value.trim()) {
+        alert("Ingrese la descripcion.");
+        return false;
+    }
+
+    return true;
+}
+
+// ============================================
+// LIMPIAR CAMPOS
+// ============================================
+function limpiarCampos() {
+
+    idGrupo.value = "";
+    descripcion.value = "";
+
+    document.getElementById("deshabili").checked = false;
+    document.getElementById("publica").checked = false;
+}
+
+// ============================================
+// MODAL BUSQUEDA
+// ============================================
+const modal = document.getElementById("modalBusqueda");
+
+document.getElementById("btnBuscar").onclick = () => {
+
+    modal.style.display = "flex";
+};
+
+document.getElementById("btnCerrarModal").onclick = () => {
+
+    modal.style.display = "none";
+};
+
+// ============================================
+// BUSCAR GRUPOS
+// ============================================
+document.getElementById("btnBuscarGrupo").onclick = async () => {
+
+    const texto =
+        document.getElementById("txtBuscarNombre")
+        .value
+        .trim();
+
+    if (!texto)
+        return alert("Ingrese texto a buscar.");
+
+    try {
+
+        const resp = await fetch(`/api/grupos/buscar/${texto}`);
+
+        const data = await resp.json();
+
+        const tablaBody =
+            document.querySelector("#tablaResultados tbody");
+
+        tablaBody.innerHTML = "";
+
+        data.forEach(grupo => {
+
+            const fila = document.createElement("tr");
+
+            fila.innerHTML = `
+                <td>${grupo.id_grupo}</td>
+                <td>${grupo.descripcion}</td>
+            `;
+
+            fila.onclick = () => {
+
+                idGrupo.value = grupo.id_grupo;
+
+                descripcion.value = grupo.descripcion;
+
+                document.getElementById("deshabili").checked =
+                    (grupo.deshabilitado == 1);
+
+                document.getElementById("publica").checked =
+                    (grupo.publica == 1);
+
+                modal.style.display = "none";
+            };
+
+            tablaBody.appendChild(fila);
+        });
+
+    } catch (error) {
+
+        console.error(error);
+
+        alert("Error buscando grupos");
+    }
+};
+
+// ============================================
+// ARMAR TABLA
+// ============================================
+
+async function ArmarTabla() {
+
+    try {
+        const resp = await fetch('/api/grupos');
+        const data = await resp.json();
+        let html = "";
+        if (data.length === 0) {
+            html += "<p>No se encontraron grupos.</p>";
+        } else {
+            html += `
+                <table>
+                    <tr>
+                        <th>Codigo</th>
+                        <th>Descripcion</th>
+                        <th>Deshabilitado</th>
+                        <th>Publica en Home</th>
+                    </tr>
+            `;
+
+            let cant = 0;
+
+            data.forEach(grupo => {
+
+                html += `
+                    <tr>
+                        <td>${grupo.id_grupo}</td>
+                        <td>${grupo.descripcion}</td>
+						<td style="${grupo.deshabilitado == 1 ? 'background-color:#FF6467;color:white;' : ''}">
+							${grupo.deshabilitado == 1 ? 'S' : 'N'}
+						</td>
+						<td>${grupo.publica == 1 ? "S" : "N"}</td>
+                    </tr>
+                `;
+
+                cant++;
+            });
+
+            html += `
+                <tr class="total-row"
+                    style="font-weight:bold;background:#f2f2f2">
+
+                    <td colspan="1">CANTIDAD</td>
+                    <td>${cant}</td>
+                    <td></td>
+                    <td></td>
+
+                </tr>
+            `;
+
+            html += "</table>";
+        }
+
+        document.getElementById("listado").innerHTML = html;
+
+    } catch (error) {
+
+        console.error(error);
+
+        alert("Error armando tabla");
+    }
+}
+
+</script>
+  
 </body>
 </html>

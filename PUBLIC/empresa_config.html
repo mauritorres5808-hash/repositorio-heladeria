@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Configuración Empresa</title>
+
+<script src="js/auth.js"></script>
+
+<style>
+
+body{
+    font-family:Arial;
+    background:#8AC0FF;
+    margin:0;
+    padding:20px;
+}
+
+.contenedor{
+    max-width:650px;
+    margin:auto;
+    background:white;
+    padding:25px;
+    border-radius:10px;
+    box-shadow:0 0 15px rgba(0,0,0,0.2);
+}
+
+h2{
+    text-align:center;
+    background:#8AC0FF;
+    padding:12px;
+    border-radius:8px;
+}
+
+.form-group{
+    margin-bottom:18px;
+}
+
+label{
+    display:block;
+    margin-bottom:6px;
+    font-weight:bold;
+}
+
+input{
+    width:100%;
+    padding:10px;
+    border-radius:6px;
+    border:1px solid #ccc;
+    box-sizing:border-box;
+}
+
+button{
+    padding:10px 18px;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+    color:white;
+    background:#007bff;
+}
+
+button:hover{
+    background:red;
+}
+
+.botones{
+    display:flex;
+    justify-content:center;
+    gap:10px;
+    margin-top:25px;
+}
+
+.chk{
+    width:auto;
+    transform:scale(1.4);
+}
+
+.msg{
+    text-align:center;
+    margin-top:15px;
+    font-weight:bold;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="contenedor">
+
+    <h2>⚙️ Configuración Empresa</h2>
+
+    <div class="form-group">
+        <label>Nombre</label>
+        <input type="text" id="nombre">
+    </div>
+
+    <div class="form-group">
+        <label>Domicilio</label>
+        <input type="text" id="domicilio">
+    </div>
+
+    <div class="form-group">
+        <label>Teléfono</label>
+        <input type="text" id="telefono">
+    </div>
+
+    <div class="form-group">
+        <label>Fecha Vigencia</label>
+        <input type="date" id="fecha_vigencia">
+    </div>
+
+    <div class="form-group">
+        <label>
+            <input class="chk" type="checkbox" id="deshabilitada">
+            Sistema deshabilitado
+        </label>
+    </div>
+
+    <div class="botones">
+        <button onclick="guardar()">
+            💾 Guardar
+        </button>
+
+        <button onclick="location.href='menu-general.html'">
+            ↩️ Volver
+        </button>
+    </div>
+
+    <div class="msg" id="msg"></div>
+
+</div>
+
+<script>
+
+verificarSesion();
+
+if (parseInt(localStorage.getItem("usuarioId")) != 1) {
+    window.location.href = "index.html";
+}
+
+cargarEmpresa();
+
+// ======================================
+// CARGAR EMPRESA
+// ======================================
+async function cargarEmpresa(){
+
+    try{
+
+        const resp =
+            await fetch('/api/empresa');
+
+        const emp =
+            await resp.json();
+
+        document.getElementById("nombre").value =
+            emp.nombre || '';
+
+        document.getElementById("domicilio").value =
+            emp.domicilio || '';
+
+        document.getElementById("telefono").value =
+            emp.telefono || '';
+
+        document.getElementById("fecha_vigencia").value =
+            emp.fecha_vigencia
+                ? emp.fecha_vigencia.split('T')[0]
+                : '';
+
+        document.getElementById("deshabilitada").checked =
+            parseInt(emp.deshabilitada || 0) === 1;
+
+    }catch(err){
+        console.error(err);
+        alert("Error cargando empresa");
+    }
+}
+
+// ======================================
+// GUARDAR
+// ======================================
+async function guardar(){
+
+    try{
+
+        const body = {
+
+            nombre: document.getElementById("nombre").value,
+            domicilio: document.getElementById("domicilio").value,
+            telefono: document.getElementById("telefono").value,
+            fecha_vigencia: document.getElementById("fecha_vigencia").value,
+            deshabilitada:
+                document.getElementById("deshabilitada").checked
+                    ? 1
+                    : 0
+        };
+
+        const resp = await fetch('/api/empresa', {
+            method:'PUT',
+            headers:{
+                'Content-Type':'application/json'
+            },
+
+            body:JSON.stringify(body)
+        });
+
+        const data = await resp.json();
+
+        if(!data.ok){
+            alert(data.error || 'Error guardando');
+            return;
+        }
+
+        document.getElementById("msg").innerHTML = "✅ Datos guardados correctamente";
+
+    }catch(err){
+        console.error(err);
+        alert("Error guardando");
+    }
+}
+
+</script>
+
+</body>
+</html>

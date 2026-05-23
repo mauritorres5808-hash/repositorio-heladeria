@@ -3,11 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <title>Consulta de Stock</title>
-  
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-<script src="js/auth.js"></script>  <!-- 🔹 Aquí se verifica la autenticacion-->
+
+<script src="js/auth.js"></script>  <!-- Aqui se verifica la autenticacion -->
 
   <style>
     body{
@@ -97,7 +94,8 @@ input, select {
       font-size: 14px;
     }
   </style>
-  	<link rel="stylesheet" href="style.css">
+  	
+<link rel="stylesheet" href="css/estilos.css">
 
 </head>
 <body>
@@ -119,118 +117,218 @@ input, select {
 
   <div id="resultado"></div>
 </div>
-  <script>
-   
+
+<script>
 
 verificarSesion();
-
 
 const formateadorMonedaArgentina = new Intl.NumberFormat('es-AR', {
   style: 'currency',
   currency: 'ARS',
 });
 
-    // Cargar los grupos en el combo
-    function cargarGrupos() {
-      const select = document.getElementById("grupo");
-      db.collection("GRUPOS")
-	  .where("deshabilitado","==","N")
-	  .get()
-	  .then((querySnapshot) => {
-        querySnapshot.forEach((doc) => {
-          const data = doc.data();
-          const option = document.createElement("option");
-          option.value = data.id_grupo;
-          option.textContent = data.descripcion;
-          select.appendChild(option);
-        });
-      }).catch((error) => {
-        console.error("Error cargando grupos: ", error);
-      });
-    }
+// ======================================
+// CARGAR GRUPOS
+// ======================================
+async function cargarGrupos() {
 
-    // Buscar el stock filtrado por grupo
-    function buscarStock() {
-	
-		const grupoId = parseInt(document.getElementById("grupo").value);
+  try {
 
-		// 1. Obtener el elemento select
-		const selectElement = document.getElementById("grupo");
-		// 2. Obtener el índice de la opción seleccionada
-		const selectedIndex = selectElement.selectedIndex;
-		// 3. Obtener el textContent de la opción seleccionada
-		const textoSeleccionado = selectElement.options[selectedIndex].text;	  
+    const resp = await fetch('/api/grupos');
 
-      if (!grupoId) {
-        alert("Seleccione un grupo válido.");
-        return;
+    const grupos = await resp.json();
+
+    const select = document.getElementById("grupo");
+
+    select.innerHTML = "";
+
+    grupos.forEach(g => {
+
+      // deshabilitado = 0 -> habilitado
+      if (g.deshabilitado === 0) {
+
+        const option = document.createElement("option");
+
+        option.value = g.id_grupo;
+
+        option.textContent =
+          `${g.descripcion}`;
+
+        select.appendChild(option);
       }
+    });
 
-      db.collection("PRODUCTOS")
-		.where("id_grupo", "==", grupoId).get()
-        .then((querySnapshot) => {
-          let html = "<h3 align=center>--- Stock del grupo (" + textoSeleccionado + ") ---</h3>";
-		html += ` <div id="mensajeTipo" class="alert-modern">los productos en ROJO indican que estan por debajo del stock minimo.</div>`
+  } catch (error) {
 
-        if (querySnapshot.empty) {
-            html += "<p>No se encontraron productos en este grupo.</p>";
-          } else {
-            html += "<table><tr><th>Codigo</th><th>Nombre</th><th>Stock</th><th>Minimo</th><th>Precio Vta</th><th>Stock valorizado</th><th>Deshabilitado</th></tr>";
-			let totalValor = 0;
-            querySnapshot.forEach((doc) => {
-              const data = doc.data();
-			if (data.stock < data.stock_min) {
-              html += `<tr>
-                <td>${data.id_producto}</td>
-                <td style="background-color: #FF6467; color: white;">${data.descripcion}</td>
-                <td>${data.stock}</td>
-                <td>${data.stock_min}</td>
-               <td>${formateadorMonedaArgentina.format(data.precio) || ""}</td>
-               <td>${formateadorMonedaArgentina.format(data.precio*data.stock) || ""}</td>
-                <td>${data.deshabilitado || "N"}</td>
-              </tr>`;
-			}else{
-              html += `<tr>
-                <td>${data.id_producto}</td>
-                <td>${data.descripcion}</td>
-                <td>${data.stock}</td>
-                <td>${data.stock_min}</td>
-               <td>${formateadorMonedaArgentina.format(data.precio) || ""}</td>
-               <td>${formateadorMonedaArgentina.format(data.precio*data.stock) || ""}</td>
-                <td>${data.deshabilitado || "N"}</td>
-              </tr>`;
-			}
-			totalValor += Number(data.precio*data.stock);
-            });
-	html += `<tr class="total-row">
-	  <td colspan="1">TOTAL GENERAL </td>
-	  <td></td>
-	  <td></td>
-	  <td></td>
-	  <td></td>
-	  <td>${formateadorMonedaArgentina.format(totalValor) || ""}</td>
-	</tr>`;
+    console.error("Error cargando grupos:", error);
 
-            html += "</table>";
-          }
-          document.getElementById("resultado").innerHTML = html;
-        })
-        .catch((error) => {
-          console.error("Error buscando stock: ", error);
-        });
-    }
-
-// Función que se ejecutará cuando la página cargue
-function ejecutarTodas() {
-  cargarGrupos(); // Inicializar combo
+    alert("Error cargando grupos");
+  }
 }
 
-// Asigna la función lanzadera al evento onload
-window.onload = ejecutarTodas;
+// ======================================
+// BUSCAR STOCK
+// ======================================
+async function buscarStock() {
 
-  </script>
+  const grupoId =
+    parseInt(document.getElementById("grupo").value);
 
-<script src="js/medidor.js"></script>
+  if (!grupoId) {
+
+    alert("Seleccione un grupo v��lido.");
+
+    return;
+  }
+
+  const selectElement =
+    document.getElementById("grupo");
+
+  const textoSeleccionado =
+    selectElement.options[
+      selectElement.selectedIndex
+    ].text;
+
+  try {
+
+    const resp =
+      await fetch(`/api/productos/grupo/${grupoId}`);
+
+    const productos = await resp.json();
+
+    let html =
+      `<h3 align="center">
+        --- Stock del grupo (${textoSeleccionado}) ---
+      </h3>`;
+
+    html += `
+      <div id="mensajeTipo" class="alert-modern">
+        los productos en ROJO indican que estan por debajo del stock minimo.
+      </div>
+    `;
+
+    if (!productos.length) {
+
+      html += `
+        <p align="center">
+          No se encontraron productos en este grupo.
+        </p>
+      `;
+
+    } else {
+
+      html += `
+        <table>
+          <tr>
+            <th>Codigo</th>
+            <th>Nombre</th>
+            <th>Stock</th>
+            <th>Minimo</th>
+            <th>Precio Vta</th>
+            <th>Stock valorizado</th>
+            <th>Deshabilitado</th>
+          </tr>
+      `;
+
+      let totalValor = 0;
+
+      productos.forEach(data => {
+
+        const stock =
+          Number(data.stock || 0);
+
+        const stockMin =
+          Number(data.stock_minimo || 0);
+
+        const precio =
+          Number(data.precio || 0);
+
+        const valorizado =
+          precio * stock;
+
+        const bajoMinimo =
+          stock < stockMin;
+
+        totalValor += valorizado;
+
+        html += `
+          <tr>
+
+            <td>
+              ${data.id_producto}
+            </td>
+
+            <td
+              ${bajoMinimo
+                ? 'style="background-color:#FF6467;color:white;"'
+                : ''}
+            >
+              ${data.descripcion}
+            </td>
+
+            <td>
+              ${stock}
+            </td>
+
+            <td>
+              ${stockMin}
+            </td>
+
+            <td>
+              ${formateadorMonedaArgentina.format(precio)}
+            </td>
+
+            <td>
+              ${formateadorMonedaArgentina.format(valorizado)}
+            </td>
+
+            <td>
+              ${data.deshabilitado === 1 ? "SI" : "NO"}
+            </td>
+
+          </tr>
+        `;
+      });
+
+      html += `
+        <tr class="total-row">
+
+          <td colspan="5">
+            TOTAL GENERAL
+          </td>
+
+          <td>
+            ${formateadorMonedaArgentina.format(totalValor)}
+          </td>
+
+          <td></td>
+
+        </tr>
+      `;
+
+      html += "</table>";
+    }
+
+    document.getElementById("resultado").innerHTML = html;
+
+  } catch (error) {
+
+    console.error("Error buscando stock:", error);
+
+    alert("Error buscando stock");
+  }
+}
+
+// ======================================
+// ONLOAD
+// ======================================
+window.onload = () => {
+
+  cargarGrupos();
+};
+
+</script>
+
 
 </body>
 </html>

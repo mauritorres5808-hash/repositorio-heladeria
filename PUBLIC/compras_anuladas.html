@@ -5,10 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Consulta de Compras Anuladas</title>
 
-  <!-- Firebase v8 -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 <script src="js/auth.js"></script>  <!-- Aquí se verifica la autenticacion-->
 
   <!-- Chart.js -->
@@ -176,246 +172,459 @@
     </div>
   </div>
 
-  <script>
+ <script>
 
 verificarSesion();
 
-    const hoy = new Date();
-    const yyyy = hoy.getFullYear();
-    const mm = String(hoy.getMonth() + 1).padStart(2, '0');
-    const dd = String(hoy.getDate()).padStart(2, '0');
-    const fechaHoy = `${yyyy}-${mm}-${dd}`;
-    document.getElementById("fechaDesde").value = fechaHoy;
-    document.getElementById("fechaHasta").value = fechaHoy;
+const hoy = new Date();
+const yyyy = hoy.getFullYear();
+const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+const dd = String(hoy.getDate()).padStart(2, '0');
 
-    const formateadorMoneda = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' });
+const fechaHoy = `${yyyy}-${mm}-${dd}`;
 
-    let chartInstance = null;
-    let datosFormaPago = null;
-    let datosFecha = null;
+document.getElementById("fechaDesde").value = fechaHoy;
+document.getElementById("fechaHasta").value = fechaHoy;
 
-    function cambiarModo() {
-      const tipo = document.querySelector('input[name="tipoConsulta"]:checked').value;
-      document.getElementById("filtrosFecha").style.display = tipo === "fecha" ? "flex" : "none";
-      document.getElementById("filtroNro").style.display = tipo === "nro" ? "block" : "none";
-    }
+const formateadorMoneda = new Intl.NumberFormat(
+	'es-AR',
+	{
+		style: 'currency',
+		currency: 'ARS'
+	}
+);
 
-    function normalizarFecha(fechaStr) {
-      if (fechaStr.includes("/")) {
-        const [dia, mes, año] = fechaStr.split("/");
-        return `${año}-${mes.padStart(2, "0")}-${dia.padStart(2, "0")}`;
-      }
-      return fechaStr;
-    }
+let chartInstance = null;
+let datosFormaPago = null;
+let datosFecha = null;
 
-    async function consultarCompras() {
-      const tipoConsulta = document.querySelector('input[name="tipoConsulta"]:checked').value;
-      const resultado = document.getElementById("resultado");
-      const graficoContainer = document.getElementById("graficoContainer");
-      const selectorGrafico = document.getElementById("selectorGrafico");
-      graficoContainer.style.display = "none";
-      selectorGrafico.style.display = "none";
-      resultado.innerHTML = "<p><b>Procesando, por favor espere...</b></p>";
+let FORMAS_PAGO = {};
 
-      try {
-        const formasPagoSnap = await db.collection("F_PAGO").get();
-        const formasPago = {};
-        formasPagoSnap.forEach(d => formasPago[d.data().id_fpago] = d.data().descripcion);
+async function cargarFormasPago() {
 
-        let compras = [];
+	try {
 
-        if (tipoConsulta === "fecha") {
-          const fDesde = document.getElementById("fechaDesde").value;
-          const fHasta = document.getElementById("fechaHasta").value;
-          const desdeNorm = normalizarFecha(fDesde);
-          const hastaNorm = normalizarFecha(fHasta);
+		const resp = await fetch('/api/fpago');
+		const data = await resp.json();
 
-          const snap = await db.collection("COMPRAS_CAB").get();
-          compras = snap.docs.map(d => d.data())
-            .filter(v => {
-              const fNorm = normalizarFecha(v.fecha);
-              const dentroRango = fNorm >= desdeNorm && fNorm <= hastaNorm;
-              const estados = v.anulada === "S";
-              return dentroRango && estados;
-            });
-        } else {
-          const nro = parseInt(document.getElementById("nroCompra").value);
-          const snap = await db.collection("COMPRAS_CAB").where("id_compra", "==", nro).get();
-          compras = snap.docs.map(d => d.data())
-            //.filter(v => tipoVentaSeleccionado === "todas" || v.tipo_venta === parseInt(tipoVentaSeleccionado));
-            .filter(v => {
-              const estados = v.anulada === "S";
-              return estados;
-            });
-        }
+		FORMAS_PAGO = {};
 
-        if (compras.length === 0) {
-          resultado.innerHTML = "<p>No se encontraron compras anuladas con esas condiciones</p>";
-          return;
-        }
+		data.formasPago.forEach(fp => {
 
-        let totalGeneral = 0;
-        let resumenFP = {};
-        let resumenPorFecha = {};
-        const agrupadas = {};
+			FORMAS_PAGO[fp.id_fpago] = fp.descripcion;
 
-        compras.forEach(v => {
-          if (!agrupadas[v.fecha]) agrupadas[v.fecha] = [];
-          agrupadas[v.fecha].push(v);
-        });
+		});
 
-        let html = "";
-        for (const fecha of Object.keys(agrupadas).sort()) {
-          let totalDia = 0;
-          html += `<h3>📅 Fecha: ${fecha}</h3>`;
-          html += `<table border='1'>
-            <tr><th>Hora</th><th>N° Compra</th><th>Total</th>
-            <th>Forma Pago</th><th>Detalle</th></tr>`;
+	} catch (error) {
 
-          for (const v of agrupadas[fecha]) {
+		console.error("Error cargando formas de pago:", error);
 
-				totalDia += v.total;
-				totalGeneral += v.total;
+	}
+}
 
-				resumenFP[v.f_pago1] = (resumenFP[v.f_pago1] || 0) + (v.total || 0);
-							
-				html += `<tr>
-				  <td>${v.hora}</td>
-				  <td>${v.id_compra}</td>
-				  <td>${formateadorMoneda.format(v.total)}</td>
-				  <td>${formasPago[v.f_pago1] || ""}</td>
-				  <td><button onclick="verDetalle(${v.id_compra})">Ver</button></td>
-				</tr>`;
-			
-		  }
+cargarFormasPago();
 
-          html += `<tr class="total"><td colspan="2">Total del día</td><td>${formateadorMoneda.format(totalDia)}</td><td colspan="5"></td></tr>`;
-          html += `</table>`;
-          resumenPorFecha[fecha] = totalDia;
-        }
+function cambiarModo() {
 
-        html += `<h3 style="text-align:center;">TOTAL GENERAL: ${formateadorMoneda.format(totalGeneral)}</h3>`;
-        resultado.innerHTML = html;
+	const tipo =
+		document.querySelector(
+			'input[name="tipoConsulta"]:checked'
+		).value;
 
-/*
-        datosFormaPago = {
+	document.getElementById("filtrosFecha").style.display =
+		tipo === "fecha" ? "flex" : "none";
 
-          etiquetas: Object.keys(resumenFP).map(fp => formasPago[fp]),
-          valores: Object.values(resumenFP)
-};
-*/
-const totalFP = Object.values(resumenFP).reduce((a, b) => a + b, 0);
+	document.getElementById("filtroNro").style.display =
+		tipo === "nro" ? "block" : "none";
+}
 
-const etiquetas = [];
-const valores = [];
+async function consultarCompras() {
 
-Object.keys(resumenFP).forEach(fp => {
-  const valor = resumenFP[fp];
-  const porcentaje = ((valor / totalFP) * 100).toFixed(1);
+	const tipoConsulta =
+		document.querySelector(
+			'input[name="tipoConsulta"]:checked'
+		).value;
 
-  etiquetas.push(`${fp} - ${formasPago[fp]} (${porcentaje}%)`);
-  valores.push(valor);
-});
+	const resultado =
+		document.getElementById("resultado");
 
-datosFormaPago = { etiquetas, valores };
+	const graficoContainer =
+		document.getElementById("graficoContainer");
+
+	const selectorGrafico =
+		document.getElementById("selectorGrafico");
+
+	graficoContainer.style.display = "none";
+	selectorGrafico.style.display = "none";
+
+	resultado.innerHTML =
+		"<p><b>Procesando, por favor espere...</b></p>";
+
+	try {
+
+		let url = "";
+
+		if (tipoConsulta === "fecha") {
+
+			const fechaDesde =
+				document.getElementById("fechaDesde").value;
+
+			const fechaHasta =
+				document.getElementById("fechaHasta").value;
+
+			url =
+				`/api/compras/anuladas?fecha_desde=${fechaDesde}&fecha_hasta=${fechaHasta}`;
+
+		} else {
+
+			const nroCompra =
+				document.getElementById("nroCompra").value;
+
+			url =
+				`/api/compras/anuladas?nro_compra=${nroCompra}`;
+		}
+
+		const resp = await fetch(url);
+
+		const data = await resp.json();
+
+		if (!data.ok || data.compras.length === 0) {
+
+			resultado.innerHTML =
+				"<p>No se encontraron compras anuladas con esas condiciones</p>";
+
+			return;
+		}
+
+		const compras = data.compras;
+
+		let totalGeneral = 0;
+
+		let resumenFP = {};
+
+		let resumenPorFecha = {};
+
+		const agrupadas = {};
+
+		compras.forEach(v => {
+
+			if (!agrupadas[v.fecha]) {
+
+				agrupadas[v.fecha] = [];
+
+			}
+
+			agrupadas[v.fecha].push(v);
+
+		});
+
+		let html = "";
+
+		for (const fecha of Object.keys(agrupadas).sort()) {
+
+			let totalDia = 0;
+
+			html += `
+				<h3>📅 Fecha: ${convertirFechaOK(fecha)}</h3>
+			`;
+
+			html += `
+				<table border='1'>
+					<tr>
+						<th>Hora</th>
+						<th>N° Compra</th>
+						<th>Total</th>
+						<th>Forma Pago</th>
+						<th>Detalle</th>
+					</tr>
+			`;
+
+			for (const v of agrupadas[fecha]) {
+
+				totalDia += parseFloat(v.total || 0);
+
+				totalGeneral += parseFloat(v.total || 0);
+
+				resumenFP[v.f_pago1] =
+					(resumenFP[v.f_pago1] || 0)
+					+
+					parseFloat(v.total || 0);
+
+				html += `
+					<tr>
+						<td>${v.hora}</td>
+						<td>${v.id_compra}</td>
+						<td>${formateadorMoneda.format(v.total || 0)}</td>
+						<td>${FORMAS_PAGO[v.f_pago1] || ""}</td>
+						<td>
+							<button onclick="verDetalle(${v.id_compra})">
+								Ver
+							</button>
+						</td>
+					</tr>
+				`;
+			}
+
+			html += `
+				<tr class="total">
+					<td colspan="2">
+						Total del día
+					</td>
+
+					<td>
+						${formateadorMoneda.format(totalDia)}
+					</td>
+
+					<td colspan="5"></td>
+				</tr>
+			`;
+
+			html += `</table>`;
+
+			resumenPorFecha[convertirFechaOK(fecha)] = totalDia;
+		}
+
+		html += `
+			<h3 style="text-align:center;">
+				TOTAL GENERAL:
+				${formateadorMoneda.format(totalGeneral)}
+			</h3>
+		`;
+
+		resultado.innerHTML = html;
+
+		const totalFP =
+			Object.values(resumenFP)
+			.reduce((a, b) => a + b, 0);
+
+		const etiquetas = [];
+		const valores = [];
+
+		Object.keys(resumenFP).forEach(fp => {
+
+			const valor = resumenFP[fp];
+
+			const porcentaje =
+				((valor / totalFP) * 100).toFixed(1);
+
+			etiquetas.push(
+				`${fp} - ${FORMAS_PAGO[fp]} (${porcentaje}%)`
+			);
+
+			valores.push(valor);
+
+		});
+
+		datosFormaPago = {
+			etiquetas,
+			valores
+		};
+
+		datosFecha = {
+			etiquetas: Object.keys(resumenPorFecha).sort(),
+			valores: Object.values(resumenPorFecha)
+		};
+
+		selectorGrafico.style.display = "block";
+
+		mostrarGrafico();
+
+	} catch (e) {
+
+		console.error(e);
+
+		resultado.innerHTML =
+			`<p style="color:red">Error: ${e.message}</p>`;
+	}
+}
+
+function mostrarGrafico() {
+
+	const tipoGrafico =
+		document.querySelector(
+			'input[name="tipoGrafico"]:checked'
+		).value;
+
+	const graficoContainer =
+		document.getElementById("graficoContainer");
+
+	const ctx =
+		document.getElementById("graficoTorta")
+		.getContext("2d");
+
+	if (chartInstance)
+		chartInstance.destroy();
+
+	graficoContainer.style.display = "flex";
+
+	if (tipoGrafico === "fpago") {
+
+		chartInstance = new Chart(ctx, {
+
+			type: "pie",
+
+			data: {
+
+				labels: datosFormaPago.etiquetas,
+
+				datasets: [{
+					label: "total $ ",
+					data: datosFormaPago.valores,
+					backgroundColor: [
+						"#007bff",
+						"#28a745",
+						"#ffc107",
+						"#dc3545",
+						"#17a2b8",
+						"#6f42c1"
+					]
+				}]
+			},
+
+			options: {
+
+				plugins: {
+
+					title: {
+						display: true,
+						text: "Distribución por Forma de Pago"
+					}
+				}
+			}
+		});
+
+	} else {
+
+		chartInstance = new Chart(ctx, {
+
+			type: "bar",
+
+			data: {
+
+				labels: datosFecha.etiquetas,
+
+				datasets: [{
+					label: "Total por Fecha",
+					data: datosFecha.valores,
+					backgroundColor: "#007bff"
+				}]
+			},
+
+			options: {
+
+				plugins: {
+
+					title: {
+						display: true,
+						text: "Totales por Fecha"
+					}
+				}
+			}
+		});
+	}
+}
+
+async function verDetalle(idCompra) {
+
+	try {
+
+		const resp =
+			await fetch(
+				`/api/compras/${idCompra}/detalle`
+			);
+
+		const data = await resp.json();
+
+		const cont =
+			document.getElementById("detalleContenido");
+
+		const encabezado =
+			document.getElementById("encabezado_detalle");
+
+		encabezado.innerHTML =
+			"Detalle de Productos - Compra Nro. "
+			+
+			idCompra;
+
+		if (!data.ok || data.detalle.length === 0) {
+
+			cont.innerHTML =
+				"<p>No se encontraron productos para esta compra.</p>";
+
+			document.getElementById("detalleModal").style.display =
+				"flex";
+
+			return;
+		}
+
+		let html = `
+			<table>
+				<tr>
+					<th>Cod Producto</th>
+					<th>Descripción</th>
+					<th>Precio Unitario</th>
+					<th>Cantidad</th>
+					<th>Subtotal</th>
+				</tr>
+		`;
+
+		data.detalle.forEach(item => {
+
+			html += `
+				<tr>
+					<td>${item.id_producto}</td>
+					<td>${item.descripcion || ""}</td>
+					<td>${formateadorMoneda.format(item.precio || 0)}</td>
+					<td>${item.cantidad}</td>
+					<td>${formateadorMoneda.format(item.subtotal || 0)}</td>
+				</tr>
+			`;
+
+		});
+
+		html += `</table>`;
+
+		cont.innerHTML = html;
+
+		document.getElementById("detalleModal").style.display =
+			"flex";
+
+	} catch (error) {
+
+		console.error(error);
+
+		alert(
+			"Error obteniendo detalle: "
+			+
+			error.message
+		);
+	}
+}
+
+// Convertir yyyy-mm-dd → dd/mm/yyyy
+function convertirFechaOK(f) {
+  if (!f) return "";
+  // Si viene como objeto Date
+  if (typeof f === "object") {
+    f = f.toISOString().split("T")[0];
+  }
+  // Si viene como string ISO
+  if (String(f).includes("T")) {
+    f = String(f).split("T")[0];
+  }
+  const [yyyy, mm, dd] = String(f).split("-");
+  return `${dd}/${mm}/${yyyy}`;
+}
 
 
+function cerrarModal() {
 
+	document.getElementById("detalleModal").style.display =
+		"none";
+}
 
+</script>
 
-        datosFecha = {
-          etiquetas: Object.keys(resumenPorFecha).sort(),
-          valores: Object.values(resumenPorFecha)
-        };
-
-        selectorGrafico.style.display = "block";
-        mostrarGrafico();
-      } catch (e) {
-        console.error(e);
-        resultado.innerHTML = `<p style="color:red">Error: ${e.message}</p>`;
-      }
-    }
-
-    function mostrarGrafico() {
-      const tipoGrafico = document.querySelector('input[name="tipoGrafico"]:checked').value;
-      const graficoContainer = document.getElementById("graficoContainer");
-      const ctx = document.getElementById("graficoTorta").getContext("2d");
-
-      if (chartInstance) chartInstance.destroy();
-      graficoContainer.style.display = "flex";
-
-      if (tipoGrafico === "fpago") {
-        chartInstance = new Chart(ctx, {
-          type: "pie",
-          data: {
-            labels: datosFormaPago.etiquetas,
-            datasets: [{
-              label: "total $ ",
-              data: datosFormaPago.valores,
-              backgroundColor: ["#007bff","#28a745","#ffc107","#dc3545","#17a2b8","#6f42c1"]
-            }]
-          },
-          options: { plugins: { title: { display: true, text: "Distribución por Forma de Pago" } } }
-        });
-      } else {
-        chartInstance = new Chart(ctx, {
-          type: "bar",
-          data: {
-            labels: datosFecha.etiquetas,
-            datasets: [{
-              label: "Total por Fecha",
-              data: datosFecha.valores,
-              backgroundColor: "#007bff"
-            }]
-          },
-          options: { plugins: { title: { display: true, text: "Totales por Fecha" } } }
-        });
-      }
-    }
-
-    async function verDetalle(idCompra) {
-      const detSnap = await db.collection("COMPRAS_DET").where("id_compra", "==", idCompra).get();
-      const cont = document.getElementById("detalleContenido");
-      const encabezado = document.getElementById("encabezado_detalle");
-      encabezado.innerHTML = "Detalle de Productos - Compra Nro. " + idCompra;
-
-      if (detSnap.empty) {
-        cont.innerHTML = "<p>No se encontraron productos para esta compra.</p>";
-        document.getElementById("detalleModal").style.display = "flex";
-        return;
-      }
-
-      const cacheProductos = {};
-      let html = `<table><tr><th>Cod Producto</th><th>Descripción</th><th>Precio Unitario</th><th>Cantidad</th><th>Subtotal</th></tr>`;
-      for (const doc of detSnap.docs) {
-        const data = doc.data();
-        let descripcion = "";
-        if (cacheProductos[data.id_producto]) {
-          descripcion = cacheProductos[data.id_producto];
-        } else {
-          const prodSnap = await db.collection("PRODUCTOS").where("id_producto", "==", data.id_producto).limit(1).get();
-          descripcion = !prodSnap.empty ? prodSnap.docs[0].data().descripcion : "(No encontrada)";
-          cacheProductos[data.id_producto] = descripcion;
-        }
-        html += `<tr>
-          <td>${data.id_producto}</td>
-          <td>${descripcion}</td>
-          <td>${formateadorMoneda.format(data.precio || 0)}</td>
-          <td>${data.cantidad}</td>
-          <td>${formateadorMoneda.format(data.subtotal)}</td>
-        </tr>`;
-      }
-      html += "</table>";
-      cont.innerHTML = html;
-      document.getElementById("detalleModal").style.display = "flex";
-    }
-
-    function cerrarModal() {
-      document.getElementById("detalleModal").style.display = "none";
-    }
-  </script>
-
-<script src="js/medidor.js"></script>
 
 </body>
 </html>

@@ -3,11 +3,7 @@
 <head>
   <meta charset="utf-8">
 
-  <!-- Firebase v8 -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-<script src="js/auth.js"></script>  <!-- Aquí se verifica la autenticacion-->
+<script src="js/auth.js"></script>  <!-- Aquí se verifica la autenticacion -->
 
   <title>Menú de Ventas</title>
 
@@ -141,6 +137,7 @@ h3 {
 <body>
 
 <script>
+/*
   const PAGINA_PEDIDOS =
     location.hostname === "localhost"
       ? "http://localhost:3000/pedidos-whatsapp.html"
@@ -149,9 +146,8 @@ h3 {
   function irAPedidos() {
     location.href = PAGINA_PEDIDOS;
   }
+*/
 </script>
-
-
 
 
   <div class="contenedor">
@@ -163,16 +159,16 @@ h3 {
           <button class="boton-redondeado" id="btnCargarVenta" onclick="location.href='delivery.html'">Ventas mostrador/Delivery</button>
         </td>
         <td>
-          <button class="boton-redondeado" id="btnConsVenta"  onclick="location.href='ventas_consultas.html'">Consultar Ventas y Formas de Pago</button>
+          <button class="boton-redondeado" id="btnConsVenta"  onclick="location.href='ventas_consultas.html'">Ventas x Formas de Pago/Cliente </button>
         </td>
       </tr>
 
       <tr>
         <td>
-          <button class="boton-redondeado" id="btnTotGrupo" onclick="location.href='totales_grupo_v.html'">Totales x Grupo</button>
+          <button class="boton-redondeado" id="btnTotGrupo" onclick="location.href='totales_grupo_v.html'">Ventas x Grupo</button>
         </td>
         <td>
-          <button class="boton-redondeado" id="btnTotTipo" onclick="location.href='totales_tipo_v.html'">Totales x Tipo de Venta</button>
+          <button class="boton-redondeado" id="btnTotTipo" onclick="location.href='totales_tipo_v.html'">Ventas x Tipo de Venta</button>
         </td>
       </tr>
 
@@ -190,7 +186,7 @@ h3 {
            <button class="boton-redondeado" id="btnCambiarFP" onclick="location.href='modifica-fpago_v.html'">Cambiar Forma de Pago</button>
         </td>
         <td>
-           <button class="boton-redondeado3" id="btnPedidos-wsp"  onclick="irAPedidos()">Pedidos Online</button>
+           <button class="boton-redondeado3" id="btnPedidos-wsp"  onclick="location.href='pedidos.html'">Pedidos recibidos</button>
         </td>
       </tr>
 
@@ -209,20 +205,28 @@ h3 {
 verificarSesion(); 
 document.getElementById("userLabel").textContent = localStorage.getItem("usuarioEmail");
 
-
 // BLOQUEA TODOS LOS BOTONES AL CARGAR LA PÁGINA (menos boton Volver)
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
 
-    // Deshabilitar todos los botones
+    // Deshabilitar botones
     const botones = document.querySelectorAll("button");
+
     botones.forEach(btn => {
+
         if (btn.id !== "btnVolver") {
+
             btn.disabled = true;
             btn.title = "No tiene permiso para usar esta función";
         }
     });
-	aplicarPermisos();
+
+    // Esperar permisos
+    await cargarPermisosUsuario();
+
+    // Aplicar permisos
+    aplicarPermisos();
 });
+
 </script>
 
 <script src="js/permisos.js"></script>

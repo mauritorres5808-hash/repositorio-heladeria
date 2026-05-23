@@ -4,90 +4,159 @@
  * Muestra un cartel modal con mensaje de advertencia y opcional redirección
  */
 function mostrarCartel(mensaje, botonTexto = "Aceptar", redireccion = null) {
-  const overlay = document.createElement("div");
-  Object.assign(overlay.style, {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    width: "100vw",
-    height: "100vh",
-    backgroundColor: "rgba(0,0,0,0.85)",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 9999
-  });
 
-  const cartel = document.createElement("div");
-  Object.assign(cartel.style, {
-    backgroundColor: "#fff",
-    color: "#c00",
-    padding: "40px",
-    borderRadius: "12px",
-    fontSize: "1.8rem",
-    textAlign: "center",
-    maxWidth: "800px",
-    boxShadow: "0 0 20px rgba(0,0,0,0.3)"
-  });
+    const overlay = document.createElement("div");
 
-  cartel.innerHTML = `
-    <strong>⚠️ ${mensaje}</strong><br><br>
-    <button id="btnAceptar" style="
-      padding:10px 25px; font-size:1.2rem;
-      border:none; border-radius:8px;
-      background-color:#007bff; color:white; cursor:pointer;">
-      ${botonTexto}
-    </button>
-  `;
+    Object.assign(overlay.style, {
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: "100vw",
+        height: "100vh",
+        backgroundColor: "rgba(0,0,0,0.85)",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        zIndex: 9999
+    });
 
-  overlay.appendChild(cartel);
-  document.body.appendChild(overlay);
+    const cartel = document.createElement("div");
 
-  cartel.querySelector("#btnAceptar").onclick = () => {
-    if (redireccion) window.location.href = redireccion;
-    else overlay.remove();
-  };
+    Object.assign(cartel.style, {
+        backgroundColor: "#fff",
+        color: "#c00",
+        padding: "40px",
+        borderRadius: "12px",
+//        fontSize: "1.8rem",
+        fontSize: "1.2rem",
+        textAlign: "center",
+        maxWidth: "800px",
+        boxShadow: "0 0 20px rgba(0,0,0,0.3)"
+    });
+
+    cartel.innerHTML = `
+        <strong>⚠️ ${mensaje}</strong><br><br>
+
+        <button id="btnAceptar" style="
+            padding:10px 25px;
+            font-size:1.2rem;
+            border:none;
+            border-radius:8px;
+            background-color:#007bff;
+            color:white;
+            cursor:pointer;
+        ">
+            ${botonTexto}
+        </button>
+    `;
+
+    overlay.appendChild(cartel);
+
+    document.body.appendChild(overlay);
+
+    cartel.querySelector("#btnAceptar").onclick = () => {
+
+        if (redireccion) {
+            window.location.href = redireccion;
+        } else {
+            overlay.remove();
+        }
+    };
 }
 
-/**
- * Verifica si existe una apertura activa.
- * Si no existe, bloquea la página y muestra mensaje.
- */
-async  function verificarAperturaActiva(redireccion = "apertura-caja.html") {
 
-    const ref = firebase.firestore().collection("APERTURAS");
-    const snapshot = await ref.where("estado", "==", "ABIERTA").get();
+// ======================================================
+// VERIFICAR APERTURA ACTIVA
+// ======================================================
 
-    if (snapshot.empty) {
-      mostrarCartel("NO EXISTE UNA APERTURA DE CAJA<br>Debe realizar la apertura primero", "Ir a Apertura", redireccion);
+async function verificarAperturaActiva(
+    redireccion = "apertura-caja.html"
+) {
+
+    try {
+
+        const response = await fetch("/api/aperturas/abierta");
+
+        const data = await response.json();
+
+        if (!data.abierta) {
+
+            mostrarCartel(
+                "NO EXISTE UNA APERTURA DE CAJA<br>Debe realizar la apertura primero",
+                "Salir",
+                redireccion
+            );
+        }
+
+    } catch (error) {
+
+        console.error(error);
+
+        mostrarCartel(
+            "Error verificando apertura de caja"
+        );
     }
-  };
+}
 
 
-/**
- * Verifica si ya hay una apertura abierta (para evitar abrir otra).
- */
- async function verificarCajaYaAbierta(redireccion = "menu-caja.html") {
+// ======================================================
+// VERIFICAR SI YA HAY CAJA ABIERTA
+// ======================================================
+async function verificarCajaYaAbierta(redireccion = "menu-caja.html") 
+{
+    try {
+        const response = await fetch("/api/aperturas/abierta");
+        const data = await response.json();
 
-    const ref = firebase.firestore().collection("APERTURAS");
-    const snapshot = await ref.where("estado", "==", "ABIERTA").get();
+        if (data.abierta) {
+            mostrarCartel(
+                "YA EXISTE UNA CAJA ABIERTA<br>No puede abrir otra",
+                "Salir",
+                redireccion
+            );
+            return true;
+        }
+        return false;
 
-    if (!snapshot.empty) {
-      mostrarCartel("YA EXISTE UNA CAJA ABIERTA<br>No puede abrir otra", "Ir al menú", redireccion);
+    } catch (error) {
+        console.error(error);
+        mostrarCartel(
+            "Error verificando caja abierta"
+        );
+
+        return true;
     }
-  };
+}
 
+// ======================================================
+// VERIFICAR CAJA PARA CIERRE
+// ======================================================
 
-/**
- * Verifica si hay apertura abierta (para permitir cierre).
- */
-async  function verificarCajaParaCierre(redireccion = "menu-caja.html") {
+async function verificarCajaParaCierre(
+    redireccion = "menu-caja.html"
+) {
 
-    const ref = firebase.firestore().collection("APERTURAS");
-    const snapshot = await ref.where("estado", "==", "ABIERTA").get();
+    try {
 
-    if (snapshot.empty) {
-      mostrarCartel("NO EXISTE UNA CAJA ABIERTA<br>No puede realizar un cierre", "Ir al menú", redireccion);
+        const response = await fetch("/api/aperturas/abierta");
+
+        const data = await response.json();
+
+        if (!data.abierta) {
+
+            mostrarCartel(
+                "NO EXISTE UNA CAJA ABIERTA<br>No puede realizar un cierre",
+                "Ir al menú",
+                redireccion
+            );
+        }
+
+    } catch (error) {
+
+        console.error(error);
+
+        mostrarCartel(
+            "Error verificando caja"
+        );
     }
-  };
-
+}

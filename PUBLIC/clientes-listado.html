@@ -4,11 +4,7 @@
   <meta charset="UTF-8">
   <title>Listado de Clientes</title>
 
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-<script src="js/auth.js"></script>  <!-- Aquí se verifica la autenticacion-->
+<script src="js/auth.js"></script>  <!-- Aqui se verifica la autenticacion -->
 
   <style>
     body { font-family: Arial; background:#8AC0FF; margin:0; padding:20px;}
@@ -69,88 +65,151 @@
 
 verificarSesion();
 
+let clientes = [];
+let clientesFiltrados = [];
+let pagina = 0;
 
+const TAM_PAG = 15;
 
-  let clientes = [];
-  let clientesFiltrados = [];
-  let pagina = 0;
-  const TAM_PAG = 15;
+// ==============================
+// CARGAR CLIENTES
+// ==============================
+async function cargarClientes() {
 
-  async function cargarClientes() {
-    const snap = await db.collection("CLIENTES").orderBy("nombre").get();
-    clientes = snap.docs.map(d => d.data());
-    clientesFiltrados = [...clientes]; // copia inicial
+  try {
+
+    const resp = await fetch('/api/clientes');
+
+    clientes = await resp.json();
+
+    clientesFiltrados = [...clientes];
+
     mostrarPagina();
+
+  } catch (err) {
+
+    console.error(err);
+
+    alert("Error cargando clientes");
   }
-
-  function aplicarFiltro() {
-    const texto = document.getElementById("buscar").value.toLowerCase();
-    clientesFiltrados = clientes.filter(c => (c.nombre || "").toLowerCase().includes(texto));
-    pagina = 0;
-    mostrarPagina();
-  }
-
-  function mostrarPagina() {
-    const tbody = document.getElementById("tablaClientes");
-    tbody.innerHTML = "";
-
-    const ini = pagina * TAM_PAG;
-    const fin = ini + TAM_PAG;
-    const lista = clientesFiltrados.slice(ini, fin);
-
-	lista.forEach(c => {
-	  const tr = document.createElement("tr");
-	  if (c.deshabilitado === "S") tr.classList.add("deshabilitado");
-
-	  tr.style.cursor = "pointer";
-
-	  tr.innerHTML = `
-		<td>${c.id_cliente}</td>
-		<td>${c.nombre}</td>
-		<td>${c.domicilio || "-"}</td>
-		<td>${c.telefono || "-"}</td>
-		<td>${c.nota || "-"}</td>
-		<td>${c.deshabilitado || "-"}</td>
-		<td><button onclick="irAEditarCliente(${c.id_cliente})">Editar</button></td>
-	  `;
-
-	  // ✅ Abrir pantalla de edición al hacer clic
-	  tr.addEventListener("click", () => {
-		window.location.href = `clientes.html?id=${c.id_cliente}`;
-	  });
-
-	  tbody.appendChild(tr);
-	});
-
-  }
-
-  function paginaSiguiente() {
-    if ((pagina+1) * TAM_PAG < clientesFiltrados.length) {
-      pagina++;
-      mostrarPagina();
-    }
-  }
-
-  function paginaAnterior() {
-    if (pagina > 0) {
-      pagina--;
-      mostrarPagina();
-    }
-  }
-  
-  function irAEditarCliente(id_cliente) {
-  // redirige a clientes.html (o a la página ABM si tiene otro nombre) con parámetro id
-  // Si ya estás en clientes.html, puedes simplemente llamar a cargarClienteParaEditar(id)
-  // uso: clientes.html?id=123
-  window.location.href = `clientes.html?id=${encodeURIComponent(id_cliente)}`;
 }
 
-  document.getElementById("buscar").addEventListener("input", aplicarFiltro);
+// ==============================
+// FILTRO
+// ==============================
+function aplicarFiltro() {
 
-  cargarClientes();
+  const texto =
+    document.getElementById("buscar")
+      .value
+      .toLowerCase();
+
+  clientesFiltrados = clientes.filter(c =>
+    (c.nombre || "")
+      .toLowerCase()
+      .includes(texto)
+  );
+
+  pagina = 0;
+
+  mostrarPagina();
+}
+
+// ==============================
+// MOSTRAR PAGINA
+// ==============================
+function mostrarPagina() {
+
+  const tbody =
+    document.getElementById("tablaClientes");
+
+  tbody.innerHTML = "";
+
+  const ini = pagina * TAM_PAG;
+  const fin = ini + TAM_PAG;
+
+  const lista =
+    clientesFiltrados.slice(ini, fin);
+
+  lista.forEach(c => {
+
+    const tr = document.createElement("tr");
+
+    // MYSQL -> 1 / 0
+    if (c.deshabilitado === 1) {
+      tr.classList.add("deshabilitado");
+    }
+
+    tr.style.cursor = "pointer";
+
+    tr.innerHTML = `
+      <td>${c.id_cliente}</td>
+      <td>${c.nombre}</td>
+      <td>${c.domicilio || "-"}</td>
+      <td>${c.telefono || "-"}</td>
+      <td>${c.nota || "-"}</td>
+      <td>${c.deshabilitado === 1 ? "SI" : "NO"}</td>
+      <td>
+        <button onclick="irAEditarCliente(${c.id_cliente})">
+          Editar
+        </button>
+      </td>
+    `;
+
+    tr.addEventListener("click", () => {
+
+      window.location.href =
+        `clientes.html?id=${c.id_cliente}`;
+    });
+
+    tbody.appendChild(tr);
+  });
+}
+
+// ==============================
+// PAGINACION
+// ==============================
+function paginaSiguiente() {
+
+  if ((pagina + 1) * TAM_PAG < clientesFiltrados.length) {
+
+    pagina++;
+
+    mostrarPagina();
+  }
+}
+
+function paginaAnterior() {
+
+  if (pagina > 0) {
+
+    pagina--;
+
+    mostrarPagina();
+  }
+}
+
+// ==============================
+// EDITAR CLIENTE
+// ==============================
+function irAEditarCliente(id_cliente) {
+
+  window.location.href =
+    `clientes.html?id=${encodeURIComponent(id_cliente)}`;
+}
+
+// ==============================
+// EVENTOS
+// ==============================
+document.getElementById("buscar")
+  .addEventListener("input", aplicarFiltro);
+
+// ==============================
+// INICIO
+// ==============================
+cargarClientes();
+
 </script>
-
-<script src="js/medidor.js"></script>
 
 </body>
 </html>

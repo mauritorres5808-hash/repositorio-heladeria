@@ -4,9 +4,6 @@
 <meta charset="utf-8">
 <title>Pedidos Online</title>
 
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 <script src="js/auth.js"></script>  <!-- Aqui se verifica la autenticacion -->
 
 <!-- MAPA -->
@@ -21,8 +18,10 @@
   header{display:flex;gap:12px;align-items:center;margin-bottom:12px}
   
       .contenedor{max-width:920px;margin:auto;background:#fff;padding:20px;border-radius:8px}
-	  
-  input[type="search"],select{padding:8px;border-radius:6px;border:1px solid #ccc}
+
+  input[type="search"],select{padding:8px;border-radius:30px;border:5px solid #ccc}
+
+
   #lista{display:flex;flex-direction:column;gap:10px}
   .pedido{background:#fff;padding:12px;border-radius:8px;
     box-shadow:0 1px 4px rgba(0,0,0,0.08)}
@@ -48,26 +47,55 @@ button:hover{background:#0056b3};
   }
 hr { border-color: green; } 
 /*    .alert-modern{background:#e9f7ef;border-left:6px solid #28a745;padding:5px;border-radius:6px;margin:10px 0; width:40%;} */
-    .alert-modern{background:#C3F9DF;border-left:6px solid #28a745;padding:5px;border-radius:6px;margin:10px 0; width:40%;  margin-left: auto; }
+    .alert-modern{background:#C3F9DF;
+		border-left:6px solid #28a745;
+		padding:6px;border-radius:6px;
+		margin:10px 0; 
+		width:100%;  
+		margin-left: auto;
+		}
 	
+	input, select {
+      padding: 6px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      margin-top: 4px;
+      font-size: 14px;
+    }
+
+select {
+      padding: 6px;
+      border-radius: 6px;
+      border: 1px solid black;
+      margin-top: 4px;
+      font-size: 14px;
+    }
+
+.custom-select2 {
+      padding: 6px;
+      border-radius: 26px;
+      border: 6px solid ;
+      margin-top: 4px;
+      font-size: 14px;
+	  border-color:blue;
+}
+
 
 </style>
 </head>
 <body>
   <div class="contenedor">
-		<h2>Pedidos Online</h2>
+		<h2>Pedidos Online 🔔 </h2>
 
 		<header>
-		  <select id="filterEstado">
-
+		  buscar un cliente &rArr; <input id="searchBox" type="search" placeholder="nombre o teléfono">  en &rArr; 
+<!--		  <button onclick="cargar(true)">Buscar</button> -->
+		  <select id="filterEstado" class="custom-select2">
 			<option value="nuevo">Nuevos Pedidos</option>
 			<option value="convertido">confirmados como Venta</option>
+			<option value="cancelado">Pedidos Cancelados</option>
 		  </select>
-
-		  <input id="searchBox" type="search" placeholder="Buscar por nombre o teléfono">
-		  <button onclick="cargar(true)">Buscar</button>
-		  		<button class="boton-derecha" onclick="location.href='/menu-ventas.html'">&#8617; Volver</button>
-
+		<button class="boton-derecha" onclick="location.href='/menu-ventas.html'">&#8617; Volver</button>
 
 		</header>
 
@@ -107,8 +135,16 @@ function saborDesc(id){
 
 // ---------------- Cargar formas de pago ----------------
 async function cargarFormasPago(){
-  formasPago = await (await fetch(`${API_BASE}/api/fpago`)).json();
+  try {
+    const resp = await fetch(`${API_BASE}/api/fpago`);
+    const data = await resp.json();
+    formasPago = data.formasPago || [];
+  } catch(err) {
+    console.error("Error cargando formas de pago:", err);
+    formasPago = [];
+  }
 }
+
 cargarFormasPago();
 
 // ---------------- Cargar pedidos ----------------
@@ -116,7 +152,7 @@ async function cargar(){
   const estado = document.getElementById("filterEstado").value;
   const q = document.getElementById("searchBox").value.trim();
 
-  let url = `${API_BASE}/api/pedidos_whatsapp`;
+  let url = `${API_BASE}/api/pedidos`;
   const p = new URLSearchParams();
   if (estado) p.set("estado", estado);
   if (q) p.set("q", q);
@@ -125,6 +161,7 @@ async function cargar(){
   try {
     const res = await fetch(url);
     const items = await res.json();
+
 		// 🔔 detectar nuevos pedidos SOLO en estado "nuevo"
 		if (estado === "nuevo") {
 		  items.forEach(p => {
@@ -144,7 +181,7 @@ async function cargar(){
 
 async function imprimirPedido2(idPedido){  // (envia a PDF)
   try {
-    const res = await fetch(`${API_BASE}/api/pedidos_whatsapp/${idPedido}`);
+    const res = await fetch(`${API_BASE}/api/pedidos/${idPedido}`);
     const p = await res.json();
 
     if (!p || !p.id_pedido){
@@ -192,12 +229,13 @@ async function imprimirPedido2(idPedido){  // (envia a PDF)
 
       total += Number(it.precio || 0);
 
-      if (it.sabores?.length){
-        it.sabores.forEach(s => {
-          doc.text(`- ${saborDesc(s)}`, 2, y);
-          y += 3;
-        });
-      }
+		if (it.sabores) {
+			const listaSabores = it.sabores.split(',');
+			listaSabores.forEach(s => {
+				  doc.text(`- ${saborDesc(s)}`, 2, y);
+				  y += 3;
+			});
+		}
 
       y += 2;
     });
@@ -223,7 +261,7 @@ async function imprimirPedido(idPedido){
 
 //---------------
   try {
-    const res = await fetch(`${API_BASE}/api/pedidos_whatsapp/${idPedido}`);
+    const res = await fetch(`${API_BASE}/api/pedidos/${idPedido}`);
     const p = await res.json();
 
     if (!p || !p.id_pedido){
@@ -243,9 +281,9 @@ async function imprimirPedido(idPedido){
       </style>
     </head>
     <body>
-      <div class="center"><b>PEDIDO #${p.id_pedido}</b></div>
+      <div class="center"><b>PEDIDO ONLINE #${p.id_pedido}</b></div>
       <hr>
-	  Fecha: ${p.fecha} Hora: ${p.hora}<br> 
+	  Fecha: ${convertirFechaOK(p.fecha)} Hora: ${p.hora}<br> 
       Cliente: ${p.nombre}<br>
       Tel: ${p.telefono}<br>
       Dir: ${p.domicilio}<br>
@@ -258,11 +296,13 @@ async function imprimirPedido(idPedido){
     total += (it.precio || 0);
     contenido += `${i+1}) ${it.descripcion}<br>`;
     contenido += `$ ${it.precio}<br>`;
-	if (it.sabores?.length){
-        it.sabores.forEach(s => {
-		contenido += `- ${saborDesc(s)}<br>`;
-        });
-      }
+
+		if (it.sabores) {
+			const listaSabores = it.sabores.split(',');
+			listaSabores.forEach(s => {
+			contenido += `- ${saborDesc(s)}<br>`;
+			});
+		}
 	  
   });
 
@@ -312,63 +352,171 @@ function renderList(items){
     const el = document.createElement("div");
     el.className = "pedido";
 
-    let totalPedido = 0;
+let subtotalPedido = 0;
+let html = "";
 
-    let html = `
-      <div style="display:flex;justify-content:space-between">
-        <div><b>Pedido #${p.id_pedido}</b> — ${p.nombre} • ${p.telefono}</div>
-        <div class="meta">Fecha/Hora: ${p.fecha} ${p.hora}</div>
-      </div>
-    <div id="mensajeTipo" class="alert-modern" style="font-size:12px">Si el telefono del cliente no existe se dara de Alta al cliente</div>
-	<div><b>Domicilio:</b> ${p.domicilio}</div>
-      <div><b>Nota:</b> ${p.nota || "—"}</div>
-      <br>
-      <b>Detalle:</b><br>
-    `;
-
-    const formateadorMoneda = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS',   minimumFractionDigits: 0, maximumFractionDigits: 0 });
-
-    (p.pedido_detalle || []).forEach((it, idx) => {
-      const subtotal = (it.precio || 0);
-      totalPedido += subtotal;
-
-/*
-      html += `<div class="unidad">
-        <b>Unidad ${idx+1}: ${it.descripcion}</b><br>
-        Precio: $${it.precio}<br>
-        Subtotal unidad: <b>$${subtotal}</b><br>
-      `;
-*/
-      html += `<div class="unidad">
-        <b>Unidad ${idx+1}: ${it.descripcion}</b><br>
-        Precio: ${formateadorMoneda.format(it.precio)}<br>
-      `;
-
-      if (it.sabores?.length){
-        html += `<u>Sabores:</u><ul>`;
-        it.sabores.forEach(s => html += `<li>${saborDesc(s)}</li>`);
-        html += `</ul>`;
+html += `
+  <div style="display:flex;justify-content:space-between; font-size:20px">
+    <div>
+        <span style="color:red"><b>Pedido # ${p.id_pedido}</b></span>
+      — ${p.nombre} • ${p.telefono}
+      ${p.estado === "V"
+        ? ` <br><span style="color:blue"><b>✅ Venta # ${p.id_venta}</b></span>`
+        : ""
       }
+      ${p.estado === "C"
+        ? ` <br>⚠️<span style="color:red; background:yellow"><b>CANCELADO</b></span>
+        <div style="font-size:16px; color:red">
+          <br><b>&#10140; Fecha/Hora de la cancelacion:</b>
+          <span style="color:black">${convertirFechaOK(p.fecha_canc)} ${p.hora_canc} usuario: ${p.usuario_canc_nombre || 'No informado'}</span>
+        </div>`
+        : ""
+      }
+      ${p.estado === "P"
+        ? ` <br><span style="color:green"><b>⏱️ Pendiente</b></span>
+          <div id="mensajeTipo" class="alert-modern" style="font-size:14px">
+            ⚠️ Si el telefono del cliente no existe se dara de Alta automaticamente como cliente nuevo.
+          </div>`
+        : ""
+      }
+    </div>
 
-      html += `</div>`;
+    <div style="font-size:18px; color:red">
+      <b>Fecha/Hora del Pedido:</b>
+      <br><span style="color:black">${convertirFechaOK(p.fecha)} ${p.hora}</span>
+    </div>
+
+  </div>
+
+  <div><b>Domicilio:</b> ${p.domicilio}</div>
+
+  <div><b>Nota:</b> ${p.nota || "—"}</div>
+
+  <br>
+
+  <b>Detalle:</b><br>
+`;
+
+const formateadorMoneda = new Intl.NumberFormat('es-AR', {
+  style: 'currency',
+  currency: 'ARS',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2
+});
+
+(p.pedido_detalle || []).forEach((it, idx) => {
+
+  const subtotal = Number(it.precio || 0);
+
+  subtotalPedido += subtotal;
+
+  html += `<div class="unidad">
+    <b>Unidad ${idx+1}: ${it.descripcion}</b><br>
+    Precio: ${formateadorMoneda.format(it.precio)}<br>`;
+
+  if (it.sabores && it.sabores.trim() !== '') {
+
+    const listaSabores = it.sabores
+      .split(',')
+      .map(x => x.trim())
+      .filter(x => x !== '');
+
+    html += `<u>Sabores:</u><ul>`;
+
+    listaSabores.forEach(idSabor => {
+      const descripcion = saborDesc(idSabor);
+      html += `<li>${descripcion}</li>`;
     });
 
+    html += `</ul>`;
+  }
+
+  html += `</div>`;
+});
+
+// ======================================
+// PROMOCIONES
+// ======================================
+let totalDescuentos = 0;
+
+if (p.promociones && p.promociones.length > 0) {
+
+  html += `
+    <div style="
+      background:#fff4d6;
+      border-left:5px solid orange;
+      padding:10px;
+      margin-top:10px;
+      border-radius:8px;
+    ">
+      <b>🎁 Promociones aplicadas</b><br><br>
+  `;
+
+  p.promociones.forEach(pr => {
+
+    totalDescuentos += Number(pr.descuento || 0);
 
     html += `
-      <div style="font-size:26px;font-weight:bold;margin-top:10px;">
-        Total pedido: ${formateadorMoneda.format(totalPedido)} 
-		<span  style="font-size:16px;font-weight:bold;margin-top:10px;"</span>
-		_________ Paga con: ${p.paga_con}
-      </div><br>`
+      • ${pr.descripcion}
+      <span style="color:green;font-weight:bold">
+        - ${formateadorMoneda.format(pr.descuento)}
+      </span><br>
+    `;
+  });
+
+  html += `</div>`;
+}
+
+const totalFinal = subtotalPedido - totalDescuentos;
+
+// ======================================
+// TOTALES
+// ======================================
+html += `
+  <div style="
+    font-size:20px;
+    margin-top:14px;
+    padding:10px;
+    background:#f5f5f5;
+    border-radius:8px;
+  ">
+
+    <div>
+      <b>Subtotal:</b>
+      ${formateadorMoneda.format(subtotalPedido)}
+    </div>
+
+    <div style="color:green">
+      <b>Descuentos:</b>
+      - ${formateadorMoneda.format(totalDescuentos)}
+    </div>
+
+    <div style="
+      font-size:28px;
+      color:red;
+      font-weight:bold;
+    ">
+      TOTAL NETO:
+      ${formateadorMoneda.format(totalFinal)}
+    <span style="font-size:20px; color:black; margin-top:5px;"> &rArr;&rArr;&rArr;&rArr;&rArr;&rArr;&rArr; 💰 Paga con: ${p.paga_con}</span>
+    </div>
+
+  </div><br>
+`;
+
     html += `<div class="acciones">`
-	if (p.estado==="nuevo"){
+	if (p.estado==="P"){
 		html += `    <button onclick="imprimirPedido(${p.id_pedido})">🖨️ Imprimir Pedido</button>`
-		html += `    <button class="convertir" onclick="abrirConversion(${p.id_pedido}, ${totalPedido})">Confirmar Venta</button>`
+		html += `    <button class="convertir" onclick="abrirConversion(${p.id_pedido}, ${totalFinal})">Confirmar Venta</button>`
 		html += `    <button onclick="distancia('${p.domicilio}')">&#128663; Ver distancia</button>`
-    }
-	html += `
-        <button class="eliminar"  onclick="eliminar(${p.id_pedido})">Eliminar Pedido</button>
-		<button class="boton-derecha" onclick="location.href='/menu-ventas.html'">&#8617; Volver</button>
+		html += `	 <button class="eliminar"  onclick="cancelar(${p.id_pedido})">Cancelar Pedido</button>`
+    }		
+	if (p.estado==="V"){
+		html += `    <button onclick="imprimirPedido(${p.id_pedido})">🖨️ Imprimir Pedido</button>`
+		html += `    <button onclick="distancia('${p.domicilio}')">&#128663; Ver distancia</button>`
+    }		
+
+	html += `		<button class="boton-derecha" onclick="location.href='/menu-ventas.html'">&#8617; Volver</button>
 		   <hr>
       </div>`;
 
@@ -389,7 +537,7 @@ function abrirConversion(id, total){
   fp2.innerHTML = `<option value="0">0 - Ninguno</option>`;
 
   formasPago.forEach(fp => {
-    const opt = `<option value="${fp.id_fpago}">${fp.id_fpago} - ${fp.descripcion}</option>`;
+    const opt = `<option value="${fp.id_fpago}">${fp.descripcion}</option>`;
     fp1.innerHTML += opt;
     fp2.innerHTML += opt;
   });
@@ -439,7 +587,7 @@ async function confirmarConversion(){
   }
  document.getElementById("resultado").innerHTML = `<p><b>Procesando, por favor espere...</b></p>`;
 	
-  const res = await fetch(`${API_BASE}/api/pedidos_whatsapp/${idPedidoActual}/convertir`,{
+  const res = await fetch(`${API_BASE}/api/pedidos/${idPedidoActual}/convertir`,{
     method:"POST",
     headers:{"Content-Type":"application/json"},
     body:JSON.stringify({
@@ -463,12 +611,12 @@ async function confirmarConversion(){
   cargar();
 }
 
-// ---------------- Eliminar ----------------
-async function eliminar(id){
-  if (!confirm("Eliminar pedido #" + id + "?")) return;
-  const res = await fetch(`${API_BASE}/api/pedidos_whatsapp/${id}`, { method:"DELETE" });
+// ---------------- Cancelar ----------------
+async function cancelar(id){
+  if (!confirm("Cancelar pedido #" + id + "?")) return;
+  const res = await fetch(`${API_BASE}/api/pedidos/${id}/cancelar`, { method:"PUT"});
   const j = await res.json();
-  if (j.ok) alert("Pedido eliminado");
+  if (j.ok) alert("Pedido cancelado");
   cargar();
 }
 
@@ -488,26 +636,31 @@ async function distancia(domicilioCliente) {
 }
 
 async function obtenerDatosEmpresa() {
-    try {
-        const snap = await db.collection("EMPRESA").get();
 
-        if (snap.empty) {
-            console.warn("No se encontró documento en EMPRESA");
-            return null;
-        }
+  try {
 
-        const data = snap.docs[0].data();
+    const resp = await fetch('/api/empresa');
 
-        return {
-            nombre: data.nombre_empresa,
-            domicilio: data.domicilio
-        };
-
-    } catch (err) {
-        console.error("Error obteniendo datos de EMPRESA:", err);
-        return null;
+    if (!resp.ok) {
+      return null;
     }
+    const data = await resp.json();
+
+//alert('data.nombre:' + data.nombre);	
+//alert('data.domicilio:' + data.domicilio);	
+    return {
+      nombre: data.nombre || "",
+      domicilio: data.domicilio || ""
+    };
+
+  } catch (err) {
+
+    console.error(err);
+
+    return null;
+  }
 }
+
 
 
 // ---------------- Inputs sincronizados ----------------
@@ -537,6 +690,21 @@ if (Notification.permission !== "granted") {
   });
 });
 
+// Convertir yyyy-mm-dd → dd/mm/yyyy
+function convertirFechaOK(f) {
+  if (!f) return "";
+  // Si viene como objeto Date
+  if (typeof f === "object") {
+    f = f.toISOString().split("T")[0];
+  }
+  // Si viene como string ISO
+  if (String(f).includes("T")) {
+    f = String(f).split("T")[0];
+  }
+  const [yyyy, mm, dd] = String(f).split("-");
+  return `${dd}/${mm}/${yyyy}`;
+}
+
 function notificarPedido(p) {
 
   // sonido
@@ -546,11 +714,13 @@ function notificarPedido(p) {
   } catch(e){}
 
   // notificación
+/*
   if (Notification.permission === "granted") {
     new Notification("🛎️ Nuevo pedido", {
       body: `${p.nombre} - ${p.domicilio}`,
     });
   }
+*/
 }
 
 

@@ -5,10 +5,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Generar Venta - Delivery / Mostrador</title>
  
-  <!-- Firebase v8 -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 <script src="js/auth.js"></script>  <!-- AquÌ se verifica la autenticacion-->
 
 <!-- MAPA -->
@@ -56,6 +52,10 @@
     .radio-group{display:flex;padding:20px;gap:46px;align-items:center;justify-content:center;margin-bottom:12px; font-size:20px; background-color:#42EB83}
     .cliente-box{border:4px solid #ddd;padding:10px;border-radius:6px;margin:8px 0;background:#fafafa}
     .alert-modern{background:#e9f7ef;border-left:6px solid #28a745;padding:10px;border-radius:6px;margin:10px 0}
+	
+	.filaMensajePromo{ display:flex; align-items:center; gap:10px; } 
+	#mensajeTipo{ flex:1; }
+	
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
@@ -73,13 +73,16 @@
     </div>
 
     <!-- Mensaje moderno (visual) -->
-    <div id="mensajeTipo" class="alert-modern">Delivery propio seleccionado. Si mantiene la opcion, debe seleccionar el cliente.</div>
-
+	<div class="filaMensajePromo">
+		<div id="mensajeTipo" class="alert-modern">Delivery propio seleccionado. Si mantiene la opcion, debe seleccionar el cliente.</div>
+		<button  id="btnVerPromos">&#x2764;&#xFE0F; Ver promos vigentes</button>
+	</div>
+ 
     <!-- BLOQUE CLIENTE (oculto si no es delivery propio) -->
     <div id="bloqueCliente">
       <label style="font-weight:bold">Cliente (solo para delivery propio)</label>
       <div class="flex" style="align-items:center">
-<button onclick="NuevoCliente()">&#11207; ir a Clientes</button>
+		<button onclick="NuevoCliente()">&#11207; ir a Clientes</button>
         <input type="text" id="id_cliente" placeholder="codigo cliente" style="width:140px">
 		        <button id="btnVerificar">&#9989; Verificar</button>
 
@@ -131,6 +134,19 @@
       </div>
     </div>
 
+
+	<!-- MODAL PROMOS -->
+	<div id="modalPromos" class="modal">
+		<div class="modal-contenido" style="width:700px;">
+			<span class="cerrar" onclick="cerrarModalPromos()">
+				&times;
+			</span>
+			<h3>Promociones vigentes</h3>
+			<div id="contenidoPromos"></div>
+		</div>
+	</div>
+
+
     <table id="tabla">
       <thead>
         <tr><th>Codigo</th><th>Descripcion</th><th>Precio</th><th>Cantidad</th><th>Subtotal</th><th></th></tr>
@@ -140,6 +156,15 @@
 
     <div style="margin-top:20px;">
        <div style="display: none;" class="total" id="subtotal">Subtotal: $ 0.00</div> 
+
+<div id="detallePromociones"
+     style="
+        margin-top:8px;
+        color:#0b7d32;
+        font-size:14px;
+        font-weight:bold;
+     ">
+</div>
       <label>Descuento: </label>
       <input class="input-pequeno" type="number" id="descuento" value="0" step="0.01" onchange="aplicarDescuentoRecargo()">
       <label>Recargo: </label>
@@ -187,29 +212,32 @@
 
 verificarSesion();
 
+
 async function NuevoCliente() {
 localStorage.setItem("paginaAnterior", window.location.href);
 window.location.href = "clientes.html";
 }
 
 async function obtenerDatosEmpresa() {
-    try {
-        const snap = await db.collection("EMPRESA").get();
 
-        if (snap.empty) {
-            console.warn("No se encontrÛ documento en EMPRESA");
+    try {
+
+        const resp = await fetch('/api/empresa');
+        const data = await resp.json();
+
+        if (!data) {
+            console.warn("No se encontrÛ EMPRESA");
             return null;
         }
 
-        const data = snap.docs[0].data();
-
         return {
-            nombre: data.nombre_empresa,
+            nombre: data.nombre,
             domicilio: data.domicilio
         };
 
     } catch (err) {
-        console.error("Error obteniendo datos de EMPRESA:", err);
+
+        console.error("Error obteniendo EMPRESA:", err);
         return null;
     }
 }
@@ -243,21 +271,41 @@ mostrarMapaDistancia(origen, destino);
     let clienteSeleccionado = null; // { id_cliente, nombre, domicilio, telefono }
 
     // Cargar formas de pago
-    async function cargarFormasPago(){
-      const s1 = document.getElementById('fpago1');
-      const s2 = document.getElementById('fpago2');
-      s1.innerHTML = "<option value=''>Seleccione</option>";
-      s2.innerHTML = "<option value=''>Seleccione</option>";
-      const snap = await db.collection('F_PAGO')
-			.where("deshabilitado","==","N")
-			.orderBy('descripcion').get();
-      snap.forEach(d => {
-        const data = d.data();
-        const opt = `<option value="${data.id_fpago}">${data.descripcion}</option>`;
-        s1.innerHTML += opt;
-        s2.innerHTML += opt;
-      });
-    }
+	async function cargarFormasPago() {
+
+		const s1 = document.getElementById('fpago1');
+		const s2 = document.getElementById('fpago2');
+
+		s1.innerHTML = "<option value=''>Seleccione</option>";
+		s2.innerHTML = "<option value=''>Seleccione</option>";
+
+		try {
+			const resp = await fetch('/api/fpago/habilitadas');
+			const data = await resp.json();
+
+			if (!data.ok) {
+				alert('Error cargando formas de pago');
+				return;
+			}
+
+			data.formasPago.forEach(item => {
+
+				const opt = `
+					<option value="${item.id_fpago}">
+						${item.id_fpago} - ${item.descripcion}
+					</option>
+				`;
+
+				s1.innerHTML += opt;
+				s2.innerHTML += opt;
+			});
+
+		} catch (err) {
+			console.error(err);
+			alert('Error cargando formas de pago');
+		}
+	}
+
     window.onload = cargarFormasPago;
 
     // ====== Delivery radio handling ======
@@ -311,15 +359,19 @@ mostrarMapaDistancia(origen, destino);
       cont.innerHTML = "<p>Buscando...</p>";
       if (!texto) { cont.innerHTML = "<p>Ingrese al menos 1 caracter</p>"; return; }
       try {
-        const snap = await db.collection('CLIENTES').get();
-        let resultados = [];
-        snap.forEach(doc => {
-          const d = doc.data();
-          if (d.deshabilitado === 'S') return; // excluye deshabilitados
-          if ((d.nombre && d.nombre.toLowerCase().includes(texto)) || (d.telefono && String(d.telefono).includes(texto))) {
-            resultados.push({...d, _docId: doc.id});
-          }
-        });
+
+		const resp = await fetch('/api/clientes');
+		const clientes = await resp.json();
+		const resultados = clientes.filter(c => {
+			return (
+				!c.deshabilitado &&
+				(
+					(c.nombre || '').toLowerCase().includes(texto) ||
+					String(c.telefono || '').includes(texto)
+				)
+			);
+		});
+
         if (resultados.length === 0) { cont.innerHTML = "<p>No se encontraron clientes.</p>"; return; }
         let html = `<table style="width:100%;border-collapse:collapse"><tr><th>ID</th><th>Nombre</th><th>Domicilio</th><th>Tel</th></tr>`;
         resultados.forEach(r => {
@@ -356,12 +408,14 @@ mostrarMapaDistancia(origen, destino);
       cont.innerHTML = "<p>Buscando...</p>";
       if (!texto) { cont.innerHTML = "<p>Ingrese al menos 2 caracteres</p>"; return; }
       try {
-        const snap = await db.collection('PRODUCTOS').get();
-        let resultados = [];
-        snap.forEach(doc => {
-          const p = doc.data();
-          if (p.descripcion && p.descripcion.toLowerCase().includes(texto) && p.deshabilitado !== 'S') resultados.push(p);
-        });
+		const resp = await fetch('/api/productos');
+		const productos = await resp.json();
+		const resultados = productos.filter(p => {
+			return (
+				!p.deshabilitado &&
+				(p.descripcion || '').toLowerCase().includes(texto)
+			);
+		});
         if (resultados.length === 0) { cont.innerHTML = "<p>No se encontraron productos.</p>"; return; }
         let html = `<table style="width:100%;border-collapse:collapse"><tr><th>ID</th><th>Descripci√≥n</th><th>Precio</th></tr>`;
         resultados.forEach(p => {
@@ -379,77 +433,201 @@ mostrarMapaDistancia(origen, destino);
       document.getElementById('modalProductos').style.display = 'none';
     };
 
-		   window.agregarProducto = async function () {
-		  const idProd = document.getElementById('id_producto').value.trim();
-		  if (!idProd) { 
-			alert('Ingrese un c®Ædigo de producto');
-			return;
-		  }
+		// agregar producto a la grilla
+		window.agregarProducto = async function () {
 
-		  try {
-			let docSnap = null;
+			const idProd = document.getElementById('id_producto').value.trim();
 
-			// 1) Buscar por id_producto (id del documento)
-			const snapDoc = await db.collection('PRODUCTOS').doc(String(idProd)).get();
-			if (snapDoc.exists) {
-			  docSnap = snapDoc;
+			if (!idProd) {
+				alert('Ingrese un codigo de producto');
+				return;
 			}
 
-			// 2) Si no est®¢, buscar por cod_barra
-			if (!docSnap) {
-			  const q = await db.collection('PRODUCTOS')
-				.where('cod_barra', '==', String(idProd))
-				.get();
-			  if (!q.empty) {
-				docSnap = q.docs[0]; // Primer match
-			  }
+			try {
+
+				const resp = await fetch(`/api/productos/busqueda/${idProd}`);
+
+				const producto = await resp.json();
+
+				if (!producto) {
+					alert('Producto no encontrado');
+					return;
+				}
+
+				const p = producto;
+
+				if (p.deshabilitado) {
+					alert('Producto deshabilitado');
+					return;
+				}
+
+				const idx = window.productosVenta.findIndex(
+						x => x.id === p.id_producto
+					);
+
+				if (idx >= 0) {
+					window.productosVenta[idx].cantidad += 1;
+				} else {
+
+					window.productosVenta.push({
+						id: p.id_producto,
+						nombre: p.descripcion,
+						precio: Number(p.precio) || 0,
+						cantidad: 1,
+						modifica: p.modifica || false
+					});
+				}
+				
+				await renderTabla();
+
+				document.getElementById('id_producto').value = '';
+				document.getElementById('id_producto').focus();
+
+			} catch (err) {
+				console.error(err);
+				alert('Error buscando producto');
 			}
-
-			if (!docSnap) {
-			  alert('Producto no encontrado');
-			  return;
-			}
-
-			const producto = docSnap.data();
-
-			if (producto.deshabilitado === 'S') {
-			  alert('Producto no habilitado para la venta');
-			  return;
-			}
-
-			const nombre = producto.descripcion || '(sin nombre)';
-			const precio = Number(producto.precio) || 0;
-			const CodProd = producto.id_producto ?? 0;
-			const modifica = producto.modifica || 'N';
-
-			const idx = window.productosVenta.findIndex(p => p.id === CodProd);
-			if (idx >= 0) {
-			  window.productosVenta[idx].cantidad += 1;
-			} else {
-			  window.productosVenta.push({ id: CodProd, nombre, precio, cantidad: 1, modifica });
-			}
-
-			renderTabla();
-
-			document.getElementById('id_producto').value = '';
-			document.getElementById('id_producto').focus();
-
-		  } catch (err) {
-			console.error('Error buscando producto:', err);
-			alert('Error al buscar el producto (ver consola).');
-		  }
 		};
 
 
+window.promocionesAplicadas = [];
+// ======================================
+// CALCULAR PROMOCIONES
+// ======================================
+async function calcularPromociones(productosVenta) {
+
+    try {
+
+        const resp = await fetch(
+            '/api/promociones/calcular',
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    productos: productosVenta
+                })
+            }
+        );
+
+        return await resp.json();
+
+    } catch (err) {
+
+        console.error(err);
+
+        return {
+            ok: false,
+            subtotalOriginal: 0,
+            descuentoPromos: 0,
+            promocionesAplicadas: [],
+            totalFinal: 0
+        };
+    }
+}
+
+async function aplicarDescuentoRecargo() {
+
+    const promoData =
+        await calcularPromociones(
+            window.productosVenta
+        );
+
+    const subtotal =
+        promoData.subtotalOriginal || 0;
+
+    // IMPORTANTE:
+    // usar SIEMPRE descuentoPromos
+    const descuentoPromo =
+        promoData.descuentoPromos || 0;
+
+    const descuentoManual =
+        parseFloat(
+            document.getElementById(
+                'descuento'
+            ).value
+        ) || 0;
+
+    const recargo =
+        parseFloat(
+            document.getElementById(
+                'recargo'
+            ).value
+        ) || 0;
+
+    let total =
+        subtotal
+        - descuentoPromo
+        - descuentoManual
+        + recargo;
+
+    if (total < 0) {
+        total = 0;
+    }
+
+    document.getElementById(
+        'subtotal'
+    ).textContent =
+        'Subtotal: $ ' +
+        subtotal.toFixed(2);
+
+    document.getElementById(
+        'totalGeneral'
+    ).textContent =
+        'Total general: $ ' +
+        total.toFixed(2);
+
+    recalcularImportes();
+}
+
+
+
+
     // Render tabla y totales
-    window.renderTabla = function(){
+    window.renderTabla = async function(){
       const tbody = document.querySelector('#tabla tbody');
       tbody.innerHTML = '';
-      let totalGeneral = 0;
+      
+	  const promoData = await calcularPromociones(window.productosVenta); 
+//console.log("PROMODATA:", promoData);
+	  let totalGeneral = promoData.totalFinal; 
+	  window.promocionesAplicadas = promoData.promocionesAplicadas;
+
+const divPromos =
+    document.getElementById(
+        'detallePromociones'
+    );
+
+if (
+    promoData.promocionesAplicadas &&
+    promoData.promocionesAplicadas.length > 0
+) {
+
+    let html = '';
+
+    promoData.promocionesAplicadas.forEach(pr => {
+
+        html += `
+            <div>
+                * ${pr.descripcion}
+                (-$ ${Number(pr.descuento).toFixed(2)})
+            </div>
+        `;
+    });
+
+    divPromos.innerHTML = html;
+
+} else {
+
+    divPromos.innerHTML = '';
+}
+
+	  
       window.productosVenta.forEach((p,i) => {
         const subtotal = (Number(p.precio)||0) * (Number(p.cantidad)||0);
-        totalGeneral += subtotal;
-        const precioHTML = p.modifica === 'S'
+
+        const precioHTML = p.modifica === 1
           ? `<input type="number" value="${p.precio.toFixed(2)}" min="0" step="0.01" style="width:80px" onchange="cambiarPrecio(${i}, this.value)">`
           : `$ ${p.precio.toFixed(2)}`;
         const tr = document.createElement('tr');
@@ -464,231 +642,293 @@ mostrarMapaDistancia(origen, destino);
         tbody.appendChild(tr);
       });
       document.getElementById('totalGeneral').textContent = 'Total general: $ ' + totalGeneral.toFixed(2);
-      aplicarDescuentoRecargo();
+      await aplicarDescuentoRecargo();
     };
 
-    window.cambiarPrecio = function(index, nuevoPrecio){
+    window.cambiarPrecio = async function(index, nuevoPrecio){
       const n = parseFloat(nuevoPrecio);
       if (isNaN(n) || n < 0) return;
       window.productosVenta[index].precio = n;
-      renderTabla();
+      await renderTabla();
     };
 
-    function aplicarDescuentoRecargo(){
-      const subtotal = window.productosVenta.reduce((acc,p)=>acc + (p.precio*p.cantidad), 0);
-      const descuento = parseFloat(document.getElementById('descuento').value) || 0;
-      const recargo = parseFloat(document.getElementById('recargo').value) || 0;
-      let total = subtotal - descuento + recargo;
-      if (total < 0) total = 0;
-      document.getElementById('subtotal').textContent = 'Subtotal: $ ' + subtotal.toFixed(2);
-      document.getElementById('totalGeneral').textContent = 'Total general: $ ' + total.toFixed(2);
-      recalcularImportes();
-    }
-
-    const origRender = window.renderTabla;
-    window.renderTabla = function(){ origRender(); aplicarDescuentoRecargo(); };
-
-    window.cambiarCantidad = function(index, nuevaCantidad){
+    window.cambiarCantidad = async function(index, nuevaCantidad){
       const n = parseInt(nuevaCantidad,10);
       if (isNaN(n) || n<1) return;
       window.productosVenta[index].cantidad = n;
-      renderTabla();
+      await renderTabla();
     };
 
-    window.eliminarProducto = function(index){
+    window.eliminarProducto = async function(index){
       window.productosVenta.splice(index,1);
-      renderTabla();
+      await renderTabla();
     };
 
-    window.recalcularImportes = function(modificado=0){
-      const subtotal = window.productosVenta.reduce((acc,p)=>acc + (p.precio*p.cantidad),0);
-      const descuento = parseFloat(document.getElementById('descuento').value) || 0;
-      const recargo = parseFloat(document.getElementById('recargo').value) || 0;
-      const totalGeneral = subtotal - descuento + recargo;
-      const imp1 = document.getElementById('importe1'), imp2 = document.getElementById('importe2');
-      let val1 = parseFloat(imp1.value) || 0;
-      let val2 = parseFloat(imp2.value) || 0;
-      if (modificado === 1) {
-        val1 = Math.min(val1, totalGeneral);
-        val2 = (totalGeneral - val1).toFixed(2);
-        imp2.value = val2;
-      } else if (modificado === 2) {
-        val2 = Math.min(val2, totalGeneral);
-        val1 = (totalGeneral - val2).toFixed(2);
-        imp1.value = val1;
-      } else {
-        imp1.value = totalGeneral.toFixed(2);
-        imp2.value = '0.00';
-      }
-    };
+window.recalcularImportes = async function(modificado = 0) {
+
+    // PROMOCIONES
+    const promoData =
+        await calcularPromociones(
+            window.productosVenta
+        );
+    const subtotal =
+        promoData.subtotalOriginal || 0;
+
+    const descuentoPromo = promoData.descuentoPromos || 0;
+
+    const descuentoManual =
+        parseFloat(
+            document.getElementById(
+                'descuento'
+            ).value
+        ) || 0;
+
+    const recargo =
+        parseFloat(
+            document.getElementById(
+                'recargo'
+            ).value
+        ) || 0;
+
+    // TOTAL FINAL REAL
+    let totalGeneral =
+        subtotal
+        - descuentoPromo
+        - descuentoManual
+        + recargo;
+
+    if (totalGeneral < 0) {
+        totalGeneral = 0;
+    }
+
+    const imp1 =
+        document.getElementById('importe1');
+
+    const imp2 =
+        document.getElementById('importe2');
+
+    let val1 =
+        parseFloat(imp1.value) || 0;
+
+    let val2 =
+        parseFloat(imp2.value) || 0;
+
+    // =====================================
+    // MODIFICO IMPORTE 1
+    // =====================================
+
+    if (modificado === 1) {
+
+        val1 = Math.min(
+            val1,
+            totalGeneral
+        );
+
+        val2 =
+            totalGeneral - val1;
+
+        imp2.value =
+            val2.toFixed(2);
+    }
+
+    // =====================================
+    // MODIFICO IMPORTE 2
+    // =====================================
+
+    else if (modificado === 2) {
+
+        val2 = Math.min(
+            val2,
+            totalGeneral
+        );
+
+        val1 =
+            totalGeneral - val2;
+
+        imp1.value =
+            val1.toFixed(2);
+    }
+
+    // =====================================
+    // AUTOMATICO
+    // =====================================
+
+    else {
+
+        imp1.value =
+            totalGeneral.toFixed(2);
+
+        imp2.value =
+            '0.00';
+    }
+};
+
 
     // ====== Finalizar venta (grabado) ======
-    window.finalizarVenta = async function(){
-      if (window.productosVenta.length === 0) { alert('‚ö†Ô∏è No hay productos en la venta'); return; }
+	window.finalizarVenta = async function(){
 
-      const tipoVenta = parseInt(document.querySelector('input[name="tipoDelivery"]:checked').value,10); // 1,2,3
-      // validar tipo y cliente si corresponde
-      if (!tipoVenta) { alert('Seleccione tipo de delivery'); return; }
-      if (tipoVenta === 1 && !clienteSeleccionado) { alert('Para Delivery propio debe seleccionar un cliente'); return; }
+		if (window.productosVenta.length === 0) {
 
-      const fp1 = document.getElementById('fpago1').value;
-      const fp2 = document.getElementById('fpago2').value;
-      const imp1 = parseFloat(document.getElementById('importe1').value) || 0;
-      const imp2 = parseFloat(document.getElementById('importe2').value) || 0;
+			alert('No hay productos en la venta');
+			return;
+		}
 
-      const subtotal = window.productosVenta.reduce((acc,p)=>acc + (p.precio*p.cantidad),0);
-      const descuento = parseFloat(document.getElementById('descuento').value) || 0;
-      const recargo = parseFloat(document.getElementById('recargo').value) || 0;
-      const totalFinal = subtotal - descuento + recargo;
+		const tipoVenta = parseInt(
+			document.querySelector('input[name="tipoDelivery"]:checked').value,10
+		);
 
-      if (!fp1 && !fp2) { alert('Debe seleccionar al menos una forma de pago.'); return; }
-      if (fp1 && fp2 && fp1 === fp2) { alert('Las dos formas de pago no pueden ser iguales.'); return; }
-      if ((!fp1 && imp1 > 0) || (!fp2 && imp2 > 0)) { alert('Falta seleccionar alguna forma de pago.'); return; }
-      if ((fp1 && imp1 <= 0) || (fp2 && imp2 <= 0)) { alert('Las formas de pago seleccionadas no pueden tener importe cero.'); return; }
-      if (Math.abs((imp1 + imp2) - totalFinal) > 0.01) { alert('‚ö†Ô∏è Los importes no coinciden con el total general.'); return; }
+		if (tipoVenta === 1 && !clienteSeleccionado) {
 
-      try {
-        // obtener nuevo id_venta
-        const snapUlt = await db.collection('VENTAS_CAB').orderBy('id_venta','desc').limit(1).get();
-        let nuevoIdVenta = 1;
-        if (!snapUlt.empty) {
-          const u = snapUlt.docs[0].data();
-          nuevoIdVenta = (u.id_venta || 0) + 1;
-        }
+			alert('Debe seleccionar un cliente');
+			return;
+		}
 
-        // fecha y hora
-        const fechaHoy = fechaFormateada;	//new Date().toLocaleDateString('es-AR');
-        const horaHoy = Obtener_Hora();
+		const fp1 = document.getElementById('fpago1').value;
+		const fp2 = document.getElementById('fpago2').value;
 
-        // armar cabecera
-        const cabecera = {
-          id_venta: nuevoIdVenta,
-          fecha: fechaHoy,
-          hora: horaHoy,
-          total: totalFinal,
-          subtotal: subtotal,
-          descuento: descuento,
-          recargo: recargo,
-          f_pago1: fp1 ? parseInt(fp1) : 0,
-          f_pago2: fp2 ? parseInt(fp2) : 0,
-          importe_fp1: imp1 || 0,
-          importe_fp2: imp2 || 0,
-          id_cierre: 0,
-          anulada: 'N',
-          tipo_venta: tipoVenta // 1,2,3
-        };
+		const imp1 = parseFloat(document.getElementById('importe1').value) || 0;
+		const imp2 = parseFloat(document.getElementById('importe2').value) || 0;
 
-        if (tipoVenta === 1 && clienteSeleccionado) {
-			cabecera.id_cliente = clienteSeleccionado.id_cliente;}
-			else{
-			cabecera.id_cliente = 0;}
-			
+const promoData = await calcularPromociones(window.productosVenta);
+const subtotal = promoData.subtotalOriginal;
+const descuentoPromo = promoData.descuentoPromos || 0;
+	
+		const descuento = parseFloat(document.getElementById('descuento').value) || 0;
+		const recargo = parseFloat(document.getElementById('recargo').value) || 0;
 
-        // grabar cabecera
-        await db.collection('VENTAS_CAB').doc(String(nuevoIdVenta)).set(cabecera);
+const totalFinal = subtotal - descuentoPromo - descuento + recargo;
 
-        // detalle + actualizar stock en batch
-        const batch = db.batch();
-        for (const p of window.productosVenta) {
-          const sub = p.precio * p.cantidad;
-          const detRef = db.collection('VENTAS_DET').doc();
-          batch.set(detRef, {
-            id_venta: nuevoIdVenta,
-            id_producto: isNaN(Number(p.id)) ? p.id : Number(p.id),
-            cantidad: p.cantidad,
-            precio: p.precio,
-            subtotal: sub
-          });
-          // actualizar stock del producto principal
-          const prodRef = db.collection('PRODUCTOS').doc(String(p.id));
-          batch.update(prodRef, { stock: firebase.firestore.FieldValue.increment(-p.cantidad) });
-		  
-// Si el producto tiene subproductos, descontarles stock tambien
-const prodDoc = await db.collection('PRODUCTOS').doc(String(p.id)).get();
-if (prodDoc.exists && prodDoc.data().subproductos === "S") {
-  const relSnap = await db.collection('RELA_PROD_SUB')
-                          .where("id_producto", "==", Number(p.id))
-                          .get();
-  relSnap.forEach(docRel => {
-    const idSub = docRel.data().id_prod_sub;
-    const subRef = db.collection('PRODUCTOS').doc(String(idSub));
-    batch.update(subRef, { stock: firebase.firestore.FieldValue.increment(-p.cantidad) });
-  });
-}
+		// VALIDACIONES
 
-        }
-        await batch.commit();
+		if (!fp1 && !fp2) {
+			alert('Debe seleccionar forma de pago');
+			return;
+		}
 
-        const deseaImprimir = confirm(`‚ú?Venta N¬∞ ${nuevoIdVenta} grabada correctamente.\n\n¬øDesea imprimir el comprobante?`);
-        if (deseaImprimir) {
-          // buscar nombre empresa
-          const q = await db.collection('EMPRESA').where('id_empresa','==',1).get();
-          let fempresa = 'sin empresa';
-          if (!q.empty) fempresa = q.docs[0].data().nombre_empresa || fempresa;
-          generarComprobanteTermicoPDF(nuevoIdVenta, cabecera, window.productosVenta, fp1, fp2, imp1, imp2, fempresa, tipoVenta);
-        }
+		if (fp1 && fp2 && fp1 === fp2) {
+			alert('Las formas de pago no pueden ser iguales');
+			return;
+		}
 
-        LimpiarPantalla();
-        //alert('Venta grabada correctamente.');
-      } catch(err){
-        console.error('‚ù?Error al grabar la venta:', err);
-        alert('Error al grabar la venta. Ver consola.');
-      }
-    };
+		if (Math.abs((imp1 + imp2) - totalFinal) > 0.01) {
+			alert('Los importes no coinciden');
+			return;
+		}
+
+		try {
+
+			const venta = {
+				tipo_venta: tipoVenta,
+				id_cliente: clienteSeleccionado ? clienteSeleccionado.id_cliente : 0,
+				subtotal,
+				descuento,
+				recargo,
+				descuento_promociones: descuentoPromo || 0,
+				total: totalFinal,
+				f_pago1: fp1 ? parseInt(fp1) : 0,
+				f_pago2: fp2 ? parseInt(fp2) : 0,
+				importe_fp1: imp1,
+				importe_fp2: imp2,
+				promociones: window.promocionesAplicadas || [],
+				productos: window.productosVenta
+			};
+
+			const resp = await fetch(
+				'/api/ventas_cab/delivery',
+				{
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify(venta)
+				}
+			);
+
+			const data = await resp.json();
+
+			if (!data.ok) {
+				alert(data.error || 'Error grabando venta');
+				return;
+			}
+
+			const deseaImprimir =
+				confirm(`Venta Nro ${data.id_venta} grabada correctamente.\n\nøDesea imprimir el ticket?`);
+
+			if (deseaImprimir) {
+				generarComprobanteTermicoPDF(
+					data.id_venta,
+					data.cabecera,
+					window.productosVenta,
+					fp1,
+					fp2,
+					imp1,
+					imp2,
+					data.nombre,
+					tipoVenta,
+					window.promocionesAplicadas || []
+				);
+			}
+
+			await LimpiarPantalla();
+
+		} catch (err) {
+			console.error(err);
+			alert('Error grabando venta');
+		}
+	};
+
 
     async function LimpiarPantalla(){
       window.productosVenta = [];
-      renderTabla();
+      await renderTabla();
       document.getElementById('fpago1').value = '';
       document.getElementById('fpago2').value = '';
       document.getElementById('importe1').value = '0.00';
       document.getElementById('importe2').value = '0.00';
       document.getElementById('descuento').value = '0.00';
       document.getElementById('recargo').value = '0.00';
+
       clienteSeleccionado = null;
       document.getElementById('id_cliente').value = '';
       document.getElementById('cli_nombre').textContent = '-';
       document.getElementById('cli_domicilio').textContent = '-';
       document.getElementById('cli_telefono').textContent = '-';
     }
-
+/*
     // funcion hora
     function Obtener_Hora(){
       const ahora = new Date();
       const opciones = { timeZone: 'America/Argentina/Buenos_Aires', hour: '2-digit', minute: '2-digit', second: '2-digit' };
       return ahora.toLocaleTimeString('es-AR', opciones);
     }
-	
+*/	
     // --- Verificar existencia del cliente ---
 	const idCli = document.getElementById("id_cliente");
     document.getElementById("btnVerificar").onclick = async () => {
       const id = parseInt(idCli.value);
 		try {
-			const snap = await db.collection('CLIENTES')
-			  .where('id_cliente', '==', id)
-			  .limit(1)
-			  .get();
-
-			if (snap.empty) {
-			  alert('Cliente no encontrado');
-			  LimpiarPantalla();
-			  return;
+			const resp = await fetch(`/api/clientes/${id}`);
+			const data = await resp.json();
+//console.log(data);
+			if (data.error) {
+				alert('Cliente no encontrado');
+				await LimpiarPantalla();
+				return;
 			}
 
-			const d = snap.docs[0].data();
+			const d = data;
 
-			if (d.deshabilitado === 'S') {
-			  alert('Cliente deshabilitado');
-			  LimpiarPantalla();
-			  return;
+			if (d.deshabilitado) {
+				alert('Cliente deshabilitado');
+				await LimpiarPantalla();
+				return;
 			}
 
 			clienteSeleccionado = {
-			  docId: snap.docs[0].id,
-			  id_cliente: d.id_cliente,
-			  nombre: d.nombre,
-			  domicilio: d.domicilio,
-			  telefono: d.telefono
+				id_cliente: d.id_cliente,
+				nombre: d.nombre,
+				domicilio: d.domicilio,
+				telefono: d.telefono
 			};
 
 			document.getElementById('cli_nombre').textContent = d.nombre;
@@ -699,15 +939,132 @@ if (prodDoc.exists && prodDoc.data().subproductos === "S") {
 			console.error(err);
 			alert('Error buscando cliente');
 		  }
-
     };
+
+document.getElementById('btnVerPromos').addEventListener('click',abrirModalPromos);
+
+// ======================================================
+
+async function abrirModalPromos(){
+    const modal =document.getElementById('modalPromos');
+    const contenido =document.getElementById('contenidoPromos');
+
+    contenido.innerHTML ='Cargando promociones...';
+    modal.style.display = 'block';
+
+    try {
+        const resp =
+            await fetch(
+                '/api/promociones-abm/vigentes'
+            );
+
+        const data =await resp.json();
+
+        if (!data.ok) {
+            contenido.innerHTML ='Error al cargar promociones';
+            return;
+        }
+
+        if (data.promociones.length === 0) {
+            contenido.innerHTML = 'No hay promociones vigentes';
+            return;
+        }
+
+        let html = '';
+
+        data.promociones.forEach(p => {
+            
+			let vencimiento = 'Sin vto'; 
+			if (p.fecha_hasta) { 
+				vencimiento = 'Vto: ' + p.fecha_hasta.substring(8,10) + '/' + p.fecha_hasta.substring(5,7) + '/' + p.fecha_hasta.substring(0,4); 
+				}
+			
+			let detalle = '';
+
+            // ==========================
+            // SEGUNDA_UNIDAD
+            // ==========================
+            if (p.tipo === 'SEGUNDA_UNIDAD') {
+				detalle =`2da unidad con ${p.porcentaje_desc}% OFF`+`    (cant.min: ${p.cantidad_min})` + ` - ${vencimiento}`;
+            }
+
+            // ==========================
+            // PRECIO_FIJO
+            // ==========================
+            if (p.tipo === 'PRECIO_FIJO') {
+                detalle = `Precio fijo: $${parseFloat(p.precio_fijo || 0).toFixed(2)}`+`    (cant.min: ${p.cantidad_min})`+ ` - ${vencimiento}`;
+            }
+
+            // ==========================
+            // LLEVA_PAGA
+            // ==========================
+            if (p.tipo === 'LLEVA_PAGA') {
+                detalle =`Lleva ${p.lleva_cant} y paga ${p.paga_cant}`+`    (cant.min: ${p.cantidad_min})`+ ` - ${vencimiento}`;
+			}
+
+            html += `
+            <div
+                style="
+                    border:1px solid #ccc;
+                    border-radius:8px;
+                    padding:10px;
+                    margin-bottom:10px;
+                    background:#f8f8f8;
+                "
+            >
+                <div
+                    style="
+                        font-size:18px;
+                        font-weight:bold;
+                        color:#cc0000;
+                    "
+                >
+                    &#x2764;&#xFE0F; ${p.descripcion}
+                </div>
+
+                <div
+                    style="
+                        margin-top:5px;
+                        font-size:15px;
+                    "
+                >
+                    ${detalle}
+                </div>
+
+                <div
+                    style="
+                        margin-top:8px;
+                        font-size:13px;
+                    "
+                >
+                    <b>Productos:</b><br>
+                    ${p.productos || ''}
+                </div>
+
+            </div>
+            `;
+        });
+
+        contenido.innerHTML = html;
+
+    } catch(err) {
+        console.error(err);
+        contenido.innerHTML ='Error al cargar promociones';
+    }
+}
+
+// ======================================================
+
+function cerrarModalPromos(){
+    document.getElementById('modalPromos').style.display = 'none';
+}
 
 
     // Salir
-    window.SalirVenta = function(){
+    window.SalirVenta = async function(){
       if (window.productosVenta.length > 0) {
         const deseaSalir = confirm('‚ö†Ô∏è Hay productos en la venta.\n\n¬øDesea salir y perder lo ingresado?');
-        if (deseaSalir) { LimpiarPantalla(); return; }
+        if (deseaSalir) { await LimpiarPantalla(); return; }
         else return;
       }
       window.location.href = 'menu-ventas.html';
@@ -719,16 +1076,15 @@ if (prodDoc.exists && prodDoc.data().subproductos === "S") {
       if (event.target === mp) mp.style.display = 'none';
       if (event.target === mc) mc.style.display = 'none';
     };
-  </script>
+</script>
 
 <script src="./js/controlCaja.js"></script>
 <script>
-  verificarAperturaActiva("apertura-caja.html");
+  verificarAperturaActiva("menu-ventas.html");
 </script>
 
 <script src="js/mapa-distancia.js"></script>
 
-<script src="js/medidor.js"></script>
 
 </body>
 

@@ -1,59 +1,62 @@
-// === Verificar sesión y cargar Firestore ===
-// Este script debe incluirse después de Firebase y antes de usar Firestore
+async function verificarSesion() {
 
+    try {
 
-// ==============================
-//  CONFIG FIREBASE
-// ==============================
-const firebaseConfig = {
-  apiKey: "AIzaSyAo0PavzSFhTVMJ7zbjK77gRgoLCTXYmqo",
-  authDomain: "donado-2.firebaseapp.com",
-  projectId: "donado-2"
-};
-// Inicializar Firebase (solo si no está inicializado)
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
+        const resp = await fetch('/api/session');
 
-const db = firebase.firestore();
+        if (!resp.ok) {
 
+            window.location.href = 'login.html';
+            return;
+        }
 
-// ==============================
-//   VERIFICAR SESIÓN GLOBAL
-// ==============================
-// Esta función debe ser llamada en TODAS las páginas
-// excepto login.html
-// Carga el usuario desde Auth (GRATIS)
-// Carga permisos SOLO UNA VEZ desde Firestore
-// Los guarda en localStorage para no recargar cada página
+    } catch (err) {
 
-function verificarSesion() {
-  firebase.auth().onAuthStateChanged(async (user) => {
-
-    if (!user) {
-		// 🔹 No autenticado → redirige a login
-		alert("⚠️ Debe iniciar sesión para acceder a esta página.");
-		window.location.href = "login.html";
-      return;
+        window.location.href = 'login.html';
     }
-    // Guardar datos básicos del usuario (NO consumen Firestore)
-    localStorage.setItem("usuarioEmail", user.email);
-    localStorage.setItem("usuarioUID", user.uid);
-  });
 }
 
 
-// ==============================
-//   FUNCIÓN PARA CERRAR SESIÓN
-// ==============================
+async function logout() {
 
-async function cerrarSesion() {
-  await firebase.auth().signOut();
+    await fetch('/api/logout', {
 
-  // Limpiar datos guardados
-  localStorage.removeItem("usuarioEmail");
-  localStorage.removeItem("usuarioUID");
-  localStorage.removeItem("userData");
+        method: 'POST'
+    });
 
-  window.location.href = "login.html";
+    localStorage.clear();
+
+    window.location.href = 'login.html';
+}
+
+
+// ==========================================
+// DATOS USUARIO
+// ==========================================
+
+function obtenerUsuario() {
+
+    return JSON.parse(
+        localStorage.getItem("usuarioData")
+    );
+}
+
+
+function obtenerNivelUsuario() {
+
+    return parseInt(
+        localStorage.getItem("usuarioNivel") || "0"
+    );
+}
+
+
+function esAdministrador() {
+
+    return obtenerNivelUsuario() === 1;
+}
+
+
+function esVendedor() {
+
+    return obtenerNivelUsuario() === 2;
 }

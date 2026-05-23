@@ -3,11 +3,7 @@
 <head>
   <meta charset="utf-8">
   
-   <!-- Firebase v8 -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-<script src="js/auth.js"></script>  <!-- Aquí se verifica la autenticacion-->
+<script src="js/auth.js"></script>  <!-- Aqui se verifica la autenticacion -->
 
   <title>Menú General</title>
 
@@ -172,9 +168,22 @@ button small {
           <button class="boton-redondeado" id="btnCambioPrecios" onclick="location.href='cambio-precios.html'">Cambio masivo de Precios</button>
         </td>
         <td>
-          <button class="boton-redondeado" id="btnCambioPrecios2" onclick="location.href='auditoria-precios.html'">Auditoria de cambio de Precios</button>
+          <button class="boton-redondeado" id="btnAuditPrecios" onclick="location.href='auditoria-precios.html'">Auditoria de cambio de Precios</button>
         </td>
       <tr>
+      </tr>
+        <td>
+          <button class="boton-redondeado" id="btnPromos" onclick="location.href='promociones.html'">Promociones</button>
+        </td>
+		<td>
+		  <button class="boton-redondeado" id="btnEstadis" onclick="location.href='estadisticas.html'">Estadisticas</button>
+		</td>
+		<td>
+          <button class="boton-redondeado" id="btnConfig" onclick="location.href='empresa_config.html'" style="display:none;">Config. Empresa</button>
+        </td>
+
+      <tr>
+
         <td colspan="2">
           <button id="btnVolver" class="boton-salirvolver" onclick="location.href='index.html'">&#8617; Volver</button>
         </td>
@@ -190,7 +199,9 @@ verificarSesion();
 document.getElementById("userLabel").textContent = localStorage.getItem("usuarioEmail");
 
 // BLOQUEA TODOS LOS BOTONES AL CARGAR LA PÁGINA (menos boton Volver)
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+
+
     // Deshabilitar todos los botones
     const botones = document.querySelectorAll("button");
     botones.forEach(btn => {
@@ -199,18 +210,30 @@ document.addEventListener("DOMContentLoaded", () => {
             btn.title = "No tiene permiso para usar esta función";
         }
     });
-	aplicarPermisos();
+
+    // Esperar permisos
+    await cargarPermisosUsuario();
+
+    // Aplicar permisos
+    aplicarPermisos();
 });
 </script>
 
 <script src="js/permisos.js"></script>
 
 <script>
+if (parseInt(localStorage.getItem("usuarioId")) === 1) 
+	{ 
+	document.getElementById("btnConfig").style.display = "inline-block"; 
+	} 
+	
 window.aplicarPermisos = function() {
-// Habilitar los permisos asignados a los vendedores y TODO al supervisor
+
   // Obtener usuario actual
-  const idUsuarioActual = window.usuarioActual?.id_usuario || 0;
+  const NomUsuarioActual = document.getElementById("userLabel").textContent = localStorage.getItem("usuarioEmail");
+  const idUsuarioActual = localStorage.getItem("usuarioId");
 //alert(idUsuarioActual);
+
     const btn = document.getElementById("btnUsuarios");
     if (tienePermiso(50)) {
 		if (btn) btn.disabled = false;
@@ -218,9 +241,14 @@ window.aplicarPermisos = function() {
     }
     const btn2 = document.getElementById("btnFunciones");
     if (idUsuarioActual == 1) {
+		btn2.style.visibility = "visible";
 		if (btn2) btn2.disabled = false;
 		btn2.title = "";
-    }
+    }else
+	{
+	btn2.style.visibility = "hidden";
+	}
+	
     const btn3 = document.getElementById("btnPermisos");
     if (tienePermiso(52)) {
 		if (btn3) btn3.disabled = false;
@@ -246,13 +274,30 @@ window.aplicarPermisos = function() {
 		if (btn7) btn7.disabled = false;
 		btn7.title = "";
     }    
-	const btn8 = document.getElementById("btnCambioPrecios2");
+	const btn8 = document.getElementById("btnAuditPrecios");
     if (tienePermiso(56)) {
 		if (btn8) btn8.disabled = false;
 		btn8.title = "";
     }
+	const btn9 = document.getElementById("btnPromos");
+    if (tienePermiso(56)) {
+		if (btn9) btn9.disabled = false;
+		btn9.title = "";
+    }
 
-	
+	const btn10 = document.getElementById("btnEstadis");
+    if (tienePermiso(56)) {
+		if (btn10) btn10.disabled = false;
+		btn10.title = "";
+    }
+
+    const btn11 = document.getElementById("btnConfig");
+    if (parseInt(localStorage.getItem("usuarioId")) === 1) {
+		if (btn11) btn11.disabled = false;
+		btn11.title = "";
+    }
+
+
 };
 
 </script>

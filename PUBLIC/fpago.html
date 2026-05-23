@@ -4,10 +4,7 @@
   <meta charset="UTF-8">
   <title>ABM de Formas de Pago</title>
 
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-<script src="js/auth.js"></script>  <!-- 🔹 Aquí se verifica la autenticacion-->
+<script src="js/auth.js"></script>  <!-- Aqui se verifica la autenticacion -->
 
   <style>
     body {
@@ -174,169 +171,370 @@
 
 verificarSesion();
 
+// BLOQUEA TODOS LOS BOTONES AL CARGAR LA PÁGINA (menos boton Volver)
+document.addEventListener("DOMContentLoaded", async () => {
 
-document.addEventListener("DOMContentLoaded", () => {
-	aplicarPermisos();
+/*
+    // Deshabilitar todos los botones
+    const botones = document.querySelectorAll("button");
+    botones.forEach(btn => {
+        if (btn.id !== "btnVolver") {
+            btn.disabled = true;
+            btn.title = "No tiene permiso para usar esta función";
+        }
+    });
+*/
+    // Esperar permisos
+    await cargarPermisosUsuario();
+
+    // Aplicar permisos
+    aplicarPermisos();
+
+    ArmarTabla();
 });
+
+
+
 </script>
 
 <script src="js/permisos.js"></script>
 
 <script>
-// control de permisos
+
+// ============================================
+// CONTROL DE PERMISOS
+// ============================================
 window.aplicarPermisos = function() {
+
     const btn = document.getElementById("btnAlta");
     const btn2 = document.getElementById("btnModificar");
 
     if (!tienePermiso(12)) {
-        //if (btn) btn.style.display = "none";
-		if (btn) btn.disabled = true;
-		btn.title = "No tiene permiso para usar esta funcion";
-		if (btn2) btn2.disabled = true;
-		btn2.title = "No tiene permiso para usar esta funcion";
+        if (btn) btn.disabled = true;
+        btn.title = "No tiene permiso para usar esta funcion";
+        if (btn2) btn2.disabled = true;
+        btn2.title = "No tiene permiso para usar esta funcion";
     }
 };
 
-ArmarTabla();
+// ============================================
+// VARIABLES
+// ============================================
 
-    const idFpago = document.getElementById("id_fpago");
-    const descripcion = document.getElementById("descripcion");
+const idFpago = document.getElementById("id_fpago");
+const descripcion = document.getElementById("descripcion");
 
-    // --- Verificar existencia ---
-    document.getElementById("btnVerificar").onclick = async () => {
-      const codigo = parseInt(idFpago.value);
-      if (!codigo) return alert("Ingrese un código válido.");
-      const docSnap = await db.collection("F_PAGO").doc(String(codigo)).get();
-      if (docSnap.exists) {
-        const data = docSnap.data();
-        descripcion.value = data.descripcion;
-        document.getElementById("deshabili").checked = (data.deshabilitado === "S");
-      } else {
-        alert("Forma de Pago no encontrada.");
-        limpiarCampos();
-      }
-    };
+// ============================================
+// VERIFICAR EXISTENCIA
+// ============================================
 
-    // --- Alta ---
-    document.getElementById("btnAlta").onclick = async () => {
-      if (idFpago.value)
-        return alert("Para dar de alta NO debe ingresar un codigo."+"\n"+"Este se genera automaticamente."+"\n"+"Borrar el codigo ,cargar los demas campos y volver a presionar el boton de ALTA");;
-      if (!await validarCampos()) return;
+document.getElementById("btnVerificar").onclick = async () => {
 
-      const snapshot = await db.collection("F_PAGO")
-        .orderBy("id_fpago", "desc").limit(1).get();
-      let nuevoId = 1;
-      if (!snapshot.empty) nuevoId = snapshot.docs[0].data().id_fpago + 1;
+    const codigo = parseInt(idFpago.value);
 
-      await db.collection("F_PAGO").doc(String(nuevoId)).set({
-        id_fpago: nuevoId,
-        descripcion: descripcion.value.trim(),
-        deshabilitado: document.getElementById("deshabili").checked ? "S" : "N"
-      });
+    if (!codigo)
+        return alert("Ingrese un código válido.");
 
-      alert(`Forma de Pago agregada con código ${nuevoId}`);
-      limpiarCampos();
-	  ArmarTabla();
+    try {
 
-    };
+        const resp = await fetch(`/api/fpago/${codigo}`);
 
-    // --- Modificar ---
-    document.getElementById("btnModificar").onclick = async () => {
-      const codigo = parseInt(idFpago.value);
-      if (!codigo) return alert("Ingrese un código válido.");
-      if (!await validarCampos()) return;
+        if (!resp.ok) {
 
-      const deshab = document.getElementById("deshabili").checked ? "S" : "N";
-
-      await db.collection("F_PAGO").doc(String(codigo)).update({
-        descripcion: descripcion.value.trim(),
-        deshabilitado: deshab
-      });
-      alert("Forma de Pago actualizada correctamente.");
-      limpiarCampos();
-	  ArmarTabla();
-
-    };
-
-    async function validarCampos() {
-      if (!descripcion.value.trim()) { alert("Ingrese la descripcion."); return false; }
-      return true;
-    }
-
-    function limpiarCampos() {
-      idFpago.value = "";
-      descripcion.value = "";
-      document.getElementById("deshabili").checked = false;
-    }
-
-    // --- Modal búsqueda ---
-    const modal = document.getElementById("modalBusqueda");
-    document.getElementById("btnBuscar").onclick = () => modal.style.display = "flex";
-    document.getElementById("btnCerrarModal").onclick = () => modal.style.display = "none";
-
-    document.getElementById("btnBuscarFPago").onclick = async () => {
-      const texto = document.getElementById("txtBuscarNombre").value.trim().toLowerCase();
-      if (!texto) return alert("Ingrese texto a buscar.");
-
-      const tablaBody = document.querySelector("#tablaResultados tbody");
-      tablaBody.innerHTML = "";
-
-      const snapshot = await db.collection("F_PAGO").get();
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        if (data.descripcion.toLowerCase().includes(texto)) {
-          const fila = document.createElement("tr");
-          fila.innerHTML = `<td>${data.id_fpago}</td><td>${data.descripcion}</td>`;
-          fila.onclick = () => {
-            idFpago.value = data.id_fpago;
-            descripcion.value = data.descripcion;
-            document.getElementById("deshabili").checked = (data.deshabilitado === "S");
-            modal.style.display = "none";
-          };
-          tablaBody.appendChild(fila);
+            alert("Forma de Pago no encontrada.");
+            limpiarCampos();
+            return;
         }
-      });
-    };
 
-	// listado de los fpagos
-    function ArmarTabla() {
-	
-      db.collection("F_PAGO")
-		.get()
-        .then((querySnapshot) => {
-          let html = "";
+        const data = await resp.json();
 
-        if (querySnapshot.empty) {
-            html += "<p>No se encontraron formas de pago.</p>";
-          } else {
-            html += "<table><tr><th>Codigo</th><th>Descripcion</th><th>Deshabilitado</th></tr>";
-			let cant = 0;
-            querySnapshot.forEach((doc) => {
-              const data = doc.data();
-              html += `<tr>
-                <td>${data.id_fpago}</td>
-                <td>${data.descripcion}</td>
-                <td>${data.deshabilitado || "N"}</td>
-              </tr>`;
-			cant += 1;
-            });
-			html += `<tr class="total-row" style="font-weight:bold;background:#f2f2f2">
-			  <td colspan="1">CANTIDAD </td>
-			  <td>${cant || "0"}</td>
-			  <td></td>
-			</tr>`;
-            html += "</table>";
-          }
-          document.getElementById("listado").innerHTML = html;
-        })
-        .catch((error) => {
-          console.error("Error buscando grupos: ", error);
-        });
+        descripcion.value = data.descripcion;
+
+        document.getElementById("deshabili").checked = (data.deshabilitado === 1);
+
+    } catch (error) {
+
+        console.error(error);
+
+        alert("Error consultando Forma de Pago");
+    }
+};
+
+// ============================================
+// ALTA
+// ============================================
+
+document.getElementById("btnAlta").onclick = async () => {
+
+    if (idFpago.value) {
+
+        return alert(
+            "Para dar de alta NO debe ingresar un codigo.\n" +
+            "Este se genera automaticamente.\n" +
+            "Borrar el codigo, cargar los demas campos y volver a presionar ALTA"
+        );
     }
 
-  </script>
-  
-<script src="js/medidor.js"></script>
+    if (!validarCampos())
+        return;
+
+    try {
+
+        const resp = await fetch('/api/fpago', {
+
+            method: 'POST',
+
+            headers: {
+                'Content-Type': 'application/json'
+            },
+
+            body: JSON.stringify({
+
+                descripcion: descripcion.value.trim(),
+                deshabilitado: document.getElementById("deshabili").checked ? 1 : 0
+            })
+        });
+
+        const data = await resp.json();
+
+        if (!data.ok) {
+
+            alert(data.mensaje || "Error al grabar");
+            return;
+        }
+
+        alert(`Forma de Pago agregada con código ${data.id_fpago}`);
+
+        limpiarCampos();
+
+        ArmarTabla();
+
+    } catch (error) {
+
+        console.error(error);
+
+        alert("Error grabando Forma de Pago");
+    }
+};
+
+// ============================================
+// MODIFICAR
+// ============================================
+
+document.getElementById("btnModificar").onclick = async () => {
+
+    const codigo = parseInt(idFpago.value);
+
+    if (!codigo)
+        return alert("Ingrese un código válido.");
+
+    if (!validarCampos())
+        return;
+
+    try {
+
+        const resp = await fetch(`/api/fpago/${codigo}`, {
+
+            method: 'PUT',
+
+            headers: {
+                'Content-Type': 'application/json'
+            },
+
+            body: JSON.stringify({
+
+                descripcion: descripcion.value.trim(),
+                deshabilitado: document.getElementById("deshabili").checked ? 1 : 0
+            })
+        });
+
+        const data = await resp.json();
+
+        if (!data.ok) {
+
+            alert(data.mensaje || "Error al modificar");
+            return;
+        }
+
+        alert("Forma de Pago actualizada correctamente.");
+
+        limpiarCampos();
+
+        ArmarTabla();
+
+    } catch (error) {
+
+        console.error(error);
+
+        alert("Error modificando Forma de Pago");
+    }
+};
+
+// ============================================
+// VALIDAR CAMPOS
+// ============================================
+
+function validarCampos() {
+
+    if (!descripcion.value.trim()) {
+        alert("Ingrese la descripcion.");
+        return false;
+    }
+    return true;
+}
+
+// ============================================
+// LIMPIAR CAMPOS
+// ============================================
+
+function limpiarCampos() {
+    idFpago.value = "";
+    descripcion.value = "";
+    document.getElementById("deshabili").checked = false;
+}
+
+// ============================================
+// MODAL BUSQUEDA
+// ============================================
+
+const modal = document.getElementById("modalBusqueda");
+
+document.getElementById("btnBuscar").onclick = () => {
+
+    modal.style.display = "flex";
+};
+
+document.getElementById("btnCerrarModal").onclick = () => {
+
+    modal.style.display = "none";
+};
+
+// ============================================
+// BUSCAR FORMAS DE PAGO
+// ============================================
+
+document.getElementById("btnBuscarFPago").onclick = async () => {
+
+    const texto =
+        document.getElementById("txtBuscarNombre")
+        .value
+        .trim();
+
+    if (!texto)
+        return alert("Ingrese texto a buscar.");
+
+    try {
+
+        const resp = await fetch(`/api/fpago/buscar/${texto}`);
+
+        const data = await resp.json();
+
+        const tablaBody =
+            document.querySelector("#tablaResultados tbody");
+
+        tablaBody.innerHTML = "";
+
+        data.forEach(fp => {
+
+            const fila = document.createElement("tr");
+
+            fila.innerHTML = `
+                <td>${fp.id_fpago}</td>
+                <td>${fp.descripcion}</td>
+            `;
+
+            fila.onclick = () => {
+
+                idFpago.value = fp.id_fpago;
+                descripcion.value = fp.descripcion;
+                document.getElementById("deshabili").checked = (fp.deshabilitado === 1);
+
+                modal.style.display = "none";
+            };
+
+            tablaBody.appendChild(fila);
+        });
+
+    } catch (error) {
+
+        console.error(error);
+
+        alert("Error buscando formas de pago");
+    }
+};
+
+// ============================================
+// ARMAR TABLA
+// ============================================
+
+async function ArmarTabla() {
+
+    try {
+
+		const resp = await fetch('/api/fpago');
+		const data = await resp.json();
+		const formasPago = {};
+
+
+        let html = "";
+
+        if (data.length === 0) {
+
+            html += "<p>No se encontraron formas de pago.</p>";
+
+        } else {
+
+            html += `
+                <table>
+                    <tr>
+                        <th>Codigo</th>
+                        <th>Descripcion</th>
+                        <th>Deshabilitado</th>
+                    </tr>
+            `;
+
+            let cant = 0;
+
+            data.formasPago.forEach(fp => {
+
+                html += `
+                    <tr>
+                        <td>${fp.id_fpago}</td>
+                        <td>${fp.descripcion}</td>
+						<td style="${fp.deshabilitado == 1 ? 'background-color:#FF6467;color:white;' : ''}">
+							${fp.deshabilitado == 1 ? 'S' : 'N'}
+						</td>
+                    </tr>
+                `;
+
+                cant++;
+            });
+
+            html += `
+                <tr class="total-row"
+                    style="font-weight:bold;background:#f2f2f2">
+
+                    <td colspan="1">CANTIDAD</td>
+                    <td>${cant}</td>
+                    <td></td>
+
+                </tr>
+            `;
+
+            html += "</table>";
+        }
+
+        document.getElementById("listado").innerHTML = html;
+
+    } catch (error) {
+
+        console.error(error);
+
+        alert("Error armando tabla");
+    }
+}
+
+</script>
 
 </body>
 </html>

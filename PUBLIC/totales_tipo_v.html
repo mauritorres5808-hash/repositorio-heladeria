@@ -2,12 +2,8 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Totales por Tipo de Venta</title>
+  <title>Ventas por Tipo de Venta</title>
 
-  <!-- Firebase v8 -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 <script src="js/auth.js"></script>  <!-- ?? Aquí se verifica la autenticacion-->
 
   <!-- Chart.js -->
@@ -135,7 +131,7 @@
 
 <body>
   <div class="contenedor">
-    <h2>Totales por Tipo de Venta</h2>
+    <h2>Ventas por Tipo de Venta</h2>
 
     <div class="filtros">
       <label>Desde: <input type="date" id="fechaDesde"></label>
@@ -191,123 +187,171 @@ verificarSesion();
 
     let grafico = null;
 
-    async function calcularTotales() {
-      const mensaje = document.getElementById("mensajeProcesando");
-      mensaje.style.display = "block";
+async function calcularTotales() {
 
-      const fechaDesde = document.getElementById("fechaDesde").value;
-      const fechaHasta = document.getElementById("fechaHasta").value;
+  const mensaje = document.getElementById("mensajeProcesando");
+  mensaje.style.display = "block";
 
-sin_cierre = document.getElementById("chk_cierre").checked;
+  const fechaDesde = document.getElementById("fechaDesde").value;
+  const fechaHasta = document.getElementById("fechaHasta").value;
 
-      try {
-        const ventasSnap = await db.collection("VENTAS_CAB").get();
-        const ventas = ventasSnap.docs
-          .map(doc => doc.data())
-          .filter(v => {
-            const f = convertirFecha(v.fecha);
-			const estados = v.anulada != "S";
-			if (sin_cierre) {
-				const cierres = v.id_cierre === 0;
-				return f >= fechaDesde && f <= fechaHasta && estados && cierres;
-			}else {
-            return f >= fechaDesde && f <= fechaHasta && estados;}				
+  const sin_cierre = document.getElementById("chk_cierre").checked ? 1 : 0;
 
-          });
+  try {
 
-        if (ventas.length === 0) {
-          mensaje.style.display = "none";
-          alert("No se encontraron ventas en ese rango.");
-          return;
-        }
+    // ============================================
+    // CONSULTAR API MYSQL
+    // ============================================
 
-        // Agrupar por tipo_venta
-        const totales = {};
-        ventas.forEach(v => {
-          const tipo = v.tipo_venta || "Sin dato";
-          if (!totales[tipo]) {
-            totales[tipo] = { cantidad: 0, total: 0 };
-          }
-          totales[tipo].cantidad += 1;
-          totales[tipo].total += v.total || 0;
-        });
+    const resp = await fetch(
+      `/api/reportes/totales-tipo-venta?desde=${fechaDesde}&hasta=${fechaHasta}&sin_cierre=${sin_cierre}`
+    );
 
-        const totalGeneralCantidad = Object.values(totales).reduce((a, t) => a + t.cantidad, 0);
-        const totalGeneralImporte = Object.values(totales).reduce((a, t) => a + t.total, 0);
+    const datos = await resp.json();
 
-        const tbody = document.querySelector("#tablaTotales tbody");
-        tbody.innerHTML = "";
-
-        const labels = [];
-        const data = [];
-
-        for (const tipo in totales) {
-          const t = totales[tipo];
-          const descripcion = tipo === "1" ? "Delivery propio" :
-							  tipo === "2" ? "Rappi" :
-                              tipo === "3" ? "PedidosYa" :
-                              tipo === "4" ? "mostrador" :
-                              tipo === "5" ? "Vtas OnLine" : "Otro";
-
-          const porcentaje = ((t.cantidad / totalGeneralCantidad) * 100).toFixed(2);
-          labels.push(descripcion);
-          data.push(t.cantidad);
-
-          tbody.innerHTML += `
-            <tr>
-              <td>${descripcion}</td>
-              <td>${t.cantidad}</td>
-              <td>${formateadorMoneda.format(t.total)}</td>
-              <td>${porcentaje}%</td>
-            </tr>
-          `;
-        }
-
-        tbody.innerHTML += `
-          <tr class="total">
-            <td colspan="1">TOTAL GENERAL</td>
-            <td>${totalGeneralCantidad}</td>
-            <td>${formateadorMoneda.format(totalGeneralImporte)}</td>
-            <td>100%</td>
-          </tr>
-        `;
-
-        // Gráfico
-        const ctx = document.getElementById("graficoTorta").getContext("2d");
-        if (grafico) grafico.destroy();
-
-        grafico = new Chart(ctx, {
-          type: "pie",
-          data: {
-            labels: labels,
-            datasets: [{
-			  label: "Cantidad vendida",
-              data: data,
-              backgroundColor: ["#007bff", "#ff5722", "#ff4081", "#9c27b0"],
-            }]
-          },
-          options: {
-            responsive: true,
-            plugins: {
-              legend: { position: "bottom" },
-              title: {
-                display: true,
-                text: "Distribución de Ventas por Tipo de Venta (%)"
-              }
-            }
-          }
-        });
-
-      } catch (error) {
-        console.error("Error:", error);
-        alert("Error al procesar los datos.");
-      } finally {
-        mensaje.style.display = "none";
-      }
+    if (!datos.ok) {
+      throw new Error(datos.mensaje || "Error obteniendo datos");
     }
+
+    const totales = datos.totales;
+
+    if (totales.length === 0) {
+
+      mensaje.style.display = "none";
+
+      alert("No se encontraron ventas en ese rango.");
+
+      return;
+    }
+
+    // ============================================
+    // TOTALES GENERALES
+    // ============================================
+
+    let totalGeneralCantidad = 0;
+    let totalGeneralImporte = 0;
+
+    totales.forEach(t => {
+
+      totalGeneralCantidad += Number(t.cantidad || 0);
+      totalGeneralImporte += Number(t.total || 0);
+
+    });
+
+    // ============================================
+    // TABLA
+    // ============================================
+
+    const tbody = document.querySelector("#tablaTotales tbody");
+
+    tbody.innerHTML = "";
+
+    const labels = [];
+    const data = [];
+
+    totales.forEach(t => {
+
+      const tipo = String(t.tipo_venta);
+
+      const descripcion =
+        tipo === "1" ? "Delivery propio" :
+        tipo === "2" ? "Rappi" :
+        tipo === "3" ? "PedidosYa" :
+        tipo === "4" ? "Mostrador" :
+        tipo === "5" ? "Vtas OnLine" :
+        "Otro";
+
+      const cantidad = Number(t.cantidad || 0);
+      const total = Number(t.total || 0);
+
+      const porcentaje =
+        totalGeneralCantidad > 0
+          ? ((cantidad / totalGeneralCantidad) * 100).toFixed(2)
+          : 0;
+
+      labels.push(descripcion);
+      data.push(cantidad);
+
+      tbody.innerHTML += `
+        <tr>
+          <td>${descripcion}</td>
+          <td>${cantidad}</td>
+          <td>${formateadorMoneda.format(total)}</td>
+          <td>${porcentaje}%</td>
+        </tr>
+      `;
+    });
+
+    // ============================================
+    // TOTAL GENERAL
+    // ============================================
+
+    tbody.innerHTML += `
+      <tr class="total">
+        <td>TOTAL GENERAL</td>
+        <td>${totalGeneralCantidad}</td>
+        <td>${formateadorMoneda.format(totalGeneralImporte)}</td>
+        <td>100%</td>
+      </tr>
+    `;
+
+    // ============================================
+    // GRAFICO
+    // ============================================
+
+    const ctx = document.getElementById("graficoTorta").getContext("2d");
+
+    if (grafico) {
+      grafico.destroy();
+    }
+
+    grafico = new Chart(ctx, {
+
+      type: "pie",
+
+      data: {
+
+        labels: labels,
+
+        datasets: [{
+          label: "Cantidad vendida",
+          data: data,
+          backgroundColor: [
+            "#007bff",
+            "#ff5722",
+            "#ff4081",
+            "#9c27b0",
+            "#28a745"
+          ]
+        }]
+      },
+
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            position: "bottom"
+          },
+          title: {
+            display: true,
+            text: "Distribución de Ventas por Tipo de Venta (%)"
+          }
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error("Error:", error);
+    alert("Error al procesar los datos.");
+
+  } finally {
+    mensaje.style.display = "none";
+
+  }
+}
+
   </script>
 
-<script src="js/medidor.js"></script>
 
 </body>
 </html>

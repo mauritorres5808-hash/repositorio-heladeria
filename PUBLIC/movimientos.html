@@ -5,10 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Movimientos de Efectivo</title>
 
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 <script src="js/auth.js"></script>  <!-- ?? Aquí se verifica la autenticacion-->
 
   <style>
@@ -48,6 +44,7 @@
       padding: 6px;
       border-radius: 5px;
       border: 1px solid #999;
+	        font-size: 14px;
     }	
 input[type="number"] {
   width: 80px;
@@ -77,6 +74,15 @@ input[type="number"] {
 	
 	.alert-modern{background:#e9f7ef;border-left:6px solid red;padding:10px;border-radius:6px;margin:10px 0}
 
+.custom-select2 {
+      padding: 6px;
+      border-radius: 26px;
+      border: 6px solid ;
+      margin-top: 4px;
+      font-size: 14px;
+	  border-color:blue;
+}
+
   </style>
 </head>
 
@@ -92,7 +98,7 @@ input[type="number"] {
 
 <br><br>
       <label>Tipo:
-      <select id="tipo">
+      <select id="tipo" class="custom-select2">
         <option value="I">Ingreso</option>
         <option value="E">Egreso</option>
       </select>
@@ -119,8 +125,9 @@ input[type="number"] {
       <thead>
         <tr>
           <th>Fecha</th>
+          <th>Hora</th>
           <th>Tipo</th>
-          <th>Descripción</th>
+          <th>Descripcion</th>
           <th>Importe</th>
           <th>Estado</th>
           <th>Acción</th>
@@ -134,125 +141,348 @@ input[type="number"] {
     </div>
   </div>
 
-  <script>
+ <script>
 
 verificarSesion();
 
-    // 🔹 Formatear moneda
-    const formateador = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
+// 🔹 Formatear moneda
+const formateador = new Intl.NumberFormat("es-AR", {
+  style: "currency",
+  currency: "ARS"
+});
 
-    // Cargar fecha actual
-    const hoy = new Date();
-	const yyyy = hoy.getFullYear();
-    const mm = String(hoy.getMonth() + 1).padStart(2, '0');
-    const dd = String(hoy.getDate()).padStart(2, '0');
-    const fechaHoy = `${yyyy}-${mm}-${dd}`;
-    document.getElementById("fecha").value = fechaHoy;	
-    //document.getElementById("fecha").value = hoy.toISOString().split("T")[0];
+// Cargar fecha actual
+const hoy = new Date();
+const yyyy = hoy.getFullYear();
+const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+const dd = String(hoy.getDate()).padStart(2, '0');
 
-    // Guardar movimiento
-    async function guardarMovimiento() {
-      const fecha = document.getElementById("fecha").value;
-	 
-      const importe = parseFloat(document.getElementById("importe").value);
-      const descripcion = document.getElementById("descripcion").value.trim();
-      const tipo = document.getElementById("tipo").value;
+const fechaHoy = `${yyyy}-${mm}-${dd}`;
 
-      if (!fecha || !importe || !descripcion) {
-        alert("Complete todos los campos.");
-        return;
-      }
+document.getElementById("fecha").value = fechaHoy;
 
-      await db.collection("MOVIMIENTOS").add({
+// ======================================================
+// GUARDAR MOVIMIENTO
+// ======================================================
+
+async function guardarMovimiento() {
+
+  const fecha = document.getElementById("fecha").value;
+
+const ahora = new Date();
+const horaActual =
+    String(ahora.getHours()).padStart(2, "0") + ":" +
+    String(ahora.getMinutes()).padStart(2, "0") + ":" +
+    String(ahora.getSeconds()).padStart(2, "0");
+	
+	
+  const importe = parseFloat(
+    document.getElementById("importe").value
+  );
+
+  const descripcion = document.getElementById("descripcion").value.trim();
+
+  const tipo = document.getElementById("tipo").value;
+
+  if (!fecha || !importe || !descripcion) {
+    alert("Complete todos los campos.");
+    return;
+  }
+
+  try {
+
+    const response = await fetch("/api/movimientos", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        hora: horaActual,
         fecha,
         importe,
         descripcion,
         tipo,
-        anulado: "N",
+        anulado: 0,
         id_cierre: 0
-      });
+      })
+    });
 
-      alert("Movimiento guardado correctamente.");
-      document.getElementById("descripcion").value = "";
-      document.getElementById("importe").value = "";
-      cargarMovimientos();
+    const data = await response.json();
+
+    if (!data.ok) {
+      alert(data.mensaje || "Error guardando movimiento");
+      return;
     }
 
-    function normalizarFecha(fechaStr) {
-      if (fechaStr.includes("-")) {
-        const [año,mes,dia] = fechaStr.split("-");
-        return `${dia.padStart(2, "0")}/${mes.padStart(2, "0")}/${año}`;
-      }
-      return fechaStr;
-    }
-	
-    async function cargarMovimientos() {
-      const fecha = document.getElementById("fecha").value;
-      const tbody = document.querySelector("#tablaMovimientos tbody");
-      tbody.innerHTML = "";
+    alert("Movimiento guardado correctamente.");
 
-		let totalDia = 0;
-
-      const snapshot = await db.collection("MOVIMIENTOS")
-		.where("fecha", "==", fecha)
-		.where("id_cierre","==",0)
-		.get();
-      snapshot.forEach(doc => {
-        const m = doc.data();
-        const fila = document.createElement("tr");
-			if (m.anulado != 'S') {
-				if (m.tipo === 'E') {
-					totalDia += m.importe*-1;
-					m.importe=m.importe*-1;
-				} else {
-					totalDia += m.importe;
-				}
-			}
-fecha_normal=normalizarFecha(m.fecha);
-        fila.innerHTML = `<td>${fecha_normal}</td>`
-		  if (m.tipo == 'E') {
-			fila.innerHTML += `<td style="background-color: #FF6467; color: white;">${m.tipo === 'E' ? 'Egreso' : 'Ingreso'}</td>`;
-		  }else{
-			fila.innerHTML += `<td>${m.tipo === 'E' ? 'Egreso' : 'Ingreso'}</td>`;
-		  }
-          fila.innerHTML += `<td>${m.descripcion}</td>`
-		  if (m.tipo == 'E') {
-			fila.innerHTML += `<td style="background-color: #FF6467; color: white;">${formateador.format(m.importe)}</td>`;
-		  }else{
-			fila.innerHTML += `<td>${formateador.format(m.importe)}</td>`;
-		  }
-          fila.innerHTML += `<td>${m.anulado === 'S' ? 'Anulado' : 'Activo'}</td>
-          <td>${m.anulado === 'N' || m.tipo === 'S' ? `<button onclick="editarMovimiento('${doc.id}', Math.abs(${m.importe}), '${m.descripcion}', '${m.tipo}')">✏️ Editar</button>` : ''}</td>
-        `;
-        tbody.appendChild(fila);
-      });
-      tbody.innerHTML += `<td colspan="6"><h2 style="text-align:center;">Total de movimientos de efectivo del día ${formateador.format(totalDia)}</h2></td>`;
-	  
-    }
-
-    async function editarMovimiento(id, importe, descripcion, tipo) {
-      const nuevoImporte = prompt("Nuevo importe:", importe);
-	  nuevaDescripcion = "";
-	  if (tipo === 'S'){
-			 nuevaDescripcion = descripcion; 
-			} else {
-			 nuevaDescripcion = prompt("Nueva descripción:", descripcion); 
-			}
-
-      if (nuevoImporte && nuevaDescripcion) {
-        await db.collection("MOVIMIENTOS").doc(id).update({
-          importe: parseFloat(Math.abs(nuevoImporte)),
-          descripcion: nuevaDescripcion
-        });
-        alert("Movimiento actualizado correctamente.");
-        cargarMovimientos();
-      }
-    }
+    document.getElementById("descripcion").value = "";
+    document.getElementById("importe").value = "";
 
     cargarMovimientos();
-  </script>
 
-<script src="js/medidor.js"></script>
+  } catch (error) {
+
+    console.error(error);
+
+    alert("Error guardando movimiento");
+  }
+}
+
+// ======================================================
+// NORMALIZAR FECHA
+// yyyy-mm-dd -> dd/mm/yyyy
+// ======================================================
+
+function normalizarFecha(fechaStr) {
+
+  if (!fechaStr)
+    return "";
+
+  if (fechaStr.includes("T")) {
+    fechaStr = fechaStr.split("T")[0];
+  }
+
+  if (fechaStr.includes("-")) {
+    const [año, mes, dia] = fechaStr.split("-");
+    return `${dia.padStart(2, "0")}/${mes.padStart(2, "0")}/${año}`;
+  }
+
+  return fechaStr;
+}
+
+// ======================================================
+// CARGAR MOVIMIENTOS
+// ======================================================
+
+async function cargarMovimientos() {
+
+  const fecha = document.getElementById("fecha").value;
+
+  const tbody = document.querySelector("#tablaMovimientos tbody");
+
+  tbody.innerHTML = "";
+
+	let totalDia = 0;
+	let totalIngresos = 0;
+	let totalEgresos = 0;
+
+  try {
+
+    const response = await fetch(`/api/movimientos?fecha=${fecha}&sin_cierre=1`);
+    const movimientos = await response.json();
+
+    movimientos.forEach(m => {
+
+      const fila = document.createElement("tr");
+
+      let importeMostrar = Number(m.importe || 0);
+
+      if (m.anulado !== 1) {
+        if (m.tipo === 'E') {
+			totalEgresos += importeMostrar;
+          totalDia += importeMostrar * -1;
+          importeMostrar = importeMostrar * -1;
+        } else {
+			totalIngresos += importeMostrar;
+          totalDia += importeMostrar;
+        }
+      }
+
+      const fecha_normal = normalizarFecha(m.fecha);
+
+      fila.innerHTML = `<td>${fecha_normal}</td>`;
+      fila.innerHTML += `<td>${m.hora}</td>`;
+
+
+      // Tipo
+      if (m.tipo === 'E') {
+          //importeMostrar = importeMostrar * -1;
+
+        fila.innerHTML += `
+          <td style="color:red;font-weight:bold;">
+            Egreso
+          </td>
+        `;
+
+      } else {
+
+        fila.innerHTML += `
+          <td>
+            ${m.tipo === 'E' ? 'Egreso' : 'Ingreso'}
+          </td>
+        `;
+      }
+
+      // Descripción
+      fila.innerHTML += `<td>${m.descripcion}</td>`;
+
+      // Importe
+      if (m.tipo === 'E') {
+
+        fila.innerHTML += `
+          <td style="color:red;font-weight:bold;">
+            ${formateador.format(importeMostrar)}
+          </td>
+        `;
+
+      } else {
+
+        fila.innerHTML += `
+          <td>
+            ${formateador.format(importeMostrar)}
+          </td>
+        `;
+      }
+
+      // Estado
+      fila.innerHTML += `
+			<td style="${m.anulado == 1 ? 'background-color:#FF6467;color:white;' : ''}">
+				${m.anulado == 1 ? 'Anulado' : 'Activo'}
+			</td>
+      `;
+
+      // Acción
+      fila.innerHTML += `
+        <td>
+          ${
+            m.anulado === 0 || m.tipo === 'S'
+              ? `
+                <button
+                  onclick="editarMovimiento(
+                    ${m.id_movimiento},
+                    ${Math.abs(Number(m.importe || 0))},
+                    '${(m.descripcion || '').replace(/'/g, "\\'")}',
+                    '${m.tipo}'
+                  )"
+                >
+                  ✏️ Editar
+                </button>
+              `
+              : ''
+          }
+        </td>
+      `;
+
+      tbody.appendChild(fila);
+
+    });
+
+		tbody.innerHTML += `
+		  <tr>
+			<td colspan="7">
+			  <h2 style="text-align:center;">
+				Total de movimientos de efectivo del dia:
+				${formateador.format(totalDia)}
+			  </h2>
+
+			  <div style="
+				display:flex;
+				justify-content:center;
+				gap:50px;
+				margin-top:15px;
+				font-size:18px;
+				font-weight:bold;
+			  ">
+
+				<span style="color:green;">
+				  Total Ingresos:
+				  ${formateador.format(totalIngresos)}
+				</span>
+
+				<span style="color:red;">
+				  Total Egresos:
+				  ${formateador.format(totalEgresos)}
+				</span>
+
+			  </div>
+			</td>
+		  </tr>
+		`;
+
+  } catch (error) {
+
+    console.error(error);
+
+    alert("Error cargando movimientos");
+  }
+}
+
+// ======================================================
+// EDITAR MOVIMIENTO
+// ======================================================
+
+async function editarMovimiento(id, importe, descripcion, tipo) {
+
+  const nuevoImporte = prompt(
+    "Nuevo importe:",
+    importe
+  );
+
+  let nuevaDescripcion = "";
+
+  if (tipo === 'S') {
+
+    nuevaDescripcion = descripcion;
+
+  } else {
+
+    nuevaDescripcion = prompt(
+      "Nueva descripción:",
+      descripcion
+    );
+  }
+
+  if (!nuevoImporte || !nuevaDescripcion)
+    return;
+
+  try {
+
+    const response = await fetch(
+      `/api/movimientos/${id}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          importe: parseFloat(Math.abs(nuevoImporte)),
+          descripcion: nuevaDescripcion
+        })
+      }
+    );
+
+    const data = await response.json();
+
+    if (!data.ok) {
+
+      alert(data.mensaje || "Error actualizando movimiento");
+
+      return;
+    }
+
+    alert("Movimiento actualizado correctamente.");
+
+    cargarMovimientos();
+
+  } catch (error) {
+
+    console.error(error);
+
+    alert("Error actualizando movimiento");
+  }
+}
+
+// ======================================================
+
+cargarMovimientos();
+
+</script>
+
+<script src="./js/controlCaja.js"></script>
+<script>
+  verificarAperturaActiva("menu-caja.html");
+</script>
 
 </body>
 </html>

@@ -3,10 +3,6 @@
 <head>
 <meta charset="utf-8">
 
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 <script src="js/auth.js"></script>
 
 <title>Auditoría de Cambios de Precios</title>
@@ -61,47 +57,145 @@
     </div>
 </div>
 
+
 <script>
 
 verificarSesion();
 
-// === CARGAR HISTORIAL ===
+// =====================================
+// CARGAR AUDITORIA
+// =====================================
 async function cargarAuditoria() {
-    const tbody = document.getElementById("tbodyCambios");
-    tbody.innerHTML = "<tr><td colspan='5'>Cargando...</td></tr>";
 
-    const snap = await db.collection("AUDITORIA_PRECIOS")
-                         .orderBy("fecha", "desc")
-                         .orderBy("hora", "desc")
-                         .get();
+    const tbody =
+        document.getElementById("tbodyCambios");
 
-    tbody.innerHTML = "";
+    tbody.innerHTML =
+        "<tr><td colspan='5'>Cargando...</td></tr>";
 
-    if (snap.empty) {
-        tbody.innerHTML = "<tr><td colspan='5'>No hay registros.</td></tr>";
-        return;
-    }
+    try {
 
-    snap.forEach(doc => {
-        const d = doc.data();
-        const tr = document.createElement("tr");
+        const resp =
+            await fetch('/api/auditoria-precios');
 
-        tr.innerHTML = `
-            <td>${d.fecha}</td>
-            <td>${d.hora}</td>
-            <td>${d.usuario}</td>
-            <td>${d.grupo}</td>
-            <td>${d.cambio}</td>
+        const data =
+            await resp.json();
+
+        if (!data.ok) {
+
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan='5'>
+                        Error cargando auditoría
+                    </td>
+                </tr>
+            `;
+
+            return;
+        }
+
+        tbody.innerHTML = "";
+
+        if (data.auditoria.length === 0) {
+
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan='5'>
+                        No hay registros.
+                    </td>
+                </tr>
+            `;
+
+            return;
+        }
+
+        data.auditoria.forEach(d => {
+
+            const tr =
+                document.createElement("tr");
+
+            let cambioTexto = "";
+
+            // ============================
+            // TEXTO CAMBIO
+            // ============================
+            if (d.tipo_cambio === "INC") {
+
+                cambioTexto =
+                    `Incremento %: ${d.valor_cambio}`;
+            }
+
+            else if (d.tipo_cambio === "DEC") {
+
+                cambioTexto =
+                    `Decremento %: ${d.valor_cambio}`;
+            }
+
+            else if (d.tipo_cambio === "PORC") {
+
+                cambioTexto =
+                    `Valor fijo: ${Number(d.valor_cambio).toFixed(2)}`;
+            }
+
+            else {
+
+                cambioTexto =
+                    `${d.tipo_cambio}: ${d.valor_cambio}`;
+            }
+
+            tr.innerHTML = `
+                <td>${formatearFecha(d.fecha)}</td>
+
+                <td>${d.hora}</td>
+
+                <td>${d.usuario}</td>
+
+                <td>${d.grupo}</td>
+
+                <td>${cambioTexto}</td>
+            `;
+
+            tbody.appendChild(tr);
+        });
+
+    } catch (error) {
+
+        console.error(error);
+
+        tbody.innerHTML = `
+            <tr>
+                <td colspan='5'>
+                    Error cargando auditoría
+                </td>
+            </tr>
         `;
-
-        tbody.appendChild(tr);
-    });
+    }
 }
 
+function formatearFecha(fechaMYSQL) {
+
+    if (!fechaMYSQL) return '';
+
+    const fecha =
+        new Date(fechaMYSQL);
+
+    const dia =
+        String(fecha.getDate()).padStart(2, '0');
+
+    const mes =
+        String(fecha.getMonth() + 1).padStart(2, '0');
+
+    const anio =
+        fecha.getFullYear();
+
+    return `${dia}/${mes}/${anio}`;
+}
+
+
 cargarAuditoria();
+
 </script>
 
-<script src="js/medidor.js"></script>
 
 </body>
 </html>

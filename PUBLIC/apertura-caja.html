@@ -5,11 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Apertura de Caja</title>
 
-  <!-- Firebase v8 -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-<script src="js/auth.js"></script>  <!-- ?? Aquí se verifica la autenticacion-->
+<script src="js/auth.js"></script>  <!-- Aquí se verifica la autenticacion-->
 
   <style>
     body{
@@ -62,89 +58,175 @@
     <div id="listaAperturas"></div>
   </div>
 
-  <script>
-
-
-    const usuarioDiv = document.getElementById("usuarioInfo");
-    const mensajeDiv = document.getElementById("mensaje");
+<script>
 
 verificarSesion();
-      document.getElementById("userLabel").textContent = localStorage.getItem("usuarioEmail");
 
-      cargarAperturas();
+const mensajeDiv = document.getElementById("mensaje");
+
+document.getElementById("userLabel").textContent =
+  localStorage.getItem("usuarioEmail");
+
+cargarAperturas();
 
 
-    // Obtener nuevo id_apertura incremental
-    async function obtenerNuevoIdApertura() {
-      const snap = await db.collection("APERTURAS").orderBy("id_apertura", "desc").limit(1).get();
-      if (snap.empty) return 1;
-      return (snap.docs[0].data().id_apertura || 0) + 1;
-    }
+// ======================================================
+// ABRIR CAJA
+// ======================================================
 
-    document.getElementById("btnApertura").onclick = async () => {
-      const importe = parseFloat(document.getElementById("importeInicial").value) || 0;
-      //const obs = document.getElementById("observaciones").value;
-      const obs = "Saldo inicial de caja";
+document.getElementById("btnApertura").onclick = async () => {
 
-      try {
-        const user = firebase.auth().currentUser;
-        if (!user) { alert("No autenticado"); return; }
+    const importe =
+        parseFloat(document.getElementById("importeInicial").value) || 0;
 
-verificarCajaYaAbierta("menu-caja.html");
+    const obs = "Saldo inicial de caja";
 
-        // Generar id apertura
-        const id = await obtenerNuevoIdApertura();
-        const now = new Date();
+    try {
 
-        await db.collection("APERTURAS").add({
-          id_apertura: id,
-          fecha_hora_apertura: now,
-          fecha_string: now.toLocaleDateString("es-AR"),
-          importe_inicial: importe,
-          observaciones: obs,
-          usuario: user.email,
-          estado: "ABIERTA" // o CERRADA
+	  const cajaAbierta = await verificarCajaYaAbierta("menu-caja.html");
+		if (cajaAbierta) {
+			return;
+			}
+
+        const usuario = localStorage.getItem("usuarioEmail") || "";
+
+		const ahora = new Date();
+		const fechaSQL = ahora.getFullYear() + "-" + String(ahora.getMonth() + 1).padStart(2, "0") + "-" + String(ahora.getDate()).padStart(2, "0"); 
+
+        const fechaHoraSQL =
+            String(ahora.getHours()).padStart(2, "0") + ":" +
+            String(ahora.getMinutes()).padStart(2, "0") + ":" +
+            String(ahora.getSeconds()).padStart(2, "0");
+
+        // ======================================================
+        // INSERTAR APERTURA
+        // ======================================================
+
+        const responseApertura = await fetch("/api/aperturas", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                hora: fechaHoraSQL,
+                fecha: fechaSQL,
+                importe_inicial: importe,
+                observaciones: obs,
+                usuario: usuario,
+                estado: "ABIERTA"
+            })
         });
 
-		let fecha=now.toISOString().split("T")[0];
+        const dataApertura = await responseApertura.json();
 
-		await db.collection("MOVIMIENTOS").add({
-			fecha,
-			importe,
-			descripcion: obs,
-			tipo: "S",
-			anulado: "N",
-			id_cierre: 0
-		});
+        if (!dataApertura.ok) {
+
+            throw new Error(dataApertura.mensaje);
+        }
+
+        // ======================================================
+        // INSERTAR MOVIMIENTO
+        // ======================================================
+
+        await fetch("/api/movimientos", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                hora: fechaHoraSQL,
+                fecha: fechaSQL,
+                importe: importe,
+                descripcion: obs,
+                tipo: "I",
+                anulado: 0,
+                id_cierre: 0
+            })
+        });
 
         mensajeDiv.style.display = "block";
-        mensajeDiv.innerHTML = `✅ Apertura creada (ID ${id}) por ${user.email}.`;
+
+        mensajeDiv.innerHTML =
+            `✅ Apertura creada (ID ${dataApertura.id_apertura}) por ${usuario}.`;
+
         cargarAperturas();
-      } catch (e) {
+
+    } catch (e) {
+
         console.error(e);
+
         alert("Error al crear apertura: " + e.message);
-      }
-    };
-
-    async function cargarAperturas() {
-      const snap = await db.collection("APERTURAS").orderBy("id_apertura", "desc").limit(10).get();
-      let html = "<table style='width:100%;border-collapse:collapse'><tr style='background:#f2f2f2'><th>ID</th><th>Fecha/Hora</th><th>Usuario</th><th>Importe</th><th>Estado</th></tr>";
-      snap.forEach(doc => {
-        const d = doc.data();
-        const fh = d.fecha_hora_apertura && d.fecha_hora_apertura.toDate ? d.fecha_hora_apertura.toDate().toLocaleString("es-AR") : (d.fecha_string || "");
-        html += `<tr><td>${d.id_apertura}</td><td>${fh}</td><td>${d.usuario || ""}</td><td>${d.importe_inicial?.toFixed?.(2) || d.importe_inicial}</td><td>${d.estado || ""}</td></tr>`;
-      });
-      html += "</table>";
-      document.getElementById("listaAperturas").innerHTML = html;
     }
-  </script>
+};
 
-<script src="./js/controlCaja.js"></script>
-<script>
-  verificarCajaYaAbierta("menu-caja.html");
+
+// ======================================================
+// CARGAR APERTURAS
+// ======================================================
+
+async function cargarAperturas() {
+
+    try {
+
+        const response = await fetch("/api/aperturas");
+
+        const aperturas = await response.json();
+
+        let html = `
+            <table style='width:100%;border-collapse:collapse'>
+                <tr style='background:#f2f2f2'>
+                    <th>ID</th>
+                    <th>Fecha</th>
+                    <th>Hora</th>
+                    <th>Usuario</th>
+                    <th>Importe</th>
+                    <th>Estado</th>
+                </tr>
+        `;
+
+        aperturas.forEach(d => {
+
+            html += `
+                <tr>
+                    <td style="text-align: center;">${d.id_apertura}</td>
+                    <td style="text-align: center;">${convertirFechaOK(d.fecha) || ""}</td>
+                    <td style="text-align: center;">${d.hora || ""}</td>
+                    <td style="text-align: center;">${d.usuario || ""}</td>
+                    <td style="text-align: center;">${parseFloat(d.importe_inicial || 0).toFixed(2)}</td>
+                    <td style="text-align: center;">${d.estado || ""}</td>
+                </tr>
+            `;
+        });
+
+        html += "</table>";
+
+        document.getElementById("listaAperturas").innerHTML = html;
+
+    } catch (error) {
+
+        console.error(error);
+
+        alert("Error cargando aperturas");
+    }
+}
+
+// Convertir yyyy-mm-dd → dd/mm/yyyy
+function convertirFechaOK(f) {
+  if (!f) return "";
+  // Si viene como objeto Date
+  if (typeof f === "object") {
+    f = f.toISOString().split("T")[0];
+  }
+  // Si viene como string ISO
+  if (String(f).includes("T")) {
+    f = String(f).split("T")[0];
+  }
+  const [yyyy, mm, dd] = String(f).split("-");
+  return `${dd}/${mm}/${yyyy}`;
+}
+
 </script>
-
-<script src="js/medidor.js"></script>
+<script src="./js/controlCaja.js"></script>
 
 </body>
 </html>

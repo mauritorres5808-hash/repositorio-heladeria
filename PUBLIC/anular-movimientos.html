@@ -5,10 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Anular Movimientos (sin cierre)</title>
 
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 <script src="js/auth.js"></script>  <!-- ?? Aquí se verifica la autenticacion-->
 
   <style>
@@ -69,6 +65,7 @@
     <table id="tabla">
       <thead>
         <tr>
+          <th>Hora</th>
           <th>Descripción</th>
           <th>Importe</th>
           <th>Estado</th>
@@ -96,57 +93,108 @@ verificarSesion();
 	
     const formateador = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
 
-    async function buscarMovimientos() {
-	
-      const mensaje = document.getElementById("mensajeProcesando");
-      mensaje.style.display = "block";
-      mensaje.textContent = "🔄 Procesando, por favor espere...";
+	// busco los movimientos
+	async function buscarMovimientos() {
 
-      const fecha = document.getElementById("fecha").value;
-      const tipo = document.getElementById("tipo").value;
-      if (!fecha) { alert("Seleccione una fecha."); return; }
+	  const mensaje = document.getElementById("mensajeProcesando");
 
-      const tbody = document.querySelector("#tabla tbody");
-      tbody.innerHTML = "";
+	  mensaje.style.display = "block";
+	  mensaje.textContent = "🔄 Procesando, por favor espere...";
 
-      const snapshot = await db.collection("MOVIMIENTOS")
-        .where("fecha", "==", fecha)
-        .where("tipo", "==", tipo)
-		.where("id_cierre", "==", 0)
-        .get();
+	  const fecha = document.getElementById("fecha").value;
+	  const tipo = document.getElementById("tipo").value;
 
-      if (snapshot.empty) {
-	            mensaje.style.display = "none";
-        tbody.innerHTML = `<tr><td colspan="4">No hay movimientos para esta fecha.</td></tr>`;
-        return;
-      }
+	  if (!fecha) {
+		alert("Seleccione una fecha.");
+		return;
+	  }
 
-      snapshot.forEach(doc => {
-        const m = doc.data();
-        const fila = document.createElement("tr");
-        fila.innerHTML = `
-          <td>${m.descripcion}</td>
-          <td>${formateador.format(m.importe)}</td>
-          <td>${m.anulado === 'S' ? 'Anulado' : 'Activo'}</td>
-          <td>${m.anulado === 'N' ? `<button onclick="anularMovimiento('${doc.id}')">Anular</button>` : ''}</td>
-        `;
-        tbody.appendChild(fila);
-      });
+	  const tbody = document.querySelector("#tabla tbody");
+	  tbody.innerHTML = "";
+
+	  try {
+
+		const response = await fetch(`/api/movimientos/buscar?fecha=${fecha}&tipo=${tipo}`);
+
+		const movimientos = await response.json();
+
+		if (movimientos.length === 0) {
+
+		  mensaje.style.display = "none";
+
+		  tbody.innerHTML = `
+			<tr>
+			  <td colspan="4">No hay movimientos para esta fecha.</td>
+			</tr>
+		  `;
+
+		  return;
+		}
+
+		movimientos.forEach(m => {
+
+		  const fila = document.createElement("tr");
+
+		  fila.innerHTML = `
+			<td>${m.hora}</td>
+			<td>${m.descripcion}</td>
+			<td>${formateador.format(m.importe)}</td>
+			<td style="${m.anulado == 1 ? 'color:red;font-weight:bold;' : ''}">
+				${m.anulado == 1 ? 'Anulado' : 'Activo'}
+			</td>
+			<td>
+			  ${m.anulado == 0
+				? `<button onclick="anularMovimiento(${m.id_movimiento})">Anular</button>`
+				: ''}
+			</td>
+		  `;
+
+		  tbody.appendChild(fila);
+		});
 
 		mensaje.style.display = "none";
 
-    }
+	  } catch (error) {
 
-    async function anularMovimiento(id) {
-      if (confirm("¿Confirma que desea anular este movimiento?")) {
-        await db.collection("MOVIMIENTOS").doc(id).update({ anulado: "S" });
-        alert("Movimiento anulado correctamente.");
-        buscarMovimientos();
-      }
-    }
+		console.error(error);
+
+		mensaje.style.display = "none";
+
+		alert("Error buscando movimientos");
+	  }
+	}
+	
+	// anulo el movimiento
+	async function anularMovimiento(id) {
+
+	  if (!confirm("¿Confirma que desea anular este movimiento?")) {
+		return;
+	  }
+
+	  try {
+		const response = await fetch(`/api/movimientos/anular/${id}`, {
+		  method: "PUT"
+		});
+
+		const data = await response.json();
+
+		if (!data.ok) {
+		  alert(data.mensaje || "Error anulando movimiento");
+		  return;
+		}
+
+		alert("Movimiento anulado correctamente.");
+
+		buscarMovimientos();
+
+	  } catch (error) {
+		console.error(error);
+		alert("Error anulando movimiento");
+	  }
+	}
+
   </script>
 
-<script src="js/medidor.js"></script>
 
 </body>
 </html>

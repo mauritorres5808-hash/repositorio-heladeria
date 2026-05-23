@@ -5,10 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Consulta de Ventas</title>
 
-  <!-- Firebase v8 -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 <script src="js/auth.js"></script>  <!-- 🔹 Aquí se verifica la autenticacion-->
 
   <!-- Chart.js -->
@@ -67,7 +63,7 @@
 
     th { background-color: #f2f2f2; }
 
-    .total { font-weight: bold; background-color: #e8f5e9; }
+    .total { font-size: 16px; font-weight: bold; background-color: #e8f5e9; }
     .resumen { margin-top: 25px; border-top: 12px solid #333; padding-top: 10px; }
 
     button {
@@ -132,7 +128,8 @@
       margin-top: 15px;
     }
 	.tachado {
-		text-decoration: line-through;
+					background-color:#FF6467;
+					color:white;
 	}
 
     .alert-modern{background:#e9f7ef;border-left:6px solid red;padding:10px;border-radius:6px;margin:10px 0}
@@ -144,6 +141,25 @@
       margin-top: 4px;
       font-size: 14px;
     }
+
+.sugerencias{
+    position:absolute;
+    background:white;
+    border:1px solid #ccc;
+    width:250px;
+    z-index:999;
+    max-height:200px;
+    overflow-y:auto;
+}
+
+.sugerencia{
+    padding:8px;
+    cursor:pointer;
+}
+
+.sugerencia:hover{
+    background:#eee;
+}
 
   </style>
 </head>
@@ -172,6 +188,21 @@
           <option value="5">Vtas OnLine</option>
         </select>
       </label>
+
+		<div style="position:relative;">
+		  <label>Cliente:</label>
+		  <input
+			  type="text"
+			  id="buscarCliente"
+			  placeholder="Buscar cliente..."
+			  autocomplete="off"
+			  style="width:220px;">
+		  <div
+			  id="sugerenciasClientes"
+			  class="sugerencias">
+		  </div>
+		</div>
+
 
     </div>
 
@@ -247,12 +278,74 @@ verificarSesion();
     let chartInstance = null;
     let datosFormaPago = null;
     let datosFecha = null;
+	let clienteSeleccionado = 0;
 
     function cambiarModo() {
       const tipo = document.querySelector('input[name="tipoConsulta"]:checked').value;
       document.getElementById("filtrosFecha").style.display = tipo === "fecha" ? "flex" : "none";
       document.getElementById("filtroNro").style.display = tipo === "nro" ? "block" : "none";
     }
+
+		// ======================================
+		// BUSCAR CLIENTE
+		// ======================================
+		document.getElementById("buscarCliente")
+		.addEventListener("input", async function(){
+
+			const texto = this.value.trim();
+
+			if(texto.length < 2){
+				document.getElementById("sugerenciasClientes").innerHTML = '';
+				clienteSeleccionado = 0;
+				return;
+			}
+
+			try{
+
+				const resp = await fetch(`/api/clientes/buscar?texto=${encodeURIComponent(texto)}`);
+				const data = await resp.json();
+
+				let html = '';
+
+				data.clientes.forEach(c => {
+					html += `
+					<div
+						class="sugerencia"
+						onclick="seleccionarCliente(
+							${c.id_cliente},
+							'${c.nombre.replace(/'/g,"")}'
+						)"
+					>
+						${c.id_cliente} - ${c.nombre}
+					</div>
+					`;
+				});
+
+				document.getElementById(
+					"sugerenciasClientes"
+				).innerHTML = html;
+
+			}catch(err){
+
+				console.error(err);
+			}
+		});
+
+		// ======================================
+		// SELECCIONAR CLIENTE
+		// ======================================
+		function seleccionarCliente(id,nombre){
+
+			clienteSeleccionado = id;
+
+			document.getElementById("buscarCliente")
+				.value = nombre;
+
+			document.getElementById(
+				"sugerenciasClientes"
+			).innerHTML = '';
+		}
+
 
     function normalizarFecha(fechaStr) {
       if (fechaStr.includes("/")) {
@@ -262,297 +355,296 @@ verificarSesion();
       return fechaStr;
     }
 
-    async function consultarVentas() {
-      const tipoConsulta = document.querySelector('input[name="tipoConsulta"]:checked').value;
-      const resultado = document.getElementById("resultado");
-      const graficoContainer = document.getElementById("graficoContainer");
-      const selectorGrafico = document.getElementById("selectorGrafico");
-      graficoContainer.style.display = "none";
-      selectorGrafico.style.display = "none";
-      resultado.innerHTML = "<p><b>Procesando, por favor espere...</b></p>";
+async function consultarVentas() {
 
-      try {
-        const formasPagoSnap = await db.collection("F_PAGO").get();
-        const formasPago = {};
-        formasPagoSnap.forEach(d => formasPago[d.data().id_fpago] = d.data().descripcion);
+    const tipoConsulta = document.querySelector('input[name="tipoConsulta"]:checked').value;
+    const resultado = document.getElementById("resultado");
+    const graficoContainer = document.getElementById("graficoContainer");
+    const selectorGrafico = document.getElementById("selectorGrafico");
 
-        let ventas = [];
-        let tipoVentaSeleccionado = tipoConsulta === "fecha" 
-          ? document.getElementById("tipoVenta").value 
-          : document.getElementById("tipoVentaNro").value;
+    graficoContainer.style.display = "none";
+    selectorGrafico.style.display = "none";
 
-        if (tipoConsulta === "fecha") {
-          const fDesde = document.getElementById("fechaDesde").value;
-          const fHasta = document.getElementById("fechaHasta").value;
-          const desdeNorm = normalizarFecha(fDesde);
-          const hastaNorm = normalizarFecha(fHasta);
-			sin_det = document.getElementById("chk_detalle").checked;
-			sin_cierre = document.getElementById("chk_cierre").checked;
+    resultado.innerHTML = "<p><b>Procesando, por favor espere...</b></p>";
 
-			let query = db.collection("VENTAS_CAB");
-			if (sin_cierre) {
-			  query = query.where("id_cierre", "==", 0);
-			}
+    try {
 
-			// ORDENAR ANTES DEL GET
-			query = query.orderBy("id_venta", "desc");
+        let url = '/api/ventas_cab/consulta?';
 
-			const snap = await query.get();
-          ventas = snap.docs.map(d => d.data())
-            .filter(v => {
-              const fNorm = normalizarFecha(v.fecha);
-              const dentroRango = fNorm >= desdeNorm && fNorm <= hastaNorm;
-              const coincideTipo = tipoVentaSeleccionado === "todas" || v.tipo_venta === parseInt(tipoVentaSeleccionado);
-              return dentroRango && coincideTipo;
-            });
+        const sin_cierre = document.getElementById("chk_cierre").checked;
+
+        const sin_det = document.getElementById("chk_detalle").checked;
+
+        if (tipoConsulta === 'fecha') {
+            const desde = document.getElementById("fechaDesde").value;
+            const hasta = document.getElementById("fechaHasta").value;
+            const tipoVenta = document.getElementById("tipoVenta").value;
+
+			url +=
+				`desde=${desde}` +
+				`&hasta=${hasta}` +
+				`&tipo_venta=${tipoVenta}` +
+				`&sin_cierre=${sin_cierre}` +
+				`&id_cliente=${clienteSeleccionado}`;
+
+
         } else {
-     //sin_det = false;
-			sin_det = document.getElementById("chk_detalle").checked;
-			sin_cierre = document.getElementById("chk_cierre").checked;
-
-          const nro = parseInt(document.getElementById("nroVenta").value);
-			let query = db.collection("VENTAS_CAB");
-			query = query.where("id_venta", "==", nro)
-			if (sin_cierre) {
-			  query = query.where("id_cierre", "==", 0);
-			}
-			const snap = await query.get();
-
-          //const snap = await db.collection("VENTAS_CAB").where("id_venta", "==", nro).get();
-          ventas = snap.docs.map(d => d.data())
-            .filter(v => tipoVentaSeleccionado === "todas" || v.tipo_venta === parseInt(tipoVentaSeleccionado));
+            const nro = document.getElementById("nroVenta").value;
+            const tipoVenta = document.getElementById("tipoVentaNro").value;
+            url += `nro=${nro}&tipo_venta=${tipoVenta}&sin_cierre=${sin_cierre}`;
         }
+
+        const resp = await fetch(url);
+        const data = await resp.json();
+
+        if (!data.ok) {
+            resultado.innerHTML = `<p style="color:red">${data.error}</p>`;
+            return;
+        }
+
+        const ventas = data.ventas;
 
         if (ventas.length === 0) {
-          resultado.innerHTML = "<p>No se encontraron ventas.</p>";
-		  document.getElementById("resumenFPContainer").style.display = "none";
-          return;
+            resultado.innerHTML = "<p>No se encontraron ventas.</p>";
+            document.getElementById("resumenFPContainer").style.display = "none";
+            return;
         }
 
-		// === Cargar datos de clientes ===
-		const clientesSnap = await db.collection("CLIENTES").get();
-		const mapaClientes = {};
-		clientesSnap.forEach(doc => {
-		  const c = doc.data();
-		  mapaClientes[c.id_cliente] = c; // indexar por id_cliente
-		});
+        // =========================
+        // FORMAS PAGO
+        // =========================
+        const formasPago = {};
+
+        data.formasPago.forEach(f => {
+            formasPago[f.id_fpago] = f.descripcion;
+        });
+
+        // =========================
+        // CLIENTES
+        // =========================
+        const mapaClientes = {};
+
+        data.clientes.forEach(c => {
+            mapaClientes[c.id_cliente] = c;
+        });
 
         let totalGeneral = 0;
         let resumenFP = {};
-		let cantidadFP = {};
+        let cantidadFP = {};
         let resumenPorFecha = {};
         const agrupadas = {};
 
         ventas.forEach(v => {
-          if (!agrupadas[v.fecha]) agrupadas[v.fecha] = [];
-          agrupadas[v.fecha].push(v);
+            const fecha =
+                new Date(v.fecha)
+                    .toISOString()
+                    .split('T')[0];
+
+            if (!agrupadas[fecha]) {
+                agrupadas[fecha] = [];
+            }
+            agrupadas[fecha].push(v);
         });
 
-		if (!sin_det){
-			let html = "";
-			//for (const fecha of Object.keys(agrupadas).sort()) {
-			for (const fecha of Object.keys(agrupadas).sort((a, b) => {
-				return normalizarFecha(a).localeCompare(normalizarFecha(b));
-					})) {
-			  let totalDia = 0;
-			  html += `<h3>📅 Fecha: ${fecha}</h3>`;
-					html += ` <div id="mensajeTipo" class="alert-modern">las ventas en ROJO son anuladas y no suman en el Total.</div>`
-
- 			  html += `<table border='1'>
-			    <tr>
-				<th>Hora</th><th>TipoVenta</th><th>N° Venta</th>
-				<th>Subtotal</th><th>Descuento</th><th>Recargo</th><th>TOTAL</th>
-				<th>Forma Pago 1</th><th>Importe 1</th><th>Forma Pago 2</th><th>Importe 2</th>
-				<th>Detalle</th><th>Reimp.</th><th>Cierre</th>
-			    </tr>`;
-
-		for (const v of agrupadas[fecha]) {
-			let TipoVenta = "--indefinida--";
-			if (v.tipo_venta === 1) TipoVenta = "Delivery propio";
-			else if (v.tipo_venta === 2) TipoVenta = "Rappi";
-			else if (v.tipo_venta === 3) TipoVenta = "PedidosYa";
-			else if (v.tipo_venta === 4) TipoVenta = "Mostrador";
-			else if (v.tipo_venta === 5) TipoVenta = "Vta OnLine";
-
-		const cli = mapaClientes[v.id_cliente] || {};
-		const nomCli = cli.nombre || "-";
-		const domCli = cli.domicilio || "-";
-		const telCli = cli.telefono || "-";
-		const notaCli = cli.nota || "-";
-
-		html += `<tr style="border: 3px solid black;" ${v.anulada === "S" ? `class="tachado"` : ""}>
-		  <td>${v.hora}</td>
-		  <td>${TipoVenta}</td>
-		  <td ${v.anulada === "S" ? `style="background-color: #FF6467; color:white;"` : ""}>${v.id_venta}</td>
-
-		  <td>${formateadorMoneda.format(v.subtotal)}</td>
-		  <td>${formateadorMoneda.format(v.descuento)}</td>
-		  <td>${formateadorMoneda.format(v.recargo)}</td>
-		  <td>${formateadorMoneda.format(v.total)}</td>
-
-		  <td>${formasPago[v.f_pago1] || ""}</td>
-		  <td>${formateadorMoneda.format(v.importe_fp1 || 0)}</td>
-		  <td>${formasPago[v.f_pago2] || ""}</td>
-		  <td>${formateadorMoneda.format(v.importe_fp2 || 0)}</td>
-
-		  <td><button onclick="verDetalle(${v.id_venta})">Ver</button></td>
-		  <td><button onclick="reimprimirTicket(${v.id_venta})">🖨️</button></td>
-		  <td>${v.id_cierre || "-"}</td>
-		</tr>`;
-
-		if (v.tipo_venta === 1 || v.tipo_venta === 5){
-			html += `<tr style="font-size: 10px;">
-			  <td></td>
-				<th>Cliente</th><th>Domicilio</th><th>Teléfono</th><th>Nota</th>
-			</tr>
-			<tr style="font-size: 10px;">
-			  <td></td>
-			  <td>${nomCli}</td>
-			  <td>${domCli}</td>
-			  <td>${telCli}</td>
-			  <td>${notaCli}</td>
-			</tr>`;
-		}
-
-
-		if (v.anulada == "S") { // no suma en el total !!!
-			null;
-			}else{
-				totalDia += v.total;
-				totalGeneral += v.total;
-
-				//resumenFP[v.f_pago1] = (resumenFP[v.f_pago1] || 0) + (v.importe_fp1 || 0);
-				//resumenFP[v.f_pago2] = (resumenFP[v.f_pago2] || 0) + (v.importe_fp2 || 0);
-				
-				// Importes
-				resumenFP[v.f_pago1] = (resumenFP[v.f_pago1] || 0) + (v.importe_fp1 || 0);
-				resumenFP[v.f_pago2] = (resumenFP[v.f_pago2] || 0) + (v.importe_fp2 || 0);
-
-				// Cantidades (cuenta ventas)
-				if (v.f_pago1) {
-				  cantidadFP[v.f_pago1] = (cantidadFP[v.f_pago1] || 0) + 1;
-				}
-				if (v.f_pago2) {
-				  cantidadFP[v.f_pago2] = (cantidadFP[v.f_pago2] || 0) + 1;
-				}
-
-				
-			}
-		}
-
-		html += `<tr class="total"><td colspan="6">Total del día</td><td>${formateadorMoneda.format(totalDia)}</td><td colspan="5"></td></tr>`;
-		html += `</table>`;
-		resumenPorFecha[fecha] = totalDia;
-        }
-
-        html += `<h3 style="text-align:center;">TOTAL GENERAL: ${formateadorMoneda.format(totalGeneral)}</h3>`;
-        resultado.innerHTML = html;
-	}
-	else {
         let html = "";
-		for (const fecha of Object.keys(agrupadas).sort()) {
-          let totalDia = 0;
 
-          for (const v of agrupadas[fecha]) {
+        for (const fecha of Object.keys(agrupadas).sort()) {
 
-			if (v.anulada == "S") { // no suma en el total !!!
-			null;
-			}else{
-				totalDia += v.total;
-				totalGeneral += v.total;
+            let totalDia = 0;
 
-				//resumenFP[v.f_pago1] = (resumenFP[v.f_pago1] || 0) + (v.importe_fp1 || 0);
-				//resumenFP[v.f_pago2] = (resumenFP[v.f_pago2] || 0) + (v.importe_fp2 || 0);
+            if (!sin_det) {
 
-				// Importes
-				resumenFP[v.f_pago1] = (resumenFP[v.f_pago1] || 0) + (v.importe_fp1 || 0);
-				resumenFP[v.f_pago2] = (resumenFP[v.f_pago2] || 0) + (v.importe_fp2 || 0);
+                html += `<h3>📅 Fecha: ${convertirFechaOK(fecha)}</h3>`;
+                html += `<div id="mensajeTipo" class="alert-modern">las ventas en rojo (anuladas) no suman en el Total ni en el grafico.</div>`
+                html += `
+                <table border='1'>
+                <tr>
+                    <th>Hora</th>
+                    <th>TipoVenta</th>
+                    <th>N° Venta</th>
+                    <th>Subtotal</th>
+                    <th>Descuento</th>
+                    <th>Recargo</th>
+                    <th>Dtos Promos</th>
+                    <th>TOTAL</th>
+                    <th>Forma Pago 1</th>
+                    <th>Importe 1</th>
+                    <th>Forma Pago 2</th>
+                    <th>Importe 2</th>
+                    <th>Detalle</th>
+                    <th>Reimp.</th>
+                    <th>Cierre</th>
+                </tr>
+                `;
+            }
 
-				// Cantidades (cuenta ventas)
-				if (v.f_pago1) {
-				  cantidadFP[v.f_pago1] = (cantidadFP[v.f_pago1] || 0) + 1;
-				}
-				if (v.f_pago2) {
-				  cantidadFP[v.f_pago2] = (cantidadFP[v.f_pago2] || 0) + 1;
-				}
+            for (const v of agrupadas[fecha]) {
 
-			}
-		  }
-          resumenPorFecha[fecha] = totalDia;
+                let TipoVenta = "--";
+
+                if (v.tipo_venta === 1)
+                    TipoVenta = "Delivery";
+
+                if (v.tipo_venta === 2)
+                    TipoVenta = "Rappi";
+
+                if (v.tipo_venta === 3)
+                    TipoVenta = "PedidosYa";
+
+                if (v.tipo_venta === 4)
+                    TipoVenta = "Mostrador";
+
+                if (v.tipo_venta === 5)
+                    TipoVenta = "Online";
+
+                if (!sin_det) {
+
+                    html += `
+                    <tr ${v.anulada ? 'class="tachado"' : ''}>
+                        <td>${v.hora}</td>
+                        <td>${TipoVenta}</td>
+                        <td>${v.id_venta}</td>
+                        <td>${formateadorMoneda.format(v.subtotal || 0)}</td>
+                        <td>${formateadorMoneda.format(v.descuento || 0)}</td>
+                        <td>${formateadorMoneda.format(v.recargo || 0)}</td>
+                        <td>${formateadorMoneda.format(v.descuento_promociones || 0)}</td>
+                        <td>${formateadorMoneda.format(v.total)}</td>
+                        <td>${formasPago[v.f_pago1] || ''}</td>
+                        <td>${formateadorMoneda.format(v.importe_fp1 || 0)}</td>
+                        <td>${formasPago[v.f_pago2] || ''}</td>
+                        <td>${formateadorMoneda.format(v.importe_fp2 || 0)}</td>
+						<td> 
+						${ v.tipo_venta == 5 ? 
+						`<button onclick="verPedido(${v.id_venta})"> Ver Pedido </button>` 
+						: `<button onclick="verDetalle(${v.id_venta})"> Ver </button>` } 
+						</td>
+
+                        <td>
+                            <button onclick="reimprimirTicket(${v.id_venta})">
+                                🖨️
+                            </button>
+                        </td>
+
+                        <td>${v.id_cierre || "-"}</td>
+                    </tr>
+                    `;
+                }
+
+                if (!v.anulada) {
+
+                    totalDia += parseFloat(v.total || 0);
+
+                    totalGeneral += parseFloat(v.total || 0);
+
+					// Forma pago 1
+					if (v.f_pago1 && parseFloat(v.importe_fp1 || 0) > 0) {
+						resumenFP[v.f_pago1] = (resumenFP[v.f_pago1] || 0) + parseFloat(v.importe_fp1 || 0);
+						cantidadFP[v.f_pago1] = (cantidadFP[v.f_pago1] || 0) + 1;
+					}
+
+					// Forma pago 2
+					if (v.f_pago2 && parseFloat(v.importe_fp2 || 0) > 0) {
+						resumenFP[v.f_pago2] = (resumenFP[v.f_pago2] || 0) + parseFloat(v.importe_fp2 || 0);
+						cantidadFP[v.f_pago2] =(cantidadFP[v.f_pago2] || 0) + 1;
+					}
+                }
+            }
+
+            resumenPorFecha[convertirFechaOK(fecha)] = totalDia;
+
+            if (!sin_det) {
+
+                html += `
+                <tr class="total">
+                    <td colspan="7">
+                        Total del día
+                    </td>
+
+                    <td>
+                        ${formateadorMoneda.format(totalDia)}
+                    </td>
+
+                    <td colspan="4"></td>
+                </tr>
+                </table>
+                `;
+            }
         }
-        html += `<h3 style="text-align:center;">TOTAL GENERAL: ${formateadorMoneda.format(totalGeneral)}</h3>`;
+
+        html += `
+        <h3 style="text-align:center;">
+            TOTAL GENERAL: ${formateadorMoneda.format(totalGeneral)}
+        </h3>
+        `;
+
         resultado.innerHTML = html;
-	}
-/*
+
+        // =========================
+        // DATOS GRAFICO
+        // =========================
         datosFormaPago = {
-          etiquetas: Object.keys(resumenFP).map(fp => formasPago[fp]),
-          valores: Object.values(resumenFP)
+            etiquetas: Object.keys(resumenFP).map(
+                fp => formasPago[fp]
+            ),
+            valores: Object.values(resumenFP)
         };
-*/
-
-const totalFP = Object.values(resumenFP).reduce((a, b) => a + b, 0);
-
-const etiquetas = [];
-const valores = [];
-
-Object.keys(resumenFP).forEach(fp => {
-  const valor = resumenFP[fp];
-  const porcentaje = ((valor / totalFP) * 100).toFixed(1);
-
-  etiquetas.push(`${fp} - ${formasPago[fp]} (${porcentaje}%)`);
-  valores.push(valor);
-});
-
-datosFormaPago = { etiquetas, valores };
-
-
-
 
         datosFecha = {
-          etiquetas: Object.keys(resumenPorFecha).sort(),
-          valores: Object.values(resumenPorFecha)
+            etiquetas: Object.keys(resumenPorFecha),
+            valores: Object.values(resumenPorFecha)
         };
 
-// ===== RESUMEN POR FORMA DE PAGO =====
-let htmlFP = `<h3>Totales por Forma de Pago</h3>`;
-htmlFP += `<table>
-<tr>
-  <th>Forma de Pago</th>
-  <th>Cant. Ventas</th>
-  <th>Importe</th>
-  <th>%</th>
-</tr>`;
+        // =========================
+        // RESUMEN FP
+        // =========================
+        let htmlFP = `
+        <h3>Totales por Forma de Pago</h3>
 
-Object.keys(resumenFP).forEach(fp => {
-    const importe = resumenFP[fp] || 0;
-    if (importe === 0) return;
+        <table>
+            <tr>
+                <th>Forma de Pago</th>
+                <th>Cant. Ventas</th>
+                <th>Importe</th>
+            </tr>
+        `;
 
-    const porcentaje = totalGeneral > 0 
-        ? ((importe / totalGeneral) * 100).toFixed(2)
-        : 0;
+        Object.keys(resumenFP).forEach(fp => {
 
-    htmlFP += `<tr>
-        <td>${formasPago[fp] || fp}</td>
-		<td>${cantidadFP[fp] || 0}</td>
-        <td>${formateadorMoneda.format(importe)}</td>
-        <td>${porcentaje} %</td>
-    </tr>`;
-});
+            htmlFP += `
+            <tr>
+                <td>${formasPago[fp]}</td>
 
-htmlFP += `</table>`;
+                <td>${cantidadFP[fp] || 0}</td>
 
-// Mostrar bloque
-const contFP = document.getElementById("resumenFPContainer");
-contFP.innerHTML = htmlFP;
-contFP.style.display = "block";
+                <td>
+                    ${formateadorMoneda.format(resumenFP[fp])}
+                </td>
+            </tr>
+            `;
+        });
+
+        htmlFP += `</table>`;
+
+        const contFP =
+            document.getElementById("resumenFPContainer");
+
+        contFP.innerHTML = htmlFP;
+
+        contFP.style.display = "block";
 
         selectorGrafico.style.display = "block";
+
         mostrarGrafico();
-      } catch (e) {
+
+    } catch (e) {
+
         console.error(e);
-        resultado.innerHTML = `<p style="color:red">Error: ${e.message}</p>`;
-      }
+
+        resultado.innerHTML =
+            `<p style="color:red">${e.message}</p>`;
     }
+}
+
 
     function mostrarGrafico() {
       const tipoGrafico = document.querySelector('input[name="tipoGrafico"]:checked').value;
@@ -591,112 +683,254 @@ contFP.style.display = "block";
       }
     }
 
-    async function verDetalle(idVenta) {
-      const detSnap = await db.collection("VENTAS_DET").where("id_venta", "==", idVenta).get();
-      const cont = document.getElementById("detalleContenido");
-      const encabezado = document.getElementById("encabezado_detalle");
-      encabezado.innerHTML = "Detalle de Productos - Venta Nro. " + idVenta;
 
-      if (detSnap.empty) {
-        cont.innerHTML = "<p>No se encontraron productos para esta venta.</p>";
-        document.getElementById("detalleModal").style.display = "flex";
-        return;
-      }
+async function verDetalle(idVenta) {
 
-      const cacheProductos = {};
-      let html = `<table><tr><th>Cod Producto</th><th>Descripción</th><th>Precio Unitario</th><th>Cantidad</th><th>Subtotal</th></tr>`;
-      for (const doc of detSnap.docs) {
-        const data = doc.data();
-        let descripcion = "";
-        if (cacheProductos[data.id_producto]) {
-          descripcion = cacheProductos[data.id_producto];
-        } else {
-          const prodSnap = await db.collection("PRODUCTOS").where("id_producto", "==", data.id_producto).limit(1).get();
-          descripcion = !prodSnap.empty ? prodSnap.docs[0].data().descripcion : "(No encontrada)";
-          cacheProductos[data.id_producto] = descripcion;
+    try {
+
+        const resp = await fetch(
+            `/api/ventas_det/detalle/${idVenta}`
+        );
+
+        const data = await resp.json();
+
+        if (!data.ok) {
+
+            alert(data.error || 'Error obteniendo detalle');
+            return;
         }
-        html += `<tr>
-          <td>${data.id_producto}</td>
-          <td>${descripcion}</td>
-          <td>${formateadorMoneda.format(data.precio || 0)}</td>
-          <td>${data.cantidad}</td>
-          <td>${formateadorMoneda.format(data.subtotal)}</td>
-        </tr>`;
-      }
-      html += "</table>";
-      cont.innerHTML = html;
-      document.getElementById("detalleModal").style.display = "flex";
+
+        const cont =
+            document.getElementById("detalleContenido");
+
+        const encabezado =
+            document.getElementById("encabezado_detalle");
+
+        encabezado.innerHTML =
+            "Detalle de Productos - Venta Nro. " + idVenta;
+
+        if (data.detalle.length === 0) {
+
+            cont.innerHTML =
+                "<p>No se encontraron productos.</p>";
+
+            document.getElementById("detalleModal")
+                .style.display = "flex";
+
+            return;
+        }
+
+        let html = `
+        <table>
+            <tr>
+                <th>Cod Producto</th>
+                <th>Descripción</th>
+                <th>Precio Unitario</th>
+                <th>Cantidad</th>
+                <th>Subtotal</th>
+            </tr>
+        `;
+
+        data.detalle.forEach(d => {
+
+            html += `
+            <tr>
+                <td>${d.id_producto}</td>
+
+                <td>${d.descripcion || '(Sin descripción)'}</td>
+
+                <td>
+                    ${formateadorMoneda.format(d.precio || 0)}
+                </td>
+
+                <td>${d.cantidad}</td>
+
+                <td>
+                    ${formateadorMoneda.format(d.subtotal || 0)}
+                </td>
+            </tr>
+            `;
+        });
+
+        html += "</table>";
+
+        cont.innerHTML = html;
+
+        document.getElementById("detalleModal")
+            .style.display = "flex";
+
+    } catch (err) {
+
+        console.error(err);
+
+        alert('Error obteniendo detalle');
     }
+}
+
 
     function cerrarModal() {
       document.getElementById("detalleModal").style.display = "none";
     }
 	
-	
+
 async function reimprimirTicket(idVenta) {
 
-  // CABECERA
-  const cabSnap = await db.collection("VENTAS_CAB")
-    .where("id_venta", "==", idVenta)
-    .limit(1)
-    .get();
+    try {
 
-  if (cabSnap.empty) {
-    alert("Venta no encontrada");
-    return;
-  }
+        const resp = await fetch(
+            `/api/ventas_cab/reimpresion/${idVenta}`
+        );
 
-  const cab = cabSnap.docs[0].data();
+        const data = await resp.json();
 
-  // DETALLE
-  const detSnap = await db.collection("VENTAS_DET")
-    .where("id_venta", "==", idVenta)
-    .get();
+        if (!data.ok) {
 
-  const productos = [];
+            alert(data.error || 'Error reimprimiendo');
+            return;
+        }
 
-  for (const doc of detSnap.docs) {
-    const d = doc.data();
+        const cab = data.cabecera;
 
-    const prodSnap = await db.collection("PRODUCTOS")
-      .where("id_producto", "==", d.id_producto)
-      .limit(1)
-      .get();
+        const productos = data.detalle.map(d => ({
+            id: d.id_producto,
+            nombre: d.descripcion || '(Sin nombre)',
+            precio: parseFloat(d.precio || 0),
+            cantidad: parseFloat(d.cantidad || 0)
+        }));
 
-    const nombre = !prodSnap.empty
-      ? prodSnap.docs[0].data().descripcion
-      : "(Sin nombre)";
+        await generarComprobanteTermicoPDF(
+            idVenta,
+            cab,
+            productos,
+            cab.f_pago1,
+            cab.f_pago2,
+            cab.importe_fp1,
+            cab.importe_fp2,
+            data.empresa,
+            cab.tipo_venta
+        );
 
-    productos.push({
-      id: d.id_producto,
-      nombre: nombre,
-      precio: d.precio,
-      cantidad: d.cantidad
-    });
-  }
+    } catch (err) {
 
-			// buscar nombre empresa
-          const q = await db.collection('EMPRESA').where('id_empresa','==',1).get();
-          let fempresa = 'sin empresa';
-          if (!q.empty) fempresa = q.docs[0].data().nombre_empresa || fempresa;
-		  
-  await generarComprobanteTermicoPDF(
-    idVenta,
-    cab,
-    productos,
-    cab.f_pago1,
-    cab.f_pago2,
-    cab.importe_fp1,
-    cab.importe_fp2,
-    fempresa,
-    cab.tipo_venta
-  );
+        console.error(err);
+
+        alert('Error reimprimiendo ticket');
+    }
 }
 
+async function verPedido(idVenta) {
+
+    try {
+
+        const resp = await fetch(
+            `/api/pedidos/venta/${idVenta}`
+        );
+
+        const data = await resp.json();
+
+        if (!data.ok) {
+
+            alert(data.error || 'Error obteniendo pedido');
+            return;
+        }
+
+        const pedido = data.cabecera;
+
+        const detalle = data.detalle;
+
+        const cont =
+            document.getElementById("detalleContenido");
+
+        const encabezado =
+            document.getElementById("encabezado_detalle");
+
+        encabezado.innerHTML =
+            "Pedido Online - Venta Nro. " + idVenta;
+
+        let html = `
+
+        <div class="alert-modern">
+
+            <b>Pedido # </b> ${pedido.id_pedido} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <b>Fecha:</b> ${convertirFechaOK(pedido.fecha)}&nbsp;&nbsp;&nbsp;<b>Hora:</b> ${pedido.hora}
+            <br>
+            
+            <b>Cliente:</b> ${pedido.nombre}
+            <br>
+
+            <b>Teléfono:</b> ${pedido.telefono}
+            <br>
+
+            <b>Domicilio:</b> ${pedido.domicilio}
+            <br>
+
+            <b>Paga con:</b> ${pedido.paga_con || '-'}
+            <br>
+
+            <b>Nota:</b> ${pedido.nota || '-'}
+            <br>
+
+            <b>Total:</b>
+            ${formateadorMoneda.format(pedido.total || 0)}
+
+        </div>
+
+        <table>
+
+            <tr>
+                <th>Producto</th>
+                <th>Precio</th>
+                <th>Sabores</th>
+            </tr>
+        `;
+
+        detalle.forEach(d => {
+
+            html += `
+            <tr>
+
+                <td>${d.prod_desc}</td>
+
+                <td>
+                    ${formateadorMoneda.format(d.prod_precio || 0)}
+                </td>
+
+                <td>${d.sabores_desc || '-'}</td>
+
+            </tr>
+            `;
+        });
+
+        html += `</table>`;
+
+        cont.innerHTML = html;
+
+        document.getElementById("detalleModal")
+            .style.display = "flex";
+
+    } catch (err) {
+
+        console.error(err);
+
+        alert('Error obteniendo pedido');
+    }
+}
+
+// Convertir yyyy-mm-dd → dd/mm/yyyy
+function convertirFechaOK(f) {
+  if (!f) return "";
+  // Si viene como objeto Date
+  if (typeof f === "object") {
+    f = f.toISOString().split("T")[0];
+  }
+  // Si viene como string ISO
+  if (String(f).includes("T")) {
+    f = String(f).split("T")[0];
+  }
+  const [yyyy, mm, dd] = String(f).split("-");
+  return `${dd}/${mm}/${yyyy}`;
+}
 
   </script>
-
-<script src="js/medidor.js"></script>
 
 </body>
 </html>

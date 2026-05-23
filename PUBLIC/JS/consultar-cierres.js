@@ -5,95 +5,117 @@ const formateador = new Intl.NumberFormat("es-AR", { style: "currency", currency
 
 // Convertir yyyy-mm-dd → dd/mm/yyyy
 function fechaToDMY(f) {
-  const [yyyy, mm, dd] = f.split("-");
-  return `${dd.padStart(2,"0")}/${mm.padStart(2,"0")}/${yyyy}`;
+  if (!f) return "";
+  // Si viene como objeto Date
+  if (typeof f === "object") {
+    f = f.toISOString().split("T")[0];
+  }
+  // Si viene como string ISO
+  if (String(f).includes("T")) {
+    f = String(f).split("T")[0];
+  }
+  const [yyyy, mm, dd] = String(f).split("-");
+  return `${dd}/${mm}/${yyyy}`;
 }
+
 
 async function buscarCierres() {
+
   const desde = document.getElementById("fechaDesde").value;
   const hasta = document.getElementById("fechaHasta").value;
+
   const cont = document.getElementById("listaCierres");
+
   cont.innerHTML = "⏳ Buscando...";
 
-  let query = db.collection("CIERRES_CAB");
+  try {
 
-//------- nuevo desde
-const snap = await db.collection("CIERRES_CAB").get();
+    const response = await fetch(`/api/cierres/desde/${desde}/hasta/${hasta}`);
+    const docs = await response.json();
 
-const desdeNorm = desde; // yyyy-mm-dd
-const hastaNorm = hasta;
+    if (docs.length === 0) {
+      cont.innerHTML = "<p>No se encontraron cierres.</p>";
+      return;
+    }
 
-function normalizarFecha(f) {
-  const [dd, mm, yyyy] = f.split("/");
-  return `${yyyy}-${mm}-${dd}`;
+    let html = `
+      <table>
+        <thead>
+          <tr>
+            <th>ID cierre</th>
+            <th>Fecha Cierre</th>
+            <th>Hora Cierre</th>
+            <th>Usuario</th>
+            <th>Total</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    docs.forEach(c => {
+      html += `
+        <tr>
+          <td>${c.id_cierre}</td>
+          <td>${fechaToDMY(c.fecha)}</td>
+          <td>${c.hora}</td>
+          <td>${c.usuario}</td>
+          <td>${formateador.format(c.total_general)}</td>
+          <td>
+            <button onclick="verDetalle(${c.id_cierre})">
+              Ver
+            </button>
+          </td>
+        </tr>
+      `;
+    });
+
+    html += "</tbody></table>";
+
+    cont.innerHTML = html;
+
+  } catch (error) {
+    console.error(error);
+    cont.innerHTML = `
+      <p style="color:red">
+        Error obteniendo cierres
+      </p>
+    `;
+  }
 }
 
-let docs = snap.docs.map(d => d.data());
 
-docs = docs.filter(c => {
-  const f = normalizarFecha(c.fecha);
-
-  if (desdeNorm && f < desdeNorm) return false;
-  if (hastaNorm && f > hastaNorm) return false;
-
-  return true;
-});
-
-// Ordenar manualmente
-docs.sort((a, b) => normalizarFecha(b.fecha).localeCompare(normalizarFecha(a.fecha)));
-
-//------- nuevo hasta
-
-  if (snap.empty) return cont.innerHTML = "<p>No se encontraron cierres.</p>";
-
-  let html = `<table class="table table-striped">
-                <thead><tr><th>ID cierre</th><th>Fecha Cierre</th><th>Hora Cierre</th><th>Usuario</th><th>Total</th><th></th></tr></thead><tbody>`;
-
-  docs.forEach(c => {
-
-	
-	//	let hora_grab = format_hora(c.fecha_hora_grabacion);
-let hora_grab = c.fecha_hora_grabacion;
-
-    html += `<tr>
-              <td>${c.id_cierre}</td>
-              <td>${c.fecha}</td>
-              <td>${hora_grab}</td>
-              <td>${c.usuario}</td>
-              <td>${formateador.format(c.total_general)}</td>
-              <td><button class="btn btn-sm btn-info" onclick="verDetalle(${c.id_cierre})">Ver</button></td>
-            </tr>`;
-  });
-
-  html += "</tbody></table>";
-  cont.innerHTML = html;
-}
 
 let detalleCierrePDF = null; // 🔹 guardará datos para exportar
 
 async function verDetalle(idCierre) {
 
-  // Traer cabecera del cierre
-  const cabSnap = await db.collection("CIERRES_CAB").where("id_cierre","==",idCierre).limit(1).get();
-  const cab = cabSnap.docs[0].data();
+  // CABECERA
+  const responseCab = await fetch(`/api/cierres/${idCierre}`);
+  const cab = await responseCab.json();
 
-  // Formas de Pago
-  const fpSnap = await db.collection("F_PAGO").get();
+  // FORMAS DE PAGO
+  const responseFP = await fetch("/api/fpago");
+  const dataFP = await responseFP.json();
+
   const FP_MAP = {};
-  fpSnap.forEach(f => FP_MAP[f.data().id_fpago] = `${f.data().descripcion}`);
 
-  // Traer detalle
-  const detSnap = await db.collection("CIERRES_DET").where("id_cierre","==",idCierre).get();
+  dataFP.formasPago.forEach(f => {
+    FP_MAP[f.id_fpago] = f.descripcion;
+  });
+
+  // DETALLE
+  const responseDet = await fetch(`/api/cierres/${idCierre}/detalle`);
+  const detalle = await responseDet.json();
 
   let ventas = [];
   let ingresos = [];
   let egresos = [];
   let compras = [];
 
-  detSnap.forEach(d => {
-    const x = d.data();
+  detalle.forEach(x => {
 
-    if (x.tipo === "VENTA") {
+    if (x.tipo === "VENTAS") {
       ventas.push(x);
     }
     else if (x.tipo === "INGRESOS") {
@@ -108,93 +130,230 @@ async function verDetalle(idCierre) {
   });
 
   // Guardar para Exportar PDF
-  detalleCierrePDF = { idCierre, cab, ventas, ingresos, egresos, compras };
+  detalleCierrePDF = {
+    idCierre,
+    cab,
+    ventas,
+    ingresos,
+    egresos,
+    compras
+  };
 
-  // ===== ARMADO DE HTML =====
- 
-	//let hora_grab = format_hora(cab.fecha_hora_grabacion);
-let hora_grab = cab.fecha_hora_grabacion;
-	
-  let html = `<h4>ID Cierre: ${idCierre} - fecha: ${cab.fecha} - hora: ${hora_grab} <br> usuario: ${cab.usuario}</h4><hr>`;
+  // ===== ARMADO HTML =====
 
-  // --- Ventas ---
-  html += `<div class="subtitulo">Ventas por Forma de Pago (y Tipo)</div>`;
+  let html = `
+    <h4>
+      ID Cierre: ${idCierre}
+      - fecha: ${fechaToDMY(cab.fecha)}
+      - hora: ${cab.hora}
+      <br>
+      usuario: ${cab.usuario}
+    </h4>
+    <hr>
+  `;
+
+  // =========================
+  // VENTAS
+  // =========================
+  html += `
+    <div class="subtitulo">
+      Ventas por Forma de Pago (y Tipo)
+    </div>
+  `;
+
   if (ventas.length > 0) {
-    html += `<table class="table table-sm"><thead><tr><th>Forma de Pago</th><th>Total</th></tr></thead><tbody>`;
-	let TOT_V = 0;
-    ventas.forEach(v => {
-		TOT_V += v.total; 
-		let TipoVenta = "--indefinida--";
-			if (v.id_tipo_venta === 1) TipoVenta = "Delivery propio";
-			else if (v.id_tipo_venta === 2) TipoVenta = "Rappi";
-			else if (v.id_tipo_venta === 3) TipoVenta = "PedidosYa";
-			else if (v.id_tipo_venta === 4) TipoVenta = "Mostrador";
-//      html += `<tr><td>${FP_MAP[v.id_fpago] || v.id_fpago}</td><td>${formateador.format(v.total)}</td></tr>`;
-      html += `<tr><td>${FP_MAP[v.id_fpago] || v.id_fpago} (${TipoVenta})</td><td>${formateador.format(v.total)}</td></tr>`;
-    });
-      html += `<tr><td style="text-align:right"><b>TOTAL</td><td><b>${formateador.format(TOT_V)}</b></td></tr>`;
 
-    html += `</tbody></table>`;
-  } else {
+    html += `
+      <table class="table table-sm">
+        <thead>
+          <tr>
+            <th>Forma de Pago</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    let TOT_V = 0;
+
+    ventas.forEach(v => {
+
+      TOT_V += parseFloat(v.total || 0);
+
+      let TipoVenta = "--indefinida--";
+
+      if (v.id_tipo_venta === 1) TipoVenta = "Delivery propio";
+      else if (v.id_tipo_venta === 2) TipoVenta = "Rappi";
+      else if (v.id_tipo_venta === 3) TipoVenta = "PedidosYa";
+      else if (v.id_tipo_venta === 4) TipoVenta = "Mostrador";
+      else if (v.id_tipo_venta === 5) TipoVenta = "Vtas OnLine";
+
+      html += `
+        <tr>
+          <td>
+            ${FP_MAP[v.id_fpago] || v.id_fpago}
+            (${TipoVenta})
+          </td>
+          <td>
+            ${formateador.format(v.total)}
+          </td>
+        </tr>
+      `;
+    });
+
+    html += `
+      <tr>
+        <td style="text-align:right">
+          <b>TOTAL</b>
+        </td>
+        <td>
+          <b>${formateador.format(TOT_V)}</b>
+        </td>
+      </tr>
+    `;
+
+    html += `
+        </tbody>
+      </table>
+    `;
+  }
+  else {
     html += `<p>No hay ventas en este cierre.</p>`;
   }
 
-  // --- Ingresos ---
-  html += `<div class="subtitulo">Movimientos de Ingreso</div>`;
+  // =========================
+  // INGRESOS
+  // =========================
+  html += `
+    <div class="subtitulo">
+      Movimientos de Ingreso
+    </div>
+  `;
+
   if (ingresos.length > 0) {
-    html += `<table class="table table-sm"><thead><tr><th>Total</th></tr></thead><tbody>`;
+
+    html += `
+      <table class="table table-sm">
+        <thead>
+          <tr>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
     ingresos.forEach(i => {
-      html += `<tr><td>${formateador.format(i.total)}</td></tr>`;
+
+      html += `
+        <tr>
+          <td>${formateador.format(i.total)}</td>
+        </tr>
+      `;
     });
-    html += `</tbody></table>`;
-  } else {
+
+    html += `
+        </tbody>
+      </table>
+    `;
+  }
+  else {
     html += `<p>No hay movimientos de ingreso.</p>`;
   }
 
-  // --- Egresos ---
-  html += `<div class="subtitulo">Movimientos de Egreso</div>`;
+  // =========================
+  // EGRESOS
+  // =========================
+  html += `
+    <div class="subtitulo">
+      Movimientos de Egreso
+    </div>
+  `;
+
   if (egresos.length > 0) {
-    html += `<table class="table table-sm"><thead><tr><th>Total</th></tr></thead><tbody>`;
+
+    html += `
+      <table class="table table-sm">
+        <thead>
+          <tr>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
     egresos.forEach(e => {
-      html += `<tr><td>${formateador.format(e.total)}</td></tr>`;
+
+      html += `
+        <tr>
+          <td>${formateador.format(e.total)}</td>
+        </tr>
+      `;
     });
-    html += `</tbody></table>`;
-  } else {
+
+    html += `
+        </tbody>
+      </table>
+    `;
+  }
+  else {
     html += `<p>No hay movimientos de egreso.</p>`;
   }
 
-  // --- Compras ---
-  html += `<div class="subtitulo">Compras</div>`;
+  // =========================
+  // COMPRAS
+  // =========================
+  html += `
+    <div class="subtitulo">
+      Compras
+    </div>
+  `;
+
   if (compras.length > 0) {
-    html += `<table class="table table-sm"><thead><tr><th>Total</th></tr></thead><tbody>`;
-    compras.forEach(e => {
-      html += `<tr><td>${formateador.format(e.total)}</td></tr>`;
+
+    html += `
+      <table class="table table-sm">
+        <thead>
+          <tr>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    compras.forEach(c => {
+
+      html += `
+        <tr>
+          <td>${formateador.format(c.total)}</td>
+        </tr>
+      `;
     });
-    html += `</tbody></table>`;
-  } else {
-    html += `<p>No hay movimientos de compras.</p>`;
+
+    html += `
+        </tbody>
+      </table>
+    `;
+  }
+  else {
+    html += `<p>No hay compras en este cierre.</p>`;
   }
 
-  // Total General
-        html += `<h3 style="margin-top:25px">💰 Total General: ${formateador.format(cab.total_general)}</h3>`;
+  // =========================
+  // TOTAL GENERAL
+  // =========================
+  html += `
+    <h3 style="margin-top:25px">
+      💰 Total General:
+      ${formateador.format(cab.total_general)}
+    </h3>
+  `;
 
-  // Mostrar modal
+  // MOSTRAR MODAL
   document.getElementById("detalleContenido").innerHTML = html;
- // new bootstrap.Modal(document.getElementById("modalDetalle")).show();
   document.getElementById("detalleModal").style.display = "flex";
-
 }
 
-	function format_hora(pFechaTimestamp) {
-		let fecha_g = pFechaTimestamp.toDate();
-		let hora_g = fecha_g.toLocaleTimeString("es-AR", {
-			hour: "2-digit",
-			minute: "2-digit",
-			second: "2-digit",
-			hour12: false
-		});
-	return hora_g;
-	}
+
 
 // exportar a PDF
 async function exportarPDF() {
@@ -211,13 +370,10 @@ async function exportarPDF() {
   doc.text(`Detalle del Cierre Nº ${idCierre}`, 10, y);
   y += 8;
 
-		//let hora_grab = format_hora(cab.fecha_hora_grabacion);
-let hora_grab = cab.fecha_hora_grabacion;
-
   doc.setFontSize(11);
-  doc.text(`Fecha cierre: ${cab.fecha}`, 10, y);
+  doc.text(`Fecha cierre: ${fechaToDMY(cab.fecha)}`, 10, y);
   y += 6;
-  doc.text(`Hora cierre: ${hora_grab}`, 10, y);
+  doc.text(`Hora cierre: ${cab.hora}`, 10, y);
   y += 6;
   doc.text(`Usuario: ${cab.usuario}`, 10, y);
 
@@ -229,27 +385,31 @@ let hora_grab = cab.fecha_hora_grabacion;
 
 
   // Formas de Pago
-  const fpSnap = await db.collection("F_PAGO").get();
-  const FP_MAP = {};
-  fpSnap.forEach(f => FP_MAP[f.data().id_fpago] = `${f.data().descripcion}`);
+	const responseFP = await fetch("/api/fpago");
+	const dataFP = await responseFP.json();
+	const FP_MAP = {};
+	dataFP.formasPago.forEach(f => {
+	  FP_MAP[f.id_fpago] = f.descripcion;
+	});
+
 
   if (ventas.length > 0) {
 	  	let TOT_V = 0;
     ventas.forEach(v => {
-		TOT_V += v.total; 
+		TOT_V += parseFloat(v.total || 0);
 		let TipoVenta = "--indefinida--";
 			if (v.id_tipo_venta === 1) TipoVenta = "Delivery propio";
 			else if (v.id_tipo_venta === 2) TipoVenta = "Rappi";
 			else if (v.id_tipo_venta === 3) TipoVenta = "PedidosYa";
 			else if (v.id_tipo_venta === 4) TipoVenta = "Mostrador";
       doc.setFontSize(11);
-	  //let fp = FP_MAP[v.id_fpago] || v.id_fpago;
+
 	  let fp = FP_MAP[v.id_fpago] || v.id_fpago;
 	  
-      doc.text(`${fp} (${TipoVenta})  ${formateador.format(v.total)}`, 14, y);
+      doc.text(`${fp} (${TipoVenta})   ${formateador.format(parseFloat(v.total || 0))}`, 14, y);
       y += 6;
     });
-	      doc.text(`TOTAL      ${formateador.format(TOT_V)}`, 14, y);
+		  doc.text(`TOTAL      ${formateador.format(TOT_V)}`, 14, y);
       y += 6;
 
   } else {

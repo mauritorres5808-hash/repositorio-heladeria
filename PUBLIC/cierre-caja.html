@@ -5,10 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Cierre de Caja</title>
 
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 <script src="js/auth.js"></script>  <!-- ?? Aquí se verifica la autenticacion-->
 
   <style>
@@ -84,50 +80,63 @@ document.getElementById("userLabel").textContent = localStorage.getItem("usuario
 
       try {
         // Buscar apertura abierta
-        const aperSnap = await db.collection("APERTURAS").where("estado", "==", "ABIERTA").limit(1).get();
-        if (aperSnap.empty) {
-          resDiv.innerHTML = "<p style='color:red'>No existe ninguna caja abierta actualmente.</p>";
-          return;
-        }
-        const apertura = aperSnap.docs[0].data();
-        const idCierre = apertura.id_apertura;
+		const responseApertura = await fetch("/api/aperturas/abierta");
+		const apertura = await responseApertura.json();
+		if (!apertura) {
+		  resDiv.innerHTML =
+			"<p style='color:red'>No existe ninguna caja abierta actualmente.</p>";
+		  return;
+		}
+
+		// ======================================
+		// Obtener próximo ID de cierre
+		// ======================================
+		const responseId = await fetch("/api/cierres/proximo-id");
+		const dataId = await responseId.json();
+		if (!dataId.ok) {
+			alert("Error obteniendo próximo ID de cierre");
+			return;
+		}
+		const idCierre = dataId.proximo;
+		
 
         // Traer formas de pago
-        const fpSnap = await db.collection("F_PAGO").get();
-        const formasPago = {};
-        fpSnap.forEach(d => { const x=d.data(); formasPago[x.id_fpago]=`${x.descripcion}`; });
+		const responseFP = await fetch("/api/fpago");
+		const fpData = await responseFP.json();
+		if (!fpData.ok) {
+			alert(fpData.mensaje || "Error obteniendo formas de pago");
+			return;
+		}
+		const formasPago = {};
+		fpData.formasPago.forEach(x => {formasPago[x.id_fpago] = x.descripcion;});
 
         // Ventas sin id_cierre
 		// =======================
-        const ventasSnap = await db.collection("VENTAS_CAB").where("id_cierre","==",0).get();
-        const ventas = ventasSnap.docs.map(d => ({ id: d.id, ...d.data() })).filter(v => v.anulada !== "S");
-
+		const responseVentas = await fetch("/api/ventas_cab/sin_cierre");
+		const ventas = await responseVentas.json();
+	
         // Movimientos sin id_cierre
 		// =======================
-        const movSnap = await db.collection("MOVIMIENTOS").where("id_cierre","==",0).get();
-        const movimientos = movSnap.docs.map(d => ({ id: d.id, ...d.data() })).filter(m => m.anulado !== "S");
+		const responseMov = await fetch("/api/movimientos/sin_cierre");
+		const movimientos = await responseMov.json();
 
 		// COMPRAS SIN CIERRE
 		// =======================
-		const comprasSnap = await db.collection("COMPRAS_CAB")
-		  .where("id_cierre", "==", 0)
-		  .where("anulada", "==", "N")
-		  .get();
+		const responseCompras = await fetch("/api/compras_cab/sin_cierre");
+		const compras = await responseCompras.json();
+		
+		// Agrupar compras por forma de pago
+		const comprasPorFP = {};
+		let totalCompras = 0;
 
-		const compras = comprasSnap.docs.map(doc => ({ ...doc.data() }));
+		compras.forEach(c => {
+		  const fp = c.f_pago1 || 0; 
 
-// Agrupar compras por forma de pago
-const comprasPorFP = {};
-let totalCompras = 0;
+		  if (!comprasPorFP[fp]) comprasPorFP[fp] = 0;
 
-compras.forEach(c => {
-  const fp = c.f_pago1 || 0; 
-
-  if (!comprasPorFP[fp]) comprasPorFP[fp] = 0;
-
-  comprasPorFP[fp] += Number(c.total || 0);
-  totalCompras += Number(c.total || 0);
-});
+		  comprasPorFP[fp] += Number(c.total || 0);
+		  totalCompras += Number(c.total || 0);
+		});
 
 
         if (ventas.length === 0 && movimientos.length === 0 && compras.length === 0) {
@@ -280,37 +289,35 @@ compras.forEach(c => {
 		// =======================
 		//   COMPRAS
 		// =======================
-html += `<div class="subtitulo">Compras</div>`;
-if (compras.length > 0) {
-  html += `<table><tr><th>Forma de Pago</th><th>Total Compras</th></tr>`;
+		html += `<div class="subtitulo">Compras</div>`;
+		if (compras.length > 0) {
+				html += `<table><tr><th>Forma de Pago</th><th>Total Compras</th></tr>`;
 
-  for (const fp in comprasPorFP) {
-    html += `<tr>
-               <td>${formasPago[fp] || fp}</td>
-               <td>${formateadorMoneda.format(comprasPorFP[fp])}</td>
-             </tr>`;
-  }
+				for (const fp in comprasPorFP) {
+					html += `<tr>
+					   <td>${formasPago[fp] || fp}</td>
+					   <td>${formateadorMoneda.format(comprasPorFP[fp])}</td>
+					 </tr>`;
+				}
 
-		  html += `<tr style="font-weight:bold;background:#ffe0e0">
-					 <td style="text-align:right">TOTAL COMPRAS</td>
-					 <td>${formateadorMoneda.format(totalCompras)}</td>
-				   </tr>
-				   </table>`;
+				html += `<tr style="font-weight:bold;background:#ffe0e0">
+							 <td style="text-align:right">TOTAL COMPRAS</td>
+							 <td>${formateadorMoneda.format(totalCompras)}</td>
+						   </tr>
+						   </table>`;
 		}
 		else {
-		  html += `<p>No hay compras pendientes de cierre.</p>`;
+				html += `<p>No hay compras pendientes de cierre.</p>`;
 		}
 		
-     //   html += `<h3 style=" text-align:right">💰 Total General: ${formateadorMoneda.format(totalGeneral)}</h3>`;
-//totalEfectivo2=resumenPorForma[1] + totalIngresos - totalEgresos - comprasPorFP[1];
-const efectivoVentas = resumenPorForma[1] || 0;
-const efectivoCompras = comprasPorFP[1] || 0;
-const totalEfectivo2 = efectivoVentas + totalIngresos - totalEgresos - efectivoCompras;
+		const efectivoVentas = resumenPorForma[1] || 0;
+		const efectivoCompras = comprasPorFP[1] || 0;
+		const totalEfectivo2 = efectivoVentas + totalIngresos - totalEgresos - efectivoCompras;
 
-html += `<h3 style=" text-align:right">
-💰 Total General: ${formateadorMoneda.format(totalGeneral)} 
-&nbsp;&nbsp;&nbsp;  💵 Efectivo: ${formateadorMoneda.format(totalEfectivo2)}
-</h3>`;
+		html += `<h3 style=" text-align:right">
+		💰 Total General: ${formateadorMoneda.format(totalGeneral)} 
+		&nbsp;&nbsp;&nbsp;  💵 Efectivo: ${formateadorMoneda.format(totalEfectivo2)}
+		</h3>`;
 
 
         html += `<div class="confirmar"><button onclick="confirmarCierre()">✅ Confirmar y Grabar Cierre</button></div>`;
@@ -325,136 +332,37 @@ html += `<h3 style=" text-align:right">
 
     // Confirmar cierre
 	async function confirmarCierre() {
-	  if (!datosCierre) return alert("Primero calcule el cierre.");
-	  const user = firebase.auth().currentUser;
-	  if (!user) return alert("No autenticado.");
 
-	  // Mostrar mensaje de proceso
-	  document.getElementById("mensaje").innerHTML = "⏳ Procesando cierre... por favor espere...";
-	  
-	  try {
-		const {
-		  idCierre,
-		  ventas,
-		  movimientos,
-		  resumenPorTipo,
-		  resumenPorForma,
-		  compras,
-		  totalIngresos,
-		  totalEgresos,
-		  totalCompras,
-		  totalGeneral
-		} = datosCierre;
-
-		//const now = new Date();
-		//const fechaString = now.toLocaleDateString("es-AR"); // dd/mm/yyyy
-		const hoy = new Date();
-		const yyyy = hoy.getFullYear();
-		const mm = String(hoy.getMonth() + 1).padStart(2, '0');
-		const dd = String(hoy.getDate()).padStart(2, '0');
-		const fechaString = `${dd}/${mm}/${yyyy}`;
-
-		// Hora actual completa (HH:MM:SS) – 24 horas
-		let ahora = new Date();
-		let hora = ahora.toLocaleTimeString("es-AR", {
-		  hour: "2-digit",
-		  minute: "2-digit",
-		  second: "2-digit",
-		  hour12: false
-		});
-
-		// 1️ Guardar cabecera
-		await db.collection("CIERRES_CAB").add({
-		  id_cierre: idCierre,
-		  fecha_hora_grabacion: hora,
-		  fecha: fechaString,
-		  total_general: totalGeneral,
-		  total_ingresos: totalIngresos,   // opcional pero útil
-		  total_egresos: totalEgresos,     // opcional pero útil
-		  total_compras: totalCompras,
-		  usuario: user.email
-		});
-
-		// 2️ Guardar detalle (ventas , movimientos, compras)
-		const batchDet = db.batch();
-
-		// Detalle de ventas por forma de pago
-		for (const tipo in resumenPorTipo) {
-		  const t = resumenPorTipo[tipo];
-		  for (const idfp in t.formasPago) {
-			const detRef = db.collection("CIERRES_DET").doc();
-			batchDet.set(detRef, {
-			  id_cierre: idCierre,
-			  tipo: "VENTA",
-			  id_tipo_venta: parseInt(tipo),
-			  id_fpago: parseInt(idfp),
-			  total: t.formasPago[idfp]
+		if (!datosCierre)
+			return alert("Primero calcule el cierre.");
+		try {
+			const usuario = localStorage.getItem("usuarioEmail") || "";
+			const response = await fetch("/api/cierres/generar", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json"
+				},
+				body: JSON.stringify({
+					usuario,
+					datosCierre
+				})
 			});
-		  }
+
+			const data = await response.json();
+
+			if (!data.ok) {
+				alert(data.mensaje || "Error grabando cierre");
+				return;
+			}
+
+			document.getElementById("mensaje").innerHTML = `✅ Cierre grabado correctamente (ID ${datosCierre.idCierre})`;
+			document.getElementById("resultado").innerHTML = "";
+			datosCierre = null;
+
+		} catch (e) {
+			console.error(e);
+			alert("Error al grabar cierre");
 		}
-
-		// ✅ Agregar detalle de ingresos
-		const detIngRef = db.collection("CIERRES_DET").doc();
-		batchDet.set(detIngRef, {
-		  id_cierre: idCierre,
-		  tipo: "INGRESOS",
-		  total: totalIngresos
-		});
-
-		// ✅ Agregar detalle de egresos
-		const detEgrRef = db.collection("CIERRES_DET").doc();
-		batchDet.set(detEgrRef, {
-		  id_cierre: idCierre,
-		  tipo: "EGRESOS",
-		  total: totalEgresos
-		});
-		
-		// Detalle de compras
-		const detCompRef = db.collection("CIERRES_DET").doc();
-		batchDet.set(detCompRef, {
-		  id_cierre: idCierre,
-		  tipo: "COMPRAS",
-		  total: totalCompras
-		});
-				
-
-		await batchDet.commit();
-
-		// 3️ Marcar ventas
-		for (const v of ventas) {
-		  await db.collection("VENTAS_CAB").doc(v.id).update({ id_cierre: idCierre });
-		}
-
-		// 4️ Marcar movimientos
-		for (const m of movimientos) {
-		  await db.collection("MOVIMIENTOS").doc(m.id).update({ id_cierre: idCierre });
-		}
-
-		// 5️ Marcar compras
-		for (const c of compras) {
-		  await db.collection("COMPRAS_CAB")
-			  .doc(String(c.id_compra))
-			  .update({ id_cierre: idCierre });
-		}
-
-		// 6 Cerrar apertura
-		const aperSnap = await db.collection("APERTURAS").where("id_apertura", "==", idCierre).limit(1).get();
-		if (!aperSnap.empty) {
-		  await db.collection("APERTURAS").doc(aperSnap.docs[0].id).update({ estado: "CERRADA" });
-		}
-
-		// ✅ Mensaje final
-		document.getElementById("mensaje").innerHTML =
-		  `✅ Cierre grabado correctamente (ID ${idCierre}). Total: ${formateadorMoneda.format(totalGeneral)}`;
-
-		document.getElementById("resultado").innerHTML = "";
-		datosCierre = null;
-
-	  } catch (e) {
-		console.error(e);
-		alert("Error al grabar cierre: " + e.message);
-		document.getElementById("mensaje").innerHTML = "";
-	  }
 	}
 
   </script>
@@ -463,8 +371,6 @@ html += `<h3 style=" text-align:right">
 <script>
   verificarCajaParaCierre("menu-caja.html");
 </script>
-
-<script src="js/medidor.js"></script>
 
 </body>
 </html>

@@ -5,11 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Anulación de Ventas</title>
 
-  <!-- Firebase v8 -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-<script src="js/auth.js"></script>  <!-- ?? Aquí se verifica la autenticacion-->
+<script src="js/auth.js"></script>  <!-- Aquí se verifica la autenticacion-->
 
   <style>
     body {
@@ -128,210 +124,188 @@ verificarSesion();
     const formateadorMoneda = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' });
 
     let idVentaActual = null;
-    let docIdVenta = null;
-    let docFechaVenta = null;
 
-    async function buscarVenta() {
-      const nro = parseInt(document.getElementById("nroVenta").value);
-      const resultadoCabecera = document.getElementById("resultadoCabecera");
-      const resultadoDetalle = document.getElementById("resultadoDetalle");
-      const acciones = document.getElementById("acciones");
-      const mensaje = document.getElementById("mensaje");
+	async function buscarVenta() {
 
-      resultadoCabecera.innerHTML = "";
-      resultadoDetalle.innerHTML = "";
-      acciones.style.display = "none";
-      mensaje.innerHTML = "";
+		const nro = parseInt(document.getElementById("nroVenta").value);
 
-      if (isNaN(nro) || nro <= 0) {
-        mensaje.innerText = "Debe ingresar un numero de venta valido.";
-        return;
-      }
+		const resultadoCabecera = document.getElementById("resultadoCabecera");
+		const resultadoDetalle = document.getElementById("resultadoDetalle");
+		const acciones = document.getElementById("acciones");
+		const mensaje = document.getElementById("mensaje");
 
-      try {
-        const snap = await db.collection("VENTAS_CAB").where("id_venta", "==", nro).limit(1).get();
-        if (snap.empty) {
-          mensaje.innerText = "No se encontro la venta indicada.";
-          return;
-        }
+		resultadoCabecera.innerHTML = "";
+		resultadoDetalle.innerHTML = "";
+		acciones.style.display = "none";
+		mensaje.innerHTML = "";
 
-        const doc = snap.docs[0];
-        const venta = doc.data();
-        idVentaActual = venta.id_venta;
-        docIdVenta = doc.id;
-		docFechaVenta = venta.fecha;
+		if (isNaN(nro) || nro <= 0) {
+			mensaje.innerText = "Debe ingresar un numero de venta valido.";
+			return;
+		}
 
-
-        // Mostrar cabecera
-        let tipoVenta = "--indefinida--";
-        if (venta.tipo_venta === 1) tipoVenta = "Delivery propio";
-        else if (venta.tipo_venta === 2) tipoVenta = "Rappi";
-        else if (venta.tipo_venta === 3) tipoVenta = "PedidosYa";
-        else if (venta.tipo_venta === 4) tipoVenta = "Mostrador";
-        else if (venta.tipo_venta === 5) tipoVenta = "Vta OnLine";
-
-        resultadoCabecera.innerHTML = `
-          <h3>Cabecera de la Venta</h3>
-          <table>
-            <tr><th>Fecha</th><th>Hora</th><th>Tipo Venta</th><th>Subtotal</th><th>Descuento</th><th>Recargo</th><th>Total</th></tr>
-            <tr>
-              <td>${venta.fecha}</td>
-              <td>${venta.hora}</td>
-              <td>${tipoVenta}</td>
-              <td>${formateadorMoneda.format(venta.subtotal || 0)}</td>
-              <td>${formateadorMoneda.format(venta.descuento || 0)}</td>
-              <td>${formateadorMoneda.format(venta.recargo || 0)}</td>
-              <td>${formateadorMoneda.format(venta.total || 0)}</td>
-            </tr>
-          </table>
-        `;
-
-        // Mostrar detalle
-        const detalleSnap = await db.collection("VENTAS_DET").where("id_venta", "==", idVentaActual).get();
-
-        if (detalleSnap.empty) {
-          resultadoDetalle.innerHTML = "<p>No se encontraron productos para esta venta.</p>";
-        } else {
-          let html = `
-            <h3>Detalle de Productos</h3>
-            <table>
-              <tr><th>Cod. Producto</th><th>Descripcion</th><th>Cantidad</th><th>Precio</th><th>Subtotal</th></tr>
-          `;
-          for (const docDet of detalleSnap.docs) {
-            const det = docDet.data();
-            const prodSnap = await db.collection("PRODUCTOS").where("id_producto", "==", det.id_producto).limit(1).get();
-            const desc = !prodSnap.empty ? prodSnap.docs[0].data().descripcion : "(No encontrada)";
-            html += `
-              <tr>
-                <td>${det.id_producto}</td>
-                <td>${desc}</td>
-                <td>${det.cantidad}</td>
-                <td>${formateadorMoneda.format(det.precio || 0)}</td>
-                <td>${formateadorMoneda.format(det.subtotal || 0)}</td>
-              </tr>
-            `;
-          }
-          html += `</table>`;
-          resultadoDetalle.innerHTML = html;
-        }
-	     if (venta.anulada === "S") {
-          mensaje.innerText = "!! Esta venta ya se encuentra anulada !!";
-          return;
-        }
-	     if (venta.id_cierre && venta.id_cierre !== 0) {
-          mensaje.innerText = "!! Esta venta ya no se puede anular porque tiene un cierre de caja !!";
-          return;
-        }
-        acciones.style.display = "flex";
-      } catch (error) {
-        mensaje.innerText = "Error al buscar venta: " + error.message;
-      }
-    }
-
-    async function anularVenta() {
-      const mensaje = document.getElementById("mensaje");
-      if (!idVentaActual || !docIdVenta) {
-        mensaje.innerText = "Debe buscar una venta valida antes de anular.";
-        return;
-      }
-
-      if (!confirm("Esta seguro que desea anular esta venta?")) return;
-
-      try {
-        await db.collection("VENTAS_CAB").doc(docIdVenta).update({ anulada: "S" });
-
-// === Recuperar stock de productos y subproductos ===
-const detSnap = await db.collection("VENTAS_DET").where("id_venta", "==", idVentaActual).get();
-
-for (const docDet of detSnap.docs) {
-  const det = docDet.data();
-  const prodRef = db.collection("PRODUCTOS").doc(String(det.id_producto));
-  const prodSnap = await prodRef.get();
-
-  if (prodSnap.exists) {
-    const prodData = prodSnap.data();
-
-    // 🔹 Recuperar stock del producto principal
-    await prodRef.update({
-      stock: firebase.firestore.FieldValue.increment(det.cantidad)
-    });
-
-    // 🔹 Si tiene subproductos, recuperarlos también
-    if (prodData.subproductos === "S") {
-      const subSnap = await db.collection("RELA_PROD_SUB")
-        .where("id_producto", "==", det.id_producto)
-        .get();
-
-      for (const subDoc of subSnap.docs) {
-        const subData = subDoc.data();
-        const subRef = db.collection("PRODUCTOS").doc(String(subData.id_prod_sub));
-        await subRef.update({
-          stock: firebase.firestore.FieldValue.increment(det.cantidad)
-        });
-      }
-    }
-  }
-}
-
-
-
-// === Registrar auditoría ===
-      // preparar objeto update
-      const updateObj = {
-        f_pago1:  0,
-        importe_fp1: 0,
-        f_pago2:  0,
-        importe_fp2: 0
-      };
-
-try {
-  const user = firebase.auth().currentUser;
-  const emailUser = user ? user.email : "desconocido";
-  
-  // buscar el usuario por email para obtener su id_usuario
-  let idUsuario = 0;
-  const snapUsr = await db.collection("USUARIOS").where("email", "==", emailUser).limit(1).get();
-  if (!snapUsr.empty) idUsuario = snapUsr.docs[0].data().id_usuario;
-
-  const fecha = new Date();
-  const fechaStr = fecha.toLocaleDateString("es-AR");
-  const horaStr = fecha.toLocaleTimeString("es-AR", { hour12: false });
-
-  const auditoriaData = {
-    id_usuario: idUsuario,
-    email: emailUser,
-    tipo: "ANU", // anulacion de venta
-    fecha: fechaStr,
-    hora: horaStr,
-    id_venta: docIdVenta,
-    fecha_venta: docFechaVenta,
-    valor_anterior: {
-      f_pago1: 0,
-      importe_fp1: 0,
-      f_pago2: 0,
-      importe_fp2: 0
-    },
-    valor_nuevo: updateObj
-  };
-
-  await db.collection("VENTAS_AUDITORIA").add(auditoriaData);
-  console.log("Auditoría registrada correctamente.");
-} catch (errAud) {
-  console.error("Error registrando auditoría:", errAud);
-};
-
+		// =====================================
+		// FORMAS DE PAGO
+		// =====================================
+		const respFP = await fetch('/api/fpago');
+		const dataFP = await respFP.json();
+		const formasPago = {};
+		dataFP.formasPago.forEach(fp => {formasPago[fp.id_fpago] = fp.descripcion;});
 		
-        mensaje.style.color = "green";
-        mensaje.innerText = ">> La venta fue anulada correctamente <<";
-        document.getElementById("acciones").style.display = "none";
-      } catch (error) {
-        mensaje.style.color = "red";
-        mensaje.innerText = "Error al anular venta: " + error.message;
-      }
-    }
+		try {
+
+			const resp = await fetch(`/api/ventas_cab/consul_anu/${nro}`);
+
+			const data = await resp.json();
+
+			if (!data.ok) {
+
+				mensaje.innerText = data.error || "Venta no encontrada";
+				return;
+			}
+
+			const venta = data.venta;
+			const detalle = data.detalle;
+
+			idVentaActual = venta.id_venta;
+
+			let tipoVenta = "--indefinida--";
+
+			if (venta.tipo_venta === 1) tipoVenta = "Delivery propio";
+			else if (venta.tipo_venta === 2) tipoVenta = "Rappi";
+			else if (venta.tipo_venta === 3) tipoVenta = "PedidosYa";
+			else if (venta.tipo_venta === 4) tipoVenta = "Mostrador";
+			else if (venta.tipo_venta === 5) tipoVenta = "Vta OnLine";
+
+			const fechaTexto = venta.fecha;
+			const fechaFormateada =
+				fechaTexto.substring(8,10) + "/" +
+				fechaTexto.substring(5,7) + "/" +
+				fechaTexto.substring(0,4);
+
+			resultadoCabecera.innerHTML = `
+				<h3>Cabecera de la Venta</h3>
+
+				<table>
+					<tr>
+						<th>Fecha</th>
+						<th>Hora</th>
+						<th>Tipo Venta</th>
+						<th>Subtotal</th>
+						<th>Descuento</th>
+						<th>Recargo</th>
+						<th>Total</th>
+						<th>Forma Pago 1</th>
+						<th>Importe 1</th>
+						<th>Forma Pago 2</th>
+						<th>Importe 2</th>
+					</tr>
+
+					<tr>
+						<td>${fechaFormateada}</td>
+						<td>${venta.hora}</td>
+						<td>${tipoVenta}</td>
+						<td>${formateadorMoneda.format(Number(venta.subtotal || 0))}</td>
+						<td>${formateadorMoneda.format(Number(venta.descuento || 0))}</td>
+						<td>${formateadorMoneda.format(Number(venta.recargo || 0))}</td>
+						<td>${formateadorMoneda.format(Number(venta.total || 0))}</td>
+
+			  <td>${formasPago[venta.f_pago1] || ""}</td>
+			  <td>${formateadorMoneda.format(Number(venta.importe_fp1 || 0))}</td>
+
+			  <td>${formasPago[venta.f_pago2] || ""}</td>
+			  <td>${formateadorMoneda.format(Number(venta.importe_fp2 || 0))}</td>
+						
+					</tr>
+				</table>
+			`;
+
+			// DETALLE
+			let html = `
+				<h3>Detalle de Productos</h3>
+
+				<table>
+					<tr>
+						<th>Cod. Producto</th>
+						<th>Descripcion</th>
+						<th>Cantidad</th>
+						<th>Precio</th>
+						<th>Subtotal</th>
+					</tr>
+			`;
+
+			detalle.forEach(det => {
+
+				html += `
+					<tr>
+						<td>${det.id_producto}</td>
+						<td>${det.descripcion || '(No encontrada)'}</td>
+						<td>${det.cantidad}</td>
+						<td>${formateadorMoneda.format(Number(det.precio || 0))}</td>
+						<td>${formateadorMoneda.format(Number(det.subtotal || 0))}</td>
+					</tr>
+				`;
+			});
+
+			html += `</table>`;
+
+			resultadoDetalle.innerHTML = html;
+
+			if (venta.anulada) {
+
+				mensaje.innerText = "!! Esta venta ya se encuentra anulada !!";
+				return;
+			}
+
+			if (venta.id_cierre && venta.id_cierre !== 0) {
+
+				mensaje.innerText = "!! Esta venta ya no se puede anular porque tiene un cierre de caja !!";
+				return;
+			}
+
+			acciones.style.display = "flex";
+
+		} catch (error) {
+
+			mensaje.innerText = "Error al buscar venta: " + error.message;
+		}
+	}
+
+	async function anularVenta() {
+
+		const mensaje = document.getElementById("mensaje");
+
+		if (!idVentaActual) {
+			mensaje.innerText = "Debe buscar una venta valida antes de anular.";
+			return;
+		}
+
+		if (!confirm("Esta seguro que desea anular esta venta?")) {
+			return;
+		}
+
+		try {
+			const resp = await fetch(`/api/ventas_cab/anular/${idVentaActual}`, {
+				method: 'PUT'
+			});
+			const data = await resp.json();
+			if (!data.ok) {
+				mensaje.style.color = "red";
+				mensaje.innerText = data.error || 'Error anulando venta';
+				return;
+			}
+			mensaje.style.color = "green";
+			mensaje.innerText = ">> La venta fue anulada correctamente <<";
+			document.getElementById("acciones").style.display = "none";
+		} catch (error) {
+			mensaje.style.color = "red";
+			mensaje.innerText = "Error al anular venta: " + error.message;
+		}
+	}
+
+
   </script>
 
-<script src="js/medidor.js"></script>
 
 </body>
 </html>

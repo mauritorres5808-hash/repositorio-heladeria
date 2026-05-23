@@ -5,10 +5,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Modificar Formas de Pago - Compras</title>
 
-  <!-- Firebase v8 (compatible con firestore) -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 <script src="js/auth.js"></script>  <!-- Aqui se verifica la autenticacion-->
 
   <style>
@@ -99,11 +95,9 @@
 
         <div class="fila">
           <div class="label">Nueva forma pago: </div>
-          <select id="m_fpago1_nuevo" onchange="recalcularImportesModal(0)">
+          <select id="m_fpago1_nuevo">
             <option value="">-- (vacío) --</option>
           </select>
-          <div class="label" style="display:none">Importe nuevo: </div>
-          <input id="m_imp1_nuevo" style="display:none" />
         </div>
 
         <hr>
@@ -134,17 +128,8 @@
 
 verificarSesion();
 
-
   const formateador = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
 
-  // comprobar auth
-  firebase.auth().onAuthStateChanged(user => {
-    if (!user) {
-      window.location.href = "login.html";
-      return;
-    }
-    document.getElementById("usuario").innerHTML = `Usuario: <b>${user.email}</b>`;
-  });
 
   // helpers de fecha
   function normalizarFechaDesdeDDMMYYYY_a_YYYYMMDD(fechaStr) {
@@ -163,79 +148,107 @@ verificarSesion();
   let MAP_FP = {};
 
   // cargar formas de pago habilitadas (deshabilitado != "S")
-  async function cargarFormasPagoMapa() {
-    MAP_FP = {};
-    try {
-      const snap = await db.collection("F_PAGO").orderBy("descripcion").get();
-      snap.forEach(doc => {
-        const d = doc.data();
-        // incluir todas, pero marcar deshabilitado si corresponde
-        //MAP_FP[d.id_fpago] = `${d.id_fpago} - ${d.descripcion}`;
-        MAP_FP[d.id_fpago] = `${d.descripcion}`;
-      });
-    } catch (e) {
-      console.error("Error cargando formas de pago:", e);
-    }
-  }
+	async function cargarFormasPagoMapa() {
+		MAP_FP = {};
+		try {
+			const resp = await fetch('/api/fpago');
+			const data = await resp.json();
+			data.formasPago.forEach(f => {
+				MAP_FP[f.id_fpago] = `${f.descripcion}`;
+			});
+		} catch (e) {
+			console.error("Error cargando formas de pago:", e);
+		}
+	}
 
-  // Buscar compras por fecha (input YYYY-MM-DD) -> comparar con campo fecha 'DD/MM/YYYY'
-  async function buscarComprasPorFecha() {
-    const fechaInput = document.getElementById("fechaConsulta").value;
-    const resultado = document.getElementById("resultado");
-    if (!fechaInput) { alert("Seleccione una fecha."); return; }
-    resultado.innerHTML = "<p style='text-align:center'>🔄 Buscando compras...</p>";
+	// Buscar compras por fecha (input YYYY-MM-DD) -> comparar con campo fecha 'DD/MM/YYYY'
+	  async function buscarComprasPorFecha() {
 
-    await cargarFormasPagoMapa();
+		const fechaInput = document.getElementById("fechaConsulta").value;
+		const resultado = document.getElementById("resultado");
 
-    try {
-      // traigo todas las compras del día comparando normalizadas
-      const snap = await db.collection("COMPRAS_CAB").get();
-      const compras = snap.docs.map(d => ({ docId: d.id, ...d.data() })).filter(v => {
-        const fNorm = normalizarFechaDesdeDDMMYYYY_a_YYYYMMDD(v.fecha);
-		const estados = v.anulada === "N";
-		const cierres = v.id_cierre === 0;
-        return fNorm === fechaInput && estados && cierres;
-      });
+		if (!fechaInput) {
 
-      if (compras.length === 0) {
-        resultado.innerHTML = "<p style='text-align:center'>No se encontraron compras para esa fecha.</p>";
-        return;
-      }
+			alert("Seleccione una fecha.");
+			return;
+		}
 
-      // construir tabla
-      let html = `<table>
-        <thead><tr>
-          <th>Hora Compra</th><th>N° Compra</th><th>Total</th>
-          <th>FPago </th><th>Acciones</th>
-        </tr></thead><tbody>`;
+		resultado.innerHTML =
+			"<p style='text-align:center'>🔄 Buscando compras...</p>";
 
-      for (const v of compras.sort((a,b)=> (a.hora||"") < (b.hora||"") ? -1 : 1)) {
+		await cargarFormasPagoMapa();
 
-        const fp1txt = MAP_FP[v.f_pago1] || (v.f_pago1 ? v.f_pago1 : "");
+		try {
 
-        const imp1 = v.importe_fp1 || 0;
+			const resp = await fetch(`/api/compras/por-fecha/${fechaInput}`);
+			const data = await resp.json();
 
-        const tieneCierre = (typeof v.id_cierre !== "undefined" && v.id_cierre !== 0 && v.id_cierre !== null && v.id_cierre !== "");
-        html += `<tr>
-          <td>${v.hora || ""}</td>
-          <td>${v.id_compra}</td>
-          <td>${formateador.format(v.total || 0)}</td>
-          <td>${fp1txt}</td>
-          <td class="acciones">
-            <button onclick="verDetalleCompra(${v.id_compra})">Ver</button>
-            ${tieneCierre ? '' : `<button onclick="abrirModalModificar(${v.id_compra})">&#9999;&#65039; Modificar FP</button>`}
-          </td>
-        </tr>`;
-      }
+			const compras = data.compras || [];
 
-      html += `</tbody></table>`;
-      resultado.innerHTML = html;
+			if (compras.length === 0) {
 
-    } catch (e) {
-      console.error(e);
-      resultado.innerHTML = `<p style="color:red;text-align:center">Error: ${e.message}</p>`;
-    }
-  }
+				resultado.innerHTML =
+					"<p style='text-align:center'>No se encontraron compras para esa fecha.</p>";
+
+				return;
+			}
+
+			let html = `<table>
+				<thead>
+					<tr>
+						<th>Hora Compra</th>
+						<th>N° Compra</th>
+						<th>Total</th>
+						<th>FPago</th>
+						<th>Acciones</th>
+					</tr>
+				</thead>
+				<tbody>`;
+
+			for (const v of compras) {
+
+				const fp1txt =
+					MAP_FP[v.f_pago1] || "";
+
+				const tieneCierre =
+					v.id_cierre !== 0;
+
+				html += `
+					<tr>
+						<td>${v.hora || ""}</td>
+						<td>${v.id_compra}</td>
+						<td>${formateador.format(v.total || 0)}</td>
+						<td>${fp1txt}</td>
+						<td class="acciones">
+
+							<button onclick="verDetalleCompra(${v.id_compra})">
+								Ver
+							</button>
+
+							${tieneCierre ? '' : `
+								<button onclick="abrirModalModificar(${v.id_compra})">
+									✏️ Modificar FP
+								</button>
+							`}
+						</td>
+					</tr>
+				`;
+			}
+
+			html += `</tbody></table>`;
+
+			resultado.innerHTML = html;
+
+		} catch (e) {
+
+			console.error(e);
+
+			resultado.innerHTML =
+				`<p style="color:red;text-align:center">
+					Error: ${e.message}
+				</p>`;
+		}
+	}
 
 
 
@@ -245,31 +258,35 @@ verificarSesion();
   async function abrirModalModificar(idCompra) {
     // buscamos el documento por id_compra
     try {
-      const snap = await db.collection("COMPRAS_CAB").where("id_compra", "==", idCompra).limit(1).get();
-      if (snap.empty) { alert("No se encontró la compra."); return; }
-      const doc = snap.docs[0];
-      compraEditando = { docId: doc.id, ...doc.data() };
+		const respCompra = await fetch(`/api/compras/${idCompra}`);
+		const dataCompra = await respCompra.json();
+		if (!dataCompra.ok) {
+			alert("No se encontró la compra.");
+			return;
+		}
+		compraEditando = dataCompra.compra;
 
-      // cargar formas de pago disponibles (deshabilitado != "S")
-      const fpsnap = await db.collection("F_PAGO").orderBy("descripcion").get();
-      const fpSelect1 = document.getElementById("m_fpago1_nuevo");
-      fpSelect1.innerHTML = `<option value="">-- (vacío) --</option>`;
-      fpsnap.forEach(fdoc => {
-        const f = fdoc.data();
-        if (f.deshabilitado === "S") return; // no incluir deshabilitadas
-        //const label = `${f.id_fpago} - ${f.descripcion}`;
-        const label = `${f.descripcion}`;
-        fpSelect1.innerHTML += `<option value="${f.id_fpago}">${label}</option>`;
-      });
+		// cargar formas de pago disponibles (deshabilitado != "S")
+		const respFP = await fetch('/api/fpago');
+		const dataFP = await respFP.json();
+		const fpSelect1 = document.getElementById("m_fpago1_nuevo");
+		fpSelect1.innerHTML = `<option value="">-- (vacío) --</option>`;
+		dataFP.formasPago.forEach(f => {
+			if (f.deshabilitado === 1) return;
+			fpSelect1.innerHTML += `
+				<option value="${f.id_fpago}">
+					${f.descripcion}
+				</option>
+			`;
+		});
 
       // Rellenar datos actuales en modal
       document.getElementById("m_nrocompra").textContent = compraEditando.id_compra;
-      document.getElementById("m_fecha").textContent = compraEditando.fecha || "";
-      document.getElementById("m_total").textContent = formateador.format(compraEditando.total || 0);
-
+      document.getElementById("m_fecha").textContent = convertirFechaOK(compraEditando.fecha || "");
+	  document.getElementById("m_total").textContent = formateador.format(parseFloat(compraEditando.total || 0));
       document.getElementById("m_fpago1_actual").textContent = MAP_FP[compraEditando.f_pago1] || (compraEditando.f_pago1 ? compraEditando.f_pago1 : "");
-      document.getElementById("m_imp1_actual").textContent = formateador.format(compraEditando.total || 0);
-
+	  document.getElementById("m_imp1_actual").textContent = formateador.format(parseFloat(compraEditando.total || 0));
+	
       // inicializar selects -> por defecto mostrar las formas actuales si están habilitadas
       // si la forma actual está deshabilitada, dejamos vacío para forzar nueva selección
       const trySelectOption = (selectEl, val) => {
@@ -282,15 +299,9 @@ verificarSesion();
 
       trySelectOption(document.getElementById("m_fpago1_nuevo"), compraEditando.f_pago1);
 
-      // set importes nuevos inicialmente iguales a actuales (si select vacío, se manejará en recalc)
-      document.getElementById("m_imp1_nuevo").value = (compraEditando.total || 0).toFixed(2);
-
       // abrir modal
       document.getElementById("msgModal").textContent = "";
       document.getElementById("modalModificar").style.display = "flex";
-
-      // recalcular para forzar lógica (en caso de selects vacíos)
-      recalcularImportesModal(0);
 
     } catch (e) {
       console.error(e);
@@ -303,52 +314,34 @@ verificarSesion();
     document.getElementById("modalModificar").style.display = "none";
   }
 
-  // recalcula importes del modal segun selección
-  function recalcularImportesModal(pCual) {
-    if (!compraEditando) return;
-    const total = parseFloat(compraEditando.total || 0);
-    const orig1 = parseFloat(compraEditando.importe_fp1 || 0);
-	//alert("orig1:" + orig1);
-
-    let nuevo1 = parseFloat(document.getElementById("m_imp1_nuevo").value) || 0;
-	//alert("nuevo1:" + nuevo1);
-
-    const sel1 = document.getElementById("m_fpago1_nuevo").value;
-
-	//segun el importe que se modifico - controlo contra el total
-	if (pCual==1) // se modifico el importe 1
-		{ 
-			 imp1 = nuevo1;
-		} 
-		else // no se modifico ningun importe
-			{
-				 imp1 = nuevo1;
-			}
-
-    // asegurar que suma sea igual al total (pequeñas diferencias por float)
-    const suma = +(imp1 + 0).toFixed(2);
-//alert("suma:" + suma);
-//alert("total:" + total);
-
+// 2026-05-13T03:00:00.000Z )formato ISO)  →  yyyy-mm-dd
+function convertirFechaMysql(fechaStr) {
 /*
-    // si el total difiere y total != suma, ajustar imp1 para que coincida (evita validación estricta)
-    if (Math.abs(suma - total) > 0.009) {
-      // preferimos mantener proporción original si hay importes no cero
-      const sumaOrig = orig1 + orig2 || 1;
-      const factor = total / sumaOrig;
-      imp1 = +(orig1 * factor).toFixed(2);
-      imp2 = +(orig2 * factor).toFixed(2);
-      // ajustar último centavo
-      const diff = +(total - (imp1 + imp2)).toFixed(2);
-      imp1 = +(imp1 + diff).toFixed(2);
-    }
+	if (!fechaStr) return null;
+	if (fechaStr.includes("-")) {
+		const [dia, mes, anio] = fechaStr.split("-");
+		return `${anio}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}`;
+	}
+	return fechaStr;
 */
+return fechaStr.substring(0,10);
+}
 
-    document.getElementById("m_imp1_nuevo").value = imp1.toFixed(2);
-
-    // limpiar mensaje
-    document.getElementById("msgModal").textContent = "";
+// Convertir yyyy-mm-dd → dd/mm/yyyy
+function convertirFechaOK(f) {
+  if (!f) return "";
+  // Si viene como objeto Date
+  if (typeof f === "object") {
+    f = f.toISOString().split("T")[0];
   }
+  // Si viene como string ISO
+  if (String(f).includes("T")) {
+    f = String(f).split("T")[0];
+  }
+  const [yyyy, mm, dd] = String(f).split("-");
+  return `${dd}/${mm}/${yyyy}`;
+}
+
 
   // confirmar cambio -> validaciones y escribir en Firestore
   async function confirmarCambio() {
@@ -356,7 +349,6 @@ verificarSesion();
 	
     const sel0 = compraEditando.f_pago1; // forma de pago actual
     const sel1 = document.getElementById("m_fpago1_nuevo").value; // forma de pago nueva
-    const imp1 = parseFloat(document.getElementById("m_imp1_nuevo").value) || 0;
     const total = parseFloat(compraEditando.total || 0);
 
     // Validaciones
@@ -369,69 +361,80 @@ verificarSesion();
       document.getElementById("msgModal").textContent = "Seleccione una forma de pago diferente a la actual.";
       return;
     }
-	
-    if (sel1 && imp1 ==0) {
-      document.getElementById("msgModal").textContent = "No puede dejar el importe nuevo en cero.";
-      return;
-    }
-    if (Math.abs((imp1 + 0) - total) > 0.01) {
-      document.getElementById("msgModal").textContent = "El importe no coincide con el total de la compra. - Verificar -";
-      return;
-    }
 
     try {
       document.getElementById("msgModal").textContent = "🔄 Guardando cambios...";
-      // buscar doc por id_compra
-      const snap = await db.collection("COMPRAS_CAB").where("id_compra", "==", compraEditando.id_compra).limit(1).get();
-      if (snap.empty) { alert("No se encontró el documento para actualizar."); document.getElementById("msgModal").textContent = ""; return; }
-      const docRef = snap.docs[0].ref;
+		// buscar doc por id_compra
+		const updateObj = {
+			f_pago1: sel1 ? parseInt(sel1) : 0
+		};
 
-      // preparar objeto update (nuevos valores)
-      const updateObj = {
-        f_pago1: sel1 ? parseInt(sel1) : 0,
-        importe_fp1: +(imp1.toFixed(2)),		  
-		fp_descrip: MAP_FP[sel1]
-      };
+		const respUpdate = await fetch(
+			`/api/compras/${compraEditando.id_compra}/fpago`,
+			{
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify(updateObj)
+			}
+		);
 
-      await docRef.update(updateObj);
+		const dataUpdate = await respUpdate.json();
+
+		if (!dataUpdate.ok) {
+			throw new Error("No se pudo actualizar");
+		}
 
 		// === Registrar auditoría ===
 		try {
-		  const user = firebase.auth().currentUser;
-		  const emailUser = user ? user.email : "desconocido";
-  
-		  // buscar el usuario por email para obtener su id_usuario
-		  let idUsuario = 0;
-		  const snapUsr = await db.collection("USUARIOS").where("email", "==", emailUser).limit(1).get();
-		  if (!snapUsr.empty) idUsuario = snapUsr.docs[0].data().id_usuario;
 
-		  const fecha = new Date();
-		  const fechaStr = fecha.toLocaleDateString("es-AR");
-		  const horaStr = fecha.toLocaleTimeString("es-AR", { hour12: false });
+			const idUsuario = parseInt(localStorage.getItem("usuarioId")) || 0;
+			const usuarioData = JSON.parse(localStorage.getItem("usuarioData") || "{}");
+			const nombreUsuario = usuarioData.nombre || "";
 
-		  const auditoriaData = {
-			id_usuario: idUsuario,
-			email: emailUser,
-			tipo: "FP", // cambio de forma de pago
-			fecha: fechaStr,
-			hora: horaStr,
-			id_compra: compraEditando.id_compra,
-			fecha_compra: compraEditando.fecha,
-			valor_anterior: {
-			  f_pago1: compraEditando.f_pago1 || 0,
-			  importe_fp1: compraEditando.total || 0,
-			  fp_descrip: MAP_FP[compraEditando.f_pago1]
-			},
-			valor_nuevo: updateObj
-		  };
+			// Fecha y hora actual
+			const ahora = new Date();
 
-		  await db.collection("COMPRAS_AUDITORIA").add(auditoriaData);
-		  console.log("Auditoría registrada correctamente.");
+			// YYYY-MM-DD
+			const fechaAuditoria =
+				ahora.getFullYear() + "-" +
+				String(ahora.getMonth() + 1).padStart(2, '0') + "-" +
+				String(ahora.getDate()).padStart(2, '0');
+
+			// HH:mm
+			const horaAuditoria =
+				String(ahora.getHours()).padStart(2, '0') + ":" +
+				String(ahora.getMinutes()).padStart(2, '0') + ":" +
+				String(ahora.getSeconds()).padStart(2, '0');
+
+			const auditoriaData = {
+				fecha: fechaAuditoria,
+				hora: horaAuditoria,
+				fecha_compra: convertirFechaMysql(compraEditando.fecha),
+				id_compra: compraEditando.id_compra,
+				id_usuario: idUsuario,
+				usuario: nombreUsuario,
+				tipo: "FP",
+				valor_anterior: compraEditando.f_pago1 || 0,
+				valor_nuevo: parseInt(sel1)
+			};
+
+			// registro auditoria
+			await fetch('/api/compras/auditoria/fpago', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify(auditoriaData)
+			});
+
+			console.log("Auditoría registrada correctamente.");
+
 		} catch (errAud) {
-		  console.error("Error registrando auditoría:", errAud);
+			console.error("Error registrando auditoría:", errAud);
 		}
-
-
+		
 		document.getElementById("msgModal").textContent = "✅ Cambios guardados.";
 		// cerrar modal tras breve delay y recargar lista
 		setTimeout(() => {
@@ -446,39 +449,68 @@ verificarSesion();
   }
 
   // ---------------- Modal Detalle ----------------
-  async function verDetalleCompra(idCompra) {
-    try {
-      const snap = await db.collection("COMPRAS_DET").where("id_compra","==", idCompra).get();
-      let html = `<h4>Compra N° ${idCompra}</h4>`;
-      if (snap.empty) {
-        html += "<p>No hay productos para esta compra.</p>";
-      } else {
-        html += `<table><thead><tr><th>Código</th><th>Descripción</th><th>Precio</th><th>Cantidad</th><th>Subtotal</th></tr></thead><tbody>`;
-        for (const d of snap.docs) {
-          const pd = d.data();
-        
-			// busco descripcion del producto
-			let descripcion = "";
-			const prodSnap = await db.collection("PRODUCTOS").where("id_producto", "==", pd.id_producto).limit(1).get();
-			descripcion = !prodSnap.empty ? prodSnap.docs[0].data().descripcion : "(No encontrada)";
+	async function verDetalleCompra(idCompra) {
 
-          html += `<tr>
-            <td>${pd.id_producto}</td>
-			<td>${descripcion}</td>
-            <td>${formateador.format(pd.precio || 0)}</td>
-            <td>${pd.cantidad}</td>
-            <td>${formateador.format(pd.subtotal || 0)}</td>
-          </tr>`;
-        }
-        html += `</tbody></table>`;
-      }
-      document.getElementById("detalleContenido").innerHTML = html;
-      document.getElementById("modalDetalle").style.display = "flex";
-    } catch (e) {
-      console.error(e);
-      alert("Error al obtener detalle: " + e.message);
-    }
-  }
+		try {
+
+			const resp = await fetch(`/api/compras/${idCompra}/detalle`);
+			const data = await resp.json();
+
+			let html = `<h4>Compra N° ${idCompra}</h4>`;
+
+			if (!data.ok || data.detalle.length === 0) {
+
+				html += "<p>No hay productos para esta compra.</p>";
+
+			} else {
+
+				html += `
+					<table>
+						<thead>
+							<tr>
+								<th>Código</th>
+								<th>Descripción</th>
+								<th>Precio</th>
+								<th>Cantidad</th>
+								<th>Subtotal</th>
+							</tr>
+						</thead>
+						<tbody>
+				`;
+
+				data.detalle.forEach(pd => {
+
+					html += `
+						<tr>
+							<td>${pd.id_producto}</td>
+							<td>${pd.descripcion || ""}</td>
+							<td>${formateador.format(pd.precio || 0)}</td>
+							<td>${pd.cantidad}</td>
+							<td>${formateador.format(pd.subtotal || 0)}</td>
+						</tr>
+					`;
+
+				});
+
+				html += `
+						</tbody>
+					</table>
+				`;
+			}
+
+			document.getElementById("detalleContenido").innerHTML = html;
+
+			document.getElementById("modalDetalle").style.display = "flex";
+
+		} catch (e) {
+
+			console.error(e);
+
+			alert("Error al obtener detalle: " + e.message);
+
+		}
+	}
+	  
   function cerrarModalDetalle() { document.getElementById("modalDetalle").style.display = "none"; }
 
   // cerrar clic fuera
@@ -502,7 +534,6 @@ verificarSesion();
 
 </script>
 
-<script src="js/medidor.js"></script>
 
 </body>
 </html>

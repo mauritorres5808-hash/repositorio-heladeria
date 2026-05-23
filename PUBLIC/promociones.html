@@ -1,0 +1,604 @@
+<!-- promociones.html -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mantenimiento de Promociones</title>
+
+<script src="js/auth.js"></script>
+
+<style>
+
+body{
+    font-family:Arial;
+    background:#8AC0FF;
+    margin:0;
+    padding:20px;
+}
+
+.contenedor{
+    max-width:1200px;
+    margin:auto;
+    background:#fff;
+    padding:20px;
+    border-radius:10px;
+}
+
+h2{
+    text-align:center;
+    background:#8AC0FF;
+    padding:10px;
+    border-radius:8px;
+}
+
+.grid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:10px;
+}
+
+label{
+    font-weight:bold;
+    font-size:14px;
+}
+
+input, select{
+    /*width:60%;*/
+    padding:8px;
+    border-radius:6px;
+    border:1px solid #ccc;
+    margin-top:4px;
+}
+
+
+button{
+    padding:8px 14px;
+    background:#007bff;
+    color:#fff;
+    border:none;
+    border-radius:5px;
+    cursor:pointer;
+}
+
+button:hover{
+    background:#0056b3;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:20px;
+}
+
+th, td{
+    border:1px solid #ccc;
+    padding:8px;
+    text-align:center;
+}
+
+th{
+    background:#eee;
+}
+
+.modal{
+    display:none;
+    position:fixed;
+    z-index:999;
+    left:0;
+    top:0;
+    width:100%;
+    height:100%;
+    background:rgba(0,0,0,.4);
+}
+
+.modal-contenido{
+    background:#fff;
+    width:400px;
+    margin:5% auto;
+    padding:20px;
+    border-radius:10px;
+    max-height:80%;
+    overflow:auto;
+}
+
+.cerrar{
+    float:right;
+    font-size:24px;
+    cursor:pointer;
+}
+
+.producto-item{
+    cursor:pointer;
+}
+
+.producto-item:hover{
+    background:#f2f2f2;
+}
+
+.hidden{
+    display:none;
+}
+
+
+</style>
+</head>
+
+
+
+<body>
+
+<div class="contenedor">
+
+<h2>Mantenimiento de Promociones</h2>
+
+<div class="grid">
+
+<div>
+<label>Tipo promoción</label>
+<select id="tipo" onchange="cambiarTipoPromo()">
+<option value="">Seleccione</option>
+<option value="LLEVA_PAGA">LLEVA_PAGA</option>
+<option value="PRECIO_FIJO">PRECIO_FIJO</option>
+<option value="SEGUNDA_UNIDAD">SEGUNDA_UNIDAD</option>
+</select>
+</div>
+
+<div>
+<label>Nombre de la promo (breve)</label>
+<input style="color:red" type="text" id="descripcion" placeholder="ejm 2x1 helado 1kg">
+</div>
+
+<div>
+<label>Fecha desde</label>
+<input type="date" id="fecha_desde">
+</div>
+
+<div>
+<label>Fecha hasta</label>
+<input type="date" id="fecha_hasta">
+</div>
+
+<div>
+<label>Cantidad mínima</label>
+<input type="number" step="0.01" id="cantidad_min" value="1">
+</div>
+
+<div id="bloque_lleva_cant" class="hidden">
+<label>Lleva cantidad</label>
+<input type="number" step="0.01" id="lleva_cant">
+</div>
+
+<div id="bloque_paga_cant" class="hidden">
+<label>Paga cantidad</label>
+<input type="number" step="0.01" id="paga_cant">
+</div>
+
+<div id="bloque_precio_fijo" class="hidden">
+<label>Precio fijo</label>
+<input type="number" step="0.01" id="precio_fijo">
+</div>
+
+<div id="bloque_porcentaje" class="hidden">
+<label>% descuento</label>
+<input type="number" step="0.01" id="porcentaje_desc">
+</div>
+
+<div>
+<label>Activa</label>
+<select id="activa">
+<option value="1">SI</option>
+<option value="0">NO</option>
+</select>
+</div>
+
+</div>
+
+<hr>
+
+<div style="margin-top:15px;">
+
+<button onclick="abrirModalProductos()">➕ Seleccionar productos</button>
+<button onclick="guardarPromocion()">💾 Guardar</button>
+<button onclick="limpiarFormulario()">🧹 Limpiar</button>
+      <button onclick="window.location.href='menu-general.html'">&#8617; Volver</button>
+
+</div>
+
+<div style="margin-top:15px;">
+<b>Productos seleccionados:</b>
+<div id="productosSeleccionados"></div>
+</div>
+
+<table>
+
+<thead>
+<tr>
+<th>Descripción</th>
+<th>Tipo</th>
+<th>Desde fecha</th>
+<th>Hasta fecha</th>
+<th>Activa</th>
+<th>Productos seleccionados</th>
+<th></th>
+</tr>
+</thead>
+
+<tbody id="tbodyPromos"></tbody>
+
+</table>
+
+</div>
+
+<!-- MODAL PRODUCTOS -->
+
+<div id="modalProductos" class="modal">
+
+<div class="modal-contenido">
+
+<span class="cerrar" onclick="cerrarModalProductos()">
+&times;
+</span>
+
+<h3>Seleccionar productos</h3>
+
+<input
+    type="text"
+    id="buscarProducto"
+    placeholder="Buscar descripción..."
+    onkeyup="filtrarProductos()"
+>
+
+<div id="listaProductos" style="margin-top:15px;"></div>
+
+</div>
+
+</div>
+
+<script>
+
+verificarSesion();
+
+let promociones = [];
+let productos = [];
+let promoEditando = null;
+let productosSeleccionados = [];
+
+// ======================================================
+
+function cambiarTipoPromo(){
+
+    const tipo = document.getElementById('tipo').value;
+
+    ocultarBloques();
+
+    if (tipo === 'LLEVA_PAGA') {
+        document.getElementById('bloque_lleva_cant').classList.remove('hidden');
+        document.getElementById('bloque_paga_cant').classList.remove('hidden');
+    }
+
+    if (tipo === 'PRECIO_FIJO') {
+        document.getElementById('bloque_precio_fijo').classList.remove('hidden');
+    }
+
+    if (tipo === 'SEGUNDA_UNIDAD') {
+        document.getElementById('bloque_porcentaje').classList.remove('hidden');
+    }
+}
+
+function ocultarBloques(){
+
+    document.getElementById('bloque_lleva_cant').classList.add('hidden');
+    document.getElementById('bloque_paga_cant').classList.add('hidden');
+    document.getElementById('bloque_precio_fijo').classList.add('hidden');
+    document.getElementById('bloque_porcentaje').classList.add('hidden');
+}
+
+// ======================================================
+
+async function cargarPromociones(){
+    const resp = await fetch('/api/promociones-abm');
+    const data = await resp.json();
+    promociones = data.promociones || [];
+    await renderPromociones();
+}
+
+
+// ======================================================
+
+async function renderPromociones(){
+
+    const tbody = document.getElementById('tbodyPromos');
+
+    tbody.innerHTML = '';
+
+    promociones.forEach(p => {
+        tbody.innerHTML += `
+        <tr>
+            <td style="text-align:left">${p.descripcion}</td>
+            <td>${p.tipo}</td>
+            <td>${convertirFechaOK(p.fecha_desde)}</td>
+            <td>${convertirFechaOK(p.fecha_hasta)}</td>
+            <td>${p.activa == 1 ? 'SI' : 'NO'}</td>
+            <td style="text-align:left">${p.productos || ''}</td>
+            <td>
+                <button onclick="editarPromo(${p.id_promocion})">
+                    ✏️
+                </button>
+
+                <button onclick="eliminarPromo(${p.id_promocion})">
+                    🗑️
+                </button>
+            </td>
+        </tr>
+        `;
+    });
+}
+
+// ======================================================
+
+async function cargarProductos(){
+    const resp = await fetch('/api/productos');
+    const data = await resp.json();
+    productos =data.filter(p => p.deshabilitado != 1);
+    renderProductosModal(productos);
+}
+
+// ======================================================
+
+
+function renderProductosModal(lista){
+    const div = document.getElementById('listaProductos');
+
+    div.innerHTML = '';
+
+    lista.forEach(p => {
+        const existe = productosSeleccionados.some(x => x.id_producto == p.id_producto);
+
+        div.innerHTML += `
+        <div class="producto-item" style="padding:6px; border-bottom:1px solid #ddd;">
+            <label>
+                <input type="checkbox"
+                    ${existe ? 'checked' : ''}
+                    onchange="toggleProducto(${p.id_producto}, '${p.descripcion.replace(/'/g,"")}')"
+                >
+                ${p.id_producto} - ${p.descripcion}
+            </label>
+        </div>
+        `;
+    });
+}
+
+// ======================================================
+
+function toggleProducto(id, descripcion){
+
+    const idx = productosSeleccionados.findIndex(x => x.id_producto == id);
+
+    if (idx >= 0) {
+        productosSeleccionados.splice(idx,1);
+    } else {
+        productosSeleccionados.push({
+            id_producto:id,
+            descripcion
+        });
+    }
+    renderProductosSeleccionados();
+}
+
+// ======================================================
+
+function renderProductosSeleccionados(){
+    const div = document.getElementById('productosSeleccionados');
+    div.innerHTML = productosSeleccionados.map(p => `<div>${p.id_producto} - ${p.descripcion}</div>`).join('');
+}
+
+// ======================================================
+
+function abrirModalProductos(){
+    document.getElementById('modalProductos').style.display = 'block';
+}
+
+function cerrarModalProductos(){
+    document.getElementById('modalProductos').style.display = 'none';
+}
+
+// ======================================================
+
+function filtrarProductos(){
+    const txt = document.getElementById('buscarProducto').value.toLowerCase();
+    const filtrados =
+        productos.filter(p =>
+            p.descripcion.toLowerCase().includes(txt)
+        );
+
+    renderProductosModal(filtrados);
+}
+
+// ======================================================
+
+async function guardarPromocion(){
+
+    try {
+
+        if (productosSeleccionados.length === 0) {
+            alert('Debe seleccionar productos');
+            return;
+        }
+
+        const body = {
+
+            descripcion: document.getElementById('descripcion').value,
+            tipo: document.getElementById('tipo').value,
+            fecha_desde: document.getElementById('fecha_desde').value,
+            fecha_hasta: document.getElementById('fecha_hasta').value,
+            cantidad_min: parseFloat(document.getElementById('cantidad_min').value) || 0,
+            porcentaje_desc: parseFloat(document.getElementById('porcentaje_desc').value) || 0,
+            precio_fijo: parseFloat(document.getElementById('precio_fijo').value) || 0,
+            lleva_cant: parseFloat(document.getElementById('lleva_cant').value) || 0,
+            paga_cant: parseFloat(document.getElementById('paga_cant').value) || 0,
+            activa: parseInt(document.getElementById('activa').value),
+            productos: productosSeleccionados
+        };
+
+        let url = '/api/promociones-abm';
+        let method ='POST';
+
+        if (promoEditando) {
+            url += `/${promoEditando}`;
+            method = 'PUT';
+        }
+
+        const resp =
+            await fetch(url,{
+                method,
+                headers:{
+                    'Content-Type':'application/json'
+                },
+                body:JSON.stringify(body)
+            });
+
+		const data = await resp.json();
+
+		if (!resp.ok || !data.ok) {
+			alert(data.error || 'Error al guardar promoción');
+			return;
+		}
+
+        alert('Promoción guardada');
+
+        limpiarFormulario();
+
+        await cargarPromociones();
+
+    } catch(err) {
+        console.error(err);
+        alert(err.message);
+    }
+}
+
+// ======================================================
+
+function limpiarFormulario(){
+
+    promoEditando = null;
+
+    productosSeleccionados = [];
+	//document.getElementById( 'listaProductos' ).innerHTML = '';
+
+    document.getElementById('descripcion').value = '';
+    document.getElementById('tipo').value = '';
+    document.getElementById('fecha_desde').value = '';
+    document.getElementById('fecha_hasta').value = '';
+    document.getElementById('cantidad_min').value = '1';
+    document.getElementById('porcentaje_desc').value = '';
+    document.getElementById('precio_fijo').value = '';
+    document.getElementById('lleva_cant').value = '';
+    document.getElementById('paga_cant').value = '';
+
+    ocultarBloques();
+
+    renderProductosSeleccionados();
+
+	renderProductosModal(productos);
+
+}
+
+// ======================================================
+
+async function editarPromo(idPromocion) {
+
+    const p =
+        promociones.find(
+            x => x.id_promocion == idPromocion
+        );
+
+    if (!p) {
+        return;
+    }
+
+    promoEditando = idPromocion;
+
+    document.getElementById('descripcion').value = p.descripcion || '';
+    document.getElementById('tipo').value = p.tipo || '';
+//    document.getElementById('activa').checked = p.activa == 1;
+	document.getElementById('activa').value = p.activa == 1 ? '1' : '0';
+document.getElementById('fecha_desde').value = p.fecha_desde ? p.fecha_desde.substring(0,10) : '';
+document.getElementById('fecha_hasta').value = p.fecha_hasta ? p.fecha_hasta.substring(0,10) : '';	
+    document.getElementById('cantidad_min').value = p.cantidad_min || 0;
+    document.getElementById('porcentaje_desc').value = p.porcentaje_desc || 0;
+    document.getElementById('precio_fijo').value = p.precio_fijo || 0;
+    document.getElementById('lleva_cant').value = p.lleva_cant || 0;
+    document.getElementById('paga_cant').value = p.paga_cant || 0;
+
+    productosSeleccionados = [];
+	//document.getElementById('listaProductos').innerHTML = '';
+
+    if (p.productos) {
+
+        const lista = p.productos.split('|');
+
+        lista.forEach(txt => {
+            const partes = txt.trim().split(' - ');
+
+            productosSeleccionados.push({
+                id_producto: partes[0],
+                descripcion: partes.slice(1).join(' - ')
+            });
+        });
+    }
+	
+	renderProductosSeleccionados();
+	renderProductosModal(productos);
+	cambiarTipoPromo();
+}
+
+async function eliminarPromo(id){
+
+    if (!confirm('¿Eliminar promoción?')) {
+        return;
+    }
+
+    const resp =
+        await fetch(
+            `/api/promociones-abm/${id}`,
+            {
+                method:'DELETE'
+            }
+        );
+
+    const data = await resp.json();
+
+    if (!data.ok) {
+        alert(data.error);
+        return;
+    }
+    await cargarPromociones();
+}
+
+// Convertir yyyy-mm-dd → dd/mm/yyyy
+function convertirFechaOK(f) {
+  if (!f) return "";
+  // Si viene como objeto Date
+  if (typeof f === "object") {
+    f = f.toISOString().split("T")[0];
+  }
+  // Si viene como string ISO
+  if (String(f).includes("T")) {
+    f = String(f).split("T")[0];
+  }
+  const [yyyy, mm, dd] = String(f).split("-");
+  return `${dd}/${mm}/${yyyy}`;
+}
+
+// ======================================================
+
+window.onload = async () => {
+    await cargarPromociones();
+    await cargarProductos();
+};
+
+</script>
+
+</body>
+</html>

@@ -2,10 +2,6 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-   <!-- Firebase v8 -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 <script src="js/auth.js"></script>  <!-- Aquí se verifica la autenticacion-->
 
   <title>Menú de Tablas</title>
@@ -173,7 +169,6 @@ button small {
         </td>
       </tr>
 
-
       <tr>
         <td colspan="2">
           <button id="btnVolver" class="boton-salirvolver" onclick="location.href='index.html'">&#8617; Volver</button>
@@ -185,22 +180,32 @@ button small {
   </div>
 
 <script>
+
 verificarSesion(); 
 document.getElementById("userLabel").textContent = localStorage.getItem("usuarioEmail");
 
 // BLOQUEA TODOS LOS BOTONES AL CARGAR LA PÁGINA (menos boton Volver)
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
 
-    // Deshabilitar todos los botones
+    // Deshabilitar todos
     const botones = document.querySelectorAll("button");
+
     botones.forEach(btn => {
+
         if (btn.id !== "btnVolver") {
+
             btn.disabled = true;
             btn.title = "No tiene permiso para usar esta función";
         }
     });
-	aplicarPermisos();
+
+    // Cargar permisos desde API
+    await cargarPermisosUsuario();
+
+    // Aplicar permisos
+    aplicarPermisos();
 });
+
 </script>
 
 
@@ -261,8 +266,10 @@ window.aplicarPermisos = function() {
     }
 
 
-};</script>
 
+
+};
+</script>
 
 </body>
 </html>

@@ -1,96 +1,56 @@
-// permisos.js optimizado
+let permisosUsuario = [];
 
-window.usuarioActual = null;
-window.permisosUsuario = [];
-
-// Al cargar la página, verificar si ya está en localStorage
-const datosGuardados = localStorage.getItem("usuarioData");
-
-// ============================
-// 1) Si ya está guardado → NO leer Firestore
-// ============================
-if (datosGuardados) {
-    const data = JSON.parse(datosGuardados);
-    window.usuarioActual = data.user;
-    window.permisosUsuario = data.permisos;
-
-    console.log("Usuario cargado desde localStorage:", data.user.email);
-    console.log("Permisos cargados:", data.permisos);
-
-	 // Ejecuta aplicarPermisos si existe
-		if (typeof window.aplicarPermisos === "function") {
-			setTimeout(() => aplicarPermisos(), 50);
-		}
-}
-
-
-// ============================
-// 2) Si NO está guardado → leer Firestore SOLO UNA VEZ
-// ============================
-firebase.auth().onAuthStateChanged(async user => {
-
-    if (!user) {
-        alert("Debe iniciar sesión para acceder al sistema.");
-        window.location.href = "login.html";
-        return;
-    }
-
-    // Si ya estaba cargado desde localStorage → no hacer nada
-    if (window.usuarioActual) return;
+// ============================================
+// CARGAR PERMISOS DEL USUARIO
+// ============================================
+async function cargarPermisosUsuario() {
 
     try {
-console.log("lectura de datos");
-        const email = user.email;
 
-        const snapUser = await db.collection("USUARIOS")
-                                 .where("email", "==", email).get();
+        // Si es ADMIN → acceso total
+        const nivel = localStorage.getItem("usuarioNivel");
 
-        if (snapUser.empty) {
-            alert("⚠️ No se encontró un usuario con este email en la base de datos.");
-            window.location.href = "login.html";
+        if (nivel == "2") {   //supervisor
+            permisosUsuario = ["ADMIN"];
             return;
         }
 
-        const dataUser = snapUser.docs[0].data();
-        window.usuarioActual = dataUser;
+        const idUsuario = localStorage.getItem("usuarioId");
 
-        let permisos = [];
-
-        if (dataUser.nivel === 2) {
-            // Supervisor: permiso total
-            const funcionesSnap = await db.collection("FUNCIONES").get();
-            permisos = funcionesSnap.docs.map(doc => doc.data().id_funcion);
-        } else {
-            const permisosSnap = await db.collection("USUARIOS_FUNCIONES")
-                                         .where("id_usuario", "==", dataUser.id_usuario)
-                                         .get();
-            permisos = permisosSnap.docs.map(doc => doc.data().id_funcion);
+        if (!idUsuario) {
+            console.error("No existe usuarioId");
+            return;
         }
 
-        window.permisosUsuario = permisos;
+        const resp = await fetch(`/api/permisos/${idUsuario}`);
+        const data = await resp.json();
 
-        // GUARDAR TODO EN localStorage
-        localStorage.setItem("usuarioData", JSON.stringify({
-            user: dataUser,
-            permisos: permisos
-        }));
+		permisosUsuario = data.map(x => Number(x.id_funcion));
 
-        console.log("Datos guardados en localStorage:", dataUser.email, permisos);
+        // Guardar cache local
+        localStorage.setItem("permisosUsuario",JSON.stringify(permisosUsuario));
+console.log("permisos:", permisosUsuario);
+//console.log("tipo:", typeof permisosUsuario[0]);
+    } catch (error) {
 
-        // Ejecuta la función de la página si existe
-        if (typeof window.aplicarPermisos === "function") {
-            aplicarPermisos();
-        }
-
-    } catch (err) {
-        console.error("Error al cargar permisos:", err);
+        console.error("Error cargando permisos:", error);
     }
-});
+}
 
+// ============================================
+// VERIFICAR SI TIENE PERMISO
+// ============================================
+function tienePermiso(idFuncion) {
 
-// === Función de utilidad ===
-window.tienePermiso = function(idFuncion) {
-  if (!window.usuarioActual) return false;
-  if (window.usuarioActual.nivel === 2) return true;
-  return window.permisosUsuario.includes(idFuncion);
-};
+idFuncion = Number(idFuncion);
+
+    // ADMIN = acceso total
+    if (permisosUsuario.includes("ADMIN")) {
+        return true;
+    }
+console.log("permisosUsuario:"+permisosUsuario);
+//console.log("funcion:", idFuncion);
+console.log("para la funcion:", idFuncion + " tiene permiso?:" + permisosUsuario.includes(idFuncion));
+
+    return permisosUsuario.includes(idFuncion);
+}

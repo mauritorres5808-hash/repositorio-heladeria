@@ -2,28 +2,55 @@
 // ===============  SERVER.JS  ===============
 // ==========================================
 
+const pool = require('./db');
+
 const express = require("express");
+const session = require('express-session');
+
 const cors = require("cors");
 const bodyParser = require("body-parser");
-const admin = require("firebase-admin");
 const path = require("path");
+const db = require('./db');
+const productosRoutes = require('./routes/productos');
+const saboresRoutes = require('./routes/sabores');
+const tipoSaboresRoutes = require('./routes/tipo-sabores');
+const clientesRoutes = require('./routes/clientes');
+const usuariosRoutes = require('./routes/usuarios');
+const empresaRoutes = require('./routes/empresa');
+const permisosRoutes = require('./routes/permisos');
+const fpagoRoutes = require('./routes/fpago');
+const gruposRoutes = require('./routes/grupos');
+const productosSubRouter = require('./routes/productos-sub');
+const ventasAnuladasRoutes = require('./routes/ventas_anuladas');
+const ventasDetalleRoutes = require('./routes/ventas_detalle');
+const reportesRoutes = require('./routes/reportes');
+
+const ventasCabRoutes = require('./routes/ventas_cab'); 
+const ventasDetRoutes = require('./routes/ventas_det'); 
+const ventasAuditoriaRoutes = require('./routes/ventas_auditoria'); 
+
+const aperturasRoutes = require('./routes/aperturas');
+const movimientosRoutes = require('./routes/movimientos');
+
+const cierresRoutes = require("./routes/cierres");
+
+const comprasCabRoutes = require("./routes/compras_cab");
+const funcionesRoutes = require('./routes/funciones');
+
+const PermiUsuariosRoutes = require('./routes/permisos-usuarios');
+
+const auditoriaVentasRoutes = require('./routes/auditoria_ventas');
+const auditoriaPreciosRoutes = require('./routes/auditoria-precios');
+
+const comprasRoutes = require('./routes/compras');
+const pedidosRoutes = require('./routes/pedidos');
+
+const estadisticasRoutes = require('./routes/estadisticas');
+const promocionesRoutes = require('./routes/promociones'); 
+const ventasPromocionesRoutes = require('./routes/ventas_promociones');
+const promocionesABMRouter = require('./routes/promociones-abm');
 
 
-// ==========================================
-//  Inicializar Firebase Admin
-// ==========================================
-require("dotenv").config();
-
-admin.initializeApp({
-  credential: admin.credential.cert({
-    projectId: process.env.FIREBASE_PROJECT_ID,
-    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-    privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-  })
-});
-
-
-const db = admin.firestore();
 
 // ==========================================
 //  Inicializar Express
@@ -32,124 +59,95 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-app.use(express.static('public'));
-app.use('/whatsapp-backend', express.static('whatsapp-backend'));
+app.use(express.json());
 
-// ==========================================
-//  FUNCION → OBTENER SIGUIENTE ID CORRELATIVO
-// ==========================================
-async function nextId(nombreColeccion, campoID) {
-  const snap = await db
-    .collection(nombreColeccion)
-    .orderBy(campoID, "desc")
-    .limit(1)
-    .get();
+app.use(session({
 
-  if (snap.empty) return 1;
-  return snap.docs[0].data()[campoID] + 1;
-}
-
-
-// ==========================================
-//  ENDPOINT → RECIBIR PEDIDO ONLINE
-// ==========================================
-app.post("/whatsapp/pedido", async (req, res) => {
-	console.log("🔥 ENTRO A /whatsapp/pedido");
-  try {
-    const pedido = req.body;
-
-	// VALIDACIÓN → evitar sabores vacíos solo en productos que requieren sabores
-	for (const item of pedido.pedido) {
-
-	  // ⚠ identificar si el producto requiere sabores
-		const prod = cacheProductos.find(p => p.id_producto === item.id_producto);
-	  // Si no existe el producto o no requiere sabores → NO validar sabores
-	  if (!prod || prod.sabores !== "S") continue;
-
-	  // Si requiere sabores, pero vienen 0 → error
-	  if (!item.sabores || item.sabores.length === 0) {
-		return res.status(400).json({
-		  ok: false,
-		  error: `El producto "${prod.descripcion}" requiere seleccionar sabores.`
-		});
-	  }
-	}
-
-    // 1) CREAR / OBTENER CLIENTE
-    const tel = pedido.telefono.trim();
-    const clientesRef = db.collection("CLIENTES");
-    const cliSnap = await clientesRef.where("telefono", "==", tel).get();
-
-    let id_cliente;
-
-    if (cliSnap.empty) {
-      id_cliente = await nextId("CLIENTES", "id_cliente");
-
-      await clientesRef.add({
-        id_cliente,
-        nombre: pedido.nombre,
-        domicilio: pedido.domicilio,
-        telefono: tel,
-        nota: pedido.nota || "",
-        deshabilitado: "N"
-      });
-
-    } else {
-      id_cliente = cliSnap.docs[0].data().id_cliente;
+    secret: 'mi-clave-secreta-2026',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        secure: false,
+        httpOnly: true,
+        maxAge: 1000 * 60 * 60 * 8
     }
+}));
+app.use(express.static('public'));
 
-    // 2) GUARDAR PEDIDO
-    const id_pedido = await nextId("PEDIDOS_WHATSAPP", "id_pedido");
+app.use('/heladeria-backend', express.static('heladeria-backend'));
+app.use('/api/productos', productosRoutes);
+app.use('/api/sabores', saboresRoutes);
+app.use('/api/tipo-sabores', validarSesion, tipoSaboresRoutes);
+app.use('/api/clientes', validarSesion, clientesRoutes);
+app.use('/api/usuarios', usuariosRoutes);
+app.use('/api/empresa', empresaRoutes);
+app.use('/api/permisos', validarSesion, permisosRoutes);
+app.use('/api/fpago', validarSesion, fpagoRoutes);
+app.use('/api/grupos', gruposRoutes);
+app.use('/api/productos-sub', validarSesion, productosSubRouter);
+app.use('/api/ventas-anuladas', ventasAnuladasRoutes);
+app.use('/api/ventas-detalle', ventasDetalleRoutes);
+app.use('/api/reportes', reportesRoutes);
+app.use('/api/ventas_cab', ventasCabRoutes); 
+app.use('/api/ventas_det', ventasDetRoutes); 
+app.use('/api/ventas_auditoria', ventasAuditoriaRoutes);
+app.use('/api/aperturas', aperturasRoutes);
+app.use('/api/movimientos', movimientosRoutes);
+app.use("/api/cierres", cierresRoutes);
+app.use("/api/compras_cab", comprasCabRoutes);
+app.use('/api/funciones', funcionesRoutes);
 
-/*
-    const ahora = new Date();
-    const fecha = ahora.toLocaleDateString("es-AR");
-    const hora = ahora.toLocaleTimeString("es-AR");
-*/
-const ahora = new Date();
-const fecha = formatearFecha(ahora);
-const hora = formatearHora(ahora);
-console.log("GUARDANDO PEDIDO con FECHA:", fecha);
-console.log("GUARDANDO PEDIDO con HORA:", hora);
+app.use('/api/permisos-usuarios', PermiUsuariosRoutes);
+app.use('/api/auditoria-ventas', auditoriaVentasRoutes);
+	
+app.use('/api/auditoria-precios', auditoriaPreciosRoutes);
 
-    await db.collection("PEDIDOS_WHATSAPP").add({
-      id_pedido,
-      id_cliente,
-      telefono: tel,
-      nombre: pedido.nombre,
-      domicilio: pedido.domicilio,
-      nota: pedido.nota || "",
-	  paga_con: pedido.paga_con || "",
-      pedido_detalle: pedido.pedido,
-      fecha,
-      hora,
-      estado: "nuevo"
+//app.use('/api/compras', require('./routes/compras'));
+app.use('/api/compras', comprasRoutes);
+
+app.use('/api/pedidos', pedidosRoutes);
+
+app.use('/api/estadisticas', estadisticasRoutes);
+
+app.use( '/api/promociones', promocionesRoutes );
+app.use('/api/ventas_promociones',ventasPromocionesRoutes);
+app.use('/api/promociones-abm',promocionesABMRouter);
+
+
+
+app.get('/api/session', (req, res) => {
+    if (!req.session.usuario) {
+        return res.status(401).json({
+            ok: false
+        });
+    }
+    res.json({
+        ok: true,
+        usuario: req.session.usuario
     });
+});
+app.post('/api/logout', (req, res) => {
 
-    res.json({ ok: true, msg: "Pedido guardado correctamente.",  idPedido: id_pedido });
+    req.session.destroy(() => {
 
-  } catch (err) {
-    console.error("ERROR en /whatsapp/pedido:", err);
-    res.status(500).json({ ok: false, error: err.message });
-  }
+        res.json({
+            ok: true
+        });
+    });
 });
 
-/*
-function formatearFecha(fechaObj) {
-  return [
-    String(fechaObj.getDate()).padStart(2, "0"),
-    String(fechaObj.getMonth() + 1).padStart(2, "0"),
-    fechaObj.getFullYear()
-  ].join("/");
+
+function validarSesion(req, res, next) {
+    if (!req.session.usuario) {
+        return res.status(401).json({
+            ok: false,
+            error: 'Sesion no valida'
+        });
+    }
+    next();
 }
-function formatearHora(fechaObj) {
-  return [
-    String(fechaObj.getHours()).padStart(2, "0"),
-    String(fechaObj.getMinutes()).padStart(2, "0"),
-    String(fechaObj.getSeconds()).padStart(2, "0")
-  ].join(":");
-}
-*/
+
+
 function formatearFecha(fechaObj) {
   return fechaObj.toLocaleDateString("es-AR", {
     timeZone: "America/Argentina/Buenos_Aires",
@@ -172,23 +170,7 @@ function formatearHora(fechaObj) {
 // ==========================================
 //  API: validar domicilio
 // ==========================================
-const fetch = require("node-fetch");
-/*
-app.get("/api/verificar-direccion", async (req, res) => {
-    const q = req.query.q;
-    try {
-        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&addressdetails=1`;
-        const resp = await fetch(url, {
-            headers: { "User-Agent": "whatsapp-backend/1.0" }
-        });
-        const data = await resp.json();
-        res.json({ ok: true, resultados: data });
-    } catch (e) {
-        console.error("Error en Nominatim:", e);
-        res.json({ ok: false, resultados: [] });
-    }
-});
-*/
+
 app.post("/api/verificar-direccion", async (req, res) => {
     try {
         const direccion = req.body.direccion;
@@ -222,286 +204,207 @@ app.post("/api/verificar-direccion", async (req, res) => {
 
 
 // ==========================================
-//  API: LISTAR PEDIDOS
+// PRODUCTOS / SABORES / FPAGO / GRUPOS (cache)
 // ==========================================
-app.get('/api/pedidos_whatsapp', async (req, res) => {
-  try {
-    const estado = req.query.estado;
-    const qtext = req.query.q ? req.query.q.toLowerCase() : null;
 
-    let ref = db.collection('PEDIDOS_WHATSAPP');
-    if (estado) ref = ref.where('estado', '==', estado);
-
-    const snap = await ref.get();
-    let items = snap.docs.map(d => d.data());
-
-    // ordenar por id_pedido desc
-    items.sort((a,b) => (b.id_pedido || 0) - (a.id_pedido || 0));
-
-    // búsqueda
-    if (qtext) {
-      items = items.filter(it => {
-        const n = (it.nombre || '').toLowerCase();
-        const t = (it.telefono || '').toLowerCase();
-        return n.includes(qtext) || t.includes(qtext);
-      });
-    }
-
-    res.json(items);
-
-  } catch (e) {
-    console.error('GET /api/pedidos_whatsapp error', e);
-    res.status(500).json({ error: 'Error al listar pedidos' });
-  }
-});
-
-// ==========================================
-//  API: OBTENER UN PEDIDO (para convertir)
-// ==========================================
-app.get("/api/pedidos_whatsapp/:id", async (req, res) => {
-  try {
-    const idPedido = Number(req.params.id);
-
-    const snap = await db
-      .collection("PEDIDOS_WHATSAPP")
-      .where("id_pedido", "==", idPedido)
-      .limit(1)
-      .get();
-
-    if (snap.empty) {
-      return res.status(404).json({ error: "Pedido no encontrado" });
-    }
-
-    res.json(snap.docs[0].data());
-
-  } catch (err) {
-    console.error("ERROR GET /api/pedidos_whatsapp/:id", err);
-    res.status(500).json({ error: "Error cargando pedido" });
-  }
-});
-
-// ==========================================
-//  API: Convertir pedido a venta
-// ==========================================
-app.post("/api/pedidos_whatsapp/:id/convertir", async (req, res) => {
-  try {
-    const idPedido = Number(req.params.id);
-
-    const snap = await db
-      .collection("PEDIDOS_WHATSAPP")
-      .where("id_pedido", "==", idPedido)
-      .limit(1)
-      .get();
-
-    if (snap.empty) return res.status(404).json({ error: "Pedido no encontrado" });
-
-    const pedidoDoc = snap.docs[0];
-    const pedido = pedidoDoc.data();
-
-    if (pedido.estado === "convertido") {
-      return res.status(400).json({ error: "Pedido ya confirmado como venta" });
-    }
-
-    const detalles = pedido.pedido_detalle;
-
-    let subtotal = 0;
-    detalles.forEach(it => subtotal += (it.precio || 0));
-    const total = subtotal;
-
-    // Validación combos / importes
-    const { f_pago1, f_pago2, importe_fp1, importe_fp2 } = req.body;
-
-    if ((importe_fp1 + importe_fp2) !== total) {
-      return res.status(400).json({ error: "Los importes no coinciden con el total" });
-    }
-
-    if (importe_fp1 > 0 && (!f_pago1 || f_pago1 === 0)) {
-      return res.status(400).json({ error: "Debe seleccionar forma de pago 1" });
-    }
-
-    if (importe_fp2 > 0 && (!f_pago2 || f_pago2 === 0)) {
-      return res.status(400).json({ error: "Debe seleccionar forma de pago 2" });
-    }
-
-    // Crear Venta
-    const last = await db.collection("VENTAS_CAB")
-      .orderBy("id_venta", "desc")
-      .limit(1)
-      .get();
-
-    const id_venta = last.empty ? 1 : last.docs[0].data().id_venta + 1;
-/*
-    const ahora = new Date();
-    const fecha = ahora.toLocaleDateString("es-AR");
-    const hora = ahora.toLocaleTimeString("es-AR");
-*/
-
-const ahora = new Date();
-const fecha = formatearFecha(ahora);
-const hora = formatearHora(ahora);
-console.log("GUARDANDO venta con FECHA:", fecha);
-
-    // CABECERA
-    await db.collection("VENTAS_CAB").add({
-      id_venta,
-	  anulada:"N",
-      id_cliente: pedido.id_cliente,
-      id_cierre: 0,
-      f_pago1,
-      f_pago2,
-      importe_fp1,
-      importe_fp2,
-      recargo: 0,
-      descuento: 0,
-      subtotal,
-      total,
-      tipo_venta: 5,
-      fecha,
-      hora
-    });
-
-    // DETALLE
-    const batch = db.batch();
-    for (const it of detalles) {
-      const ref = db.collection("VENTAS_DET").doc();
-      batch.set(ref, {
-        id_venta,
-        id_producto: it.id_producto,
-        precio: it.precio,
-        cantidad: 1,
-        subtotal: it.precio,
-        sabores: Array.isArray(it.sabores) ? it.sabores : []
-      });
-    }
-    await batch.commit();
-
-    await pedidoDoc.ref.update({ estado: "convertido", id_venta });
-
-    res.json({ ok: true, id_venta });
-
-  } catch (e) {
-    console.error("Error al convertir pedido", e);
-    res.status(500).json({ error: "Error al convertir pedido" });
-  }
-});
-
-// ==========================================
-//  API: Eliminar pedido
-// ==========================================
-app.delete("/api/pedidos_whatsapp/:id", async (req, res) => {
-  try {
-    const idPedido = Number(req.params.id);
-    const snap = await db
-      .collection("PEDIDOS_WHATSAPP")
-      .where("id_pedido", "==", idPedido)
-      .limit(1)
-      .get();
-
-    if (snap.empty) return res.status(404).json({ error: "Pedido no encontrado" });
-
-    await snap.docs[0].ref.delete();
-    res.json({ ok: true });
-
-  } catch (e) {
-    console.error("Error eliminando pedido", e);
-    res.status(500).json({ error: "Error al eliminar pedido" });
-  }
-});
-
-app.get("/api/grupos", async (req, res) => {
-    const snap = await db.collection("GRUPOS").get();
-    const datos = snap.docs.map(d => d.data());
-    res.json(datos);
-});
-
-
-
-// ==========================================
-// PRODUCTOS / SABORES / FPAGO (cache)
-// ==========================================
 let cacheProductos = [];
 let cacheSabores = [];
 let cacheFPago = [];
-//const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
-const CACHE_TTL = 10 * 1000; // 10 segundos
+let cacheGrupos = [];
+let cacheClientes = [];
 
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
+
+// ==========================================
 // PRODUCTOS
-async function cargarProductosFirebase() {
-  const snap = await db
-    .collection("PRODUCTOS")
-    .where("deshabilitado", "!=", "S")
-    .orderBy("deshabilitado")
-    .get();
-
-  cacheProductos = snap.docs.map(d => d.data());
-}
-cargarProductosFirebase();
-setInterval(cargarProductosFirebase, CACHE_TTL);
-
-// SABORES
-async function cargarSaboresFirebase() {
-  const snap = await db.collection("SABORES").orderBy("id_sabor").get();
-  cacheSabores = snap.docs.map(d => d.data());
-}
-cargarSaboresFirebase();
-setInterval(cargarSaboresFirebase, CACHE_TTL);
-
-// FORMAS DE PAGO
-async function cargarFPago() {
-  const snap = await db.collection("F_PAGO")
-    .where("deshabilitado", "==", "N")
-    .get();
-
-  cacheFPago = snap.docs
-    .map(d => d.data())
-    .sort((a, b) => a.id_fpago - b.id_fpago);
-}
-cargarFPago();
-setInterval(cargarFPago, CACHE_TTL);
-
-// ENDPOINTS DE CATALOGOS
-app.get("/api/productos", (req, res) => res.json(cacheProductos));
-app.get("/api/sabores", (req, res) => res.json(cacheSabores));
-app.get("/api/fpago", (req, res) => res.json(cacheFPago));
-
 // ==========================================
-// empresa
-// ==========================================
-app.get("/api/empresa", async (req, res) => {
+
+async function cargarProductos() {
+
   try {
-    const snap = await db.collection("EMPRESA").limit(1).get();
 
-    if (snap.empty) {
-      return res.json({ ok: false, msg: "No hay datos de empresa" });
-    }
+    const [rows] = await db.query(`
+      SELECT *
+      FROM PRODUCTOS
+      WHERE deshabilitado = 0
+      ORDER BY descripcion
+    `);
 
-    const data = snap.docs[0].data();
+    cacheProductos = rows;
 
-    res.json({
-      ok: true,
-      telefono: data.telefono || ""
-    });
+//    console.log("✅ Productos cacheados:", cacheProductos.length);
 
   } catch (err) {
-    res.json({ ok: false, error: err.message });
+
+    console.error("❌ ERROR cargando PRODUCTOS:", err.message);
+
   }
-});
+}
 
 // ==========================================
-// PÁGINAS HTML
+// SABORES
 // ==========================================
-app.get("/pedidos-whatsapp", (req, res) => {
-  res.sendFile(path.join(__dirname, "pedidos-whatsapp.html"));
+
+async function cargarSabores() {
+
+  try {
+
+    const [rows] = await db.query(`
+      SELECT
+        s.*,
+        ts.descripcion AS desc_tipo_sabor
+      FROM SABORES s
+      LEFT JOIN TIPO_SABORES ts
+        ON s.id_tipo_sabor = ts.id_tipo_sabor
+      WHERE s.deshabilitado = 0
+      ORDER BY s.descripcion
+    `);
+
+    cacheSabores = rows;
+
+//    console.log("✅ Sabores cacheados MYSQL:", cacheSabores.length);
+
+  } catch (err) {
+
+    console.error("❌ ERROR cargando SABORES MYSQL:", err.message);
+
+  }
+}
+
+// ==========================================
+// FORMAS DE PAGO
+// ==========================================
+
+async function cargarFPago() {
+
+  try {
+
+    const [rows] = await db.query(`
+      SELECT *
+      FROM F_PAGO
+      WHERE deshabilitado = 0
+      ORDER BY id_fpago
+    `);
+
+    cacheFPago = rows;
+
+//    console.log("✅ Formas de pago cacheadas MYSQL:", cacheFPago.length);
+
+  } catch (err) {
+
+    console.error("❌ ERROR cargando F_PAGO MYSQL:", err.message);
+
+  }
+}
+
+// ==========================================
+// GRUPOS
+// ==========================================
+
+async function cargarGrupos() {
+
+  try {
+
+    const [rows] = await db.query(`
+      SELECT *
+      FROM GRUPOS
+      WHERE deshabilitado = 0
+      ORDER BY descripcion
+    `);
+
+    cacheGrupos = rows;
+
+//    console.log("✅ Grupos cacheados MYSQL:", cacheGrupos.length);
+
+  } catch (err) {
+
+    console.error("❌ ERROR cargando GRUPOS MYSQL:", err.message);
+
+  }
+}
+
+// ==========================================
+// CLIENTES
+// ==========================================
+async function cargarClientes() {
+
+  try {
+
+    const [rows] = await db.query(`
+      SELECT *
+      FROM CLIENTES
+      WHERE deshabilitado = 0
+      ORDER BY nombre
+    `);
+
+    cacheClientes = rows;
+
+//    console.log("✅ Clientes cacheados MYSQL:", cacheClientes.length);
+
+  } catch (err) {
+
+    console.error("❌ ERROR cargando CLIENTES MYSQL:", err.message);
+
+  }
+}
+
+
+// ==========================================
+// CARGA INICIAL
+// ==========================================
+
+cargarProductos();
+cargarSabores();
+cargarFPago();
+cargarGrupos();
+cargarClientes();
+
+
+// ==========================================
+// RECARGA AUTOMÁTICA CADA 5 MINUTOS
+// ==========================================
+
+//setInterval(cargarProductosFirebase, CACHE_TTL);
+//setInterval(cargarSaboresFirebase, CACHE_TTL);
+//setInterval(cargarFPago, CACHE_TTL);
+//setInterval(cargarGruposFirebase, CACHE_TTL);
+
+// ==========================================
+// ENDPOINTS CACHEADOS
+// ==========================================
+
+app.get("/api/productos", (req, res) => {
+  res.json(cacheProductos);
 });
 
-app.get("/pedidos-online", (req, res) => {
-  res.sendFile(path.join(__dirname, "pedidos-online.html"));
+app.get("/api/sabores", (req, res) => {
+  res.json(cacheSabores);
 });
+
+app.get("/api/fpago", (req, res) => {
+  res.json(cacheFPago);
+});
+
+app.get("/api/grupos", (req, res) => {
+  res.json(cacheGrupos);
+});
+
+app.get("/api/clientes", (req, res) => {
+  res.json(cacheClientes);
+});
+
+
 
 // ==========================================
 // INICIAR SERVIDOR
 // ==========================================
 console.log("VERSION SERVER:", new Date().toISOString());
-app.listen(3000, () => {
-  console.log("Servidor escuchando en http://localhost:3000");
+
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+    console.log(`Servidor iniciado en puerto ${PORT}`);
 });
+
+
+

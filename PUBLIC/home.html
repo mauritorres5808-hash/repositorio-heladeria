@@ -16,6 +16,7 @@ body {
   margin:0;
   font-family: Arial;
   background:#f7f8fb;
+  padding: 0 0 50px 0;
 }
 .header-main {
   gap: 15px;
@@ -107,7 +108,7 @@ header {
 }
 
 .card {
-  height: 240px;
+  height: 210px;
   display: flex;
   flex-direction: column;
 }
@@ -148,12 +149,15 @@ header {
   bottom: 0;
   width: 100%;
   display: flex;
+  justify-content: flex-start;
   gap: 8px;
   overflow-x: auto;
   background: #fff;
-  padding: 10px;
+  padding: 10px 4px;
   border-top: 1px solid #ddd;
   z-index: 1000;
+  box-sizing: border-box;
+  left: 0;
 }
 
 .tab {
@@ -326,7 +330,7 @@ header {
   }
 
   .promos h2 {
-    font-size: 20px;
+    font-size: 18px;
   }
 
   .promo {
@@ -559,7 +563,7 @@ function renderUI() {
 
   // 🔥 FILTRAR GRUPOS
   const gruposVisibles = grupos.filter(g =>
-    g.publica === "S" && g.deshabilitado !== "S"
+    g.publica === "S" && g.deshabilitado === "N"
   );
 
   gruposVisibles.forEach(g => {
@@ -568,10 +572,10 @@ function renderUI() {
     const lista = productos.filter(p =>
       p.id_grupo == g.id_grupo &&
       p.publica === "S" &&
-      p.deshabilitado !== "S"
+      p.deshabilitado === "N"
     );
 
- //   if (lista.length === 0) return;
+    if (lista.length === 0) return;
 
     // ================= TAB =================
     const tab = document.createElement("div");

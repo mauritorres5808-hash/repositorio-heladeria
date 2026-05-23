@@ -4,124 +4,282 @@ let productoActual = null;
 
 document.addEventListener("DOMContentLoaded", () => {
 
+  // ============================================
+  // ABRIR MODAL
+  // ============================================
   window.abrirSubproductos = function(idProd, descripcion) {
+
     productoActual = idProd;
-    document.getElementById("tituloProdPrincipal").textContent = `${idProd} - ${descripcion}`;
+
+    document.getElementById("tituloProdPrincipal").textContent =
+      `${idProd} - ${descripcion}`;
+
     cargarSubproductosExistentes(idProd);
+
     document.getElementById("modalSubproductos").style.display = "flex";
   };
-  
 
+  // ============================================
+  // CARGAR SUBPRODUCTOS EXISTENTES
+  // ============================================
   async function cargarSubproductosExistentes(idProd) {
-	const tbodyResultados = document.querySelector("#tablaResultadosSub tbody");
-	if (tbodyResultados) tbodyResultados.innerHTML = "";
 
-    subProdLista = [];
-    const snap = await db.collection("RELA_PROD_SUB").where("id_producto", "==", idProd).get();
-    snap.forEach(doc => subProdLista.push(doc.data().id_prod_sub));
-    renderSubProdTabla();
+    try {
+
+      const tbodyResultados =
+        document.querySelector("#tablaResultadosSub tbody");
+
+      if (tbodyResultados) {
+        tbodyResultados.innerHTML = "";
+      }
+
+      subProdLista = [];
+
+      const resp = await fetch(`/api/productos-sub/${idProd}`);
+      const data = await resp.json();
+
+      subProdLista = data.map(x => x.id_prod_sub);
+
+      renderSubProdTabla();
+
+    } catch (error) {
+
+      console.error(error);
+
+      alert("Error cargando subproductos");
+    }
   }
 
+  // ============================================
+  // RENDER TABLA
+  // ============================================
   async function renderSubProdTabla() {
+
     const tbody = document.querySelector("#tablaSubproductos tbody");
+
     tbody.innerHTML = "";
 
     for (const id of subProdLista) {
-      const prodSnap = await db.collection("PRODUCTOS").doc(String(id)).get();
-      const data = prodSnap.exists ? prodSnap.data() : { descripcion: "(No encontrado)" };
 
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${id}</td>
-        <td>${data.descripcion}</td>
-        <td><button class="btn-chico" onclick="quitarSubproducto(${id})">- Quitar</button></td>
-      `;
-      tbody.appendChild(tr);
+      try {
+
+        const resp = await fetch(`/api/productos/${id}`);
+        const data = await resp.json();
+
+        const tr = document.createElement("tr");
+
+        tr.innerHTML = `
+          <td>${id}</td>
+          <td>${data.descripcion || "(No encontrado)"}</td>
+          <td>
+            <button class="btn-chico"
+              onclick="quitarSubproducto(${id})">
+              - Quitar
+            </button>
+          </td>
+        `;
+
+        tbody.appendChild(tr);
+
+      } catch (error) {
+
+        console.error(error);
+      }
     }
   }
 
+  // ============================================
+  // QUITAR SUBPRODUCTO
+  // ============================================
   window.quitarSubproducto = function(id) {
+
     subProdLista = subProdLista.filter(x => x !== id);
+
     renderSubProdTabla();
   };
 
-document.getElementById("buscarSubBtn").onclick = async () => {
-  const txt = document.getElementById("buscarSubTxt").value.trim().toLowerCase();
-  const grupoSel = document.getElementById("buscarGrupoSub").value;
+  // ============================================
+  // BUSCAR SUBPRODUCTOS
+  // ============================================
+  document.getElementById("buscarSubBtn").onclick = async () => {
 
-  let ref = db.collection("PRODUCTOS");
+    try {
 
-  // Si filtramos por grupo
-  if (grupoSel !== "") {
-    ref = ref.where("id_grupo", "==", Number(grupoSel));
+      const txt =
+        document.getElementById("buscarSubTxt")
+        .value
+        .trim()
+        .toLowerCase();
+
+      const grupoSel =
+        document.getElementById("buscarGrupoSub").value;
+
+      let url = `/api/productos-sub/buscar?texto=${encodeURIComponent(txt)}`;
+
+      if (grupoSel !== "") {
+        url += `&grupo=${grupoSel}`;
+      }
+
+      const resp = await fetch(url);
+      const data = await resp.json();
+
+      const tbody =
+        document.querySelector("#tablaResultadosSub tbody");
+
+      tbody.innerHTML = "";
+
+      data.forEach(d => {
+
+        const tr = document.createElement("tr");
+
+        tr.innerHTML = `
+          <td>${d.id_producto}</td>
+          <td>${d.descripcion}</td>
+          <td>
+            <button class="btn-chico"
+              onclick="agregarSubproducto(${d.id_producto})">
+              + Agregar
+            </button>
+          </td>
+        `;
+
+        tbody.appendChild(tr);
+      });
+
+    } catch (error) {
+
+      console.error(error);
+
+      alert("Error buscando productos");
+    }
+  };
+
+  // ============================================
+  // AGREGAR SUBPRODUCTO
+  // ============================================
+  window.agregarSubproducto = function(id) {
+
+    if (!subProdLista.includes(id)) {
+
+      subProdLista.push(id);
+    }
+
+    renderSubProdTabla();
+  };
+
+	// ============================================
+	// GUARDAR
+	// ============================================
+	document.getElementById("guardarSubBtn").onclick = async () => {
+
+	  try {
+
+		if (!productoActual) return;
+
+		// ======================================
+		// GUARDAR RELACION RELA_PROD_SUB
+		// ======================================
+		const resp = await fetch(`/api/productos-sub/${productoActual}`, {
+
+		  method: "POST",
+
+		  headers: {
+			"Content-Type": "application/json"
+		  },
+
+		  body: JSON.stringify({
+			subproductos: subProdLista
+		  })
+		});
+
+		const data = await resp.json();
+
+		if (!data.ok) {
+
+		  return alert("Error guardando subproductos");
+		}
+
+		// ======================================
+		// ACTUALIZAR CAMPO productos.subproductos
+		// ======================================
+		const tieneSubproductos = subProdLista.length > 0 ? 1 : 0;
+
+		const resp2 = await fetch(
+		  `/api/productos/${productoActual}/subproductos`,
+		  {
+
+			method: "PUT",
+
+			headers: {
+			  "Content-Type": "application/json"
+			},
+
+			body: JSON.stringify({
+			  subproductos: tieneSubproductos
+			})
+		  }
+		);
+
+		const data2 = await resp2.json();
+
+		if (!data2.ok) {
+
+		  return alert(
+			"Se guardó RELA_PROD_SUB pero falló actualizar el campo subproductos"
+		  );
+		}
+
+		alert("Subproductos guardados");
+
+		document.getElementById("modalSubproductos").style.display = "none";
+
+	  } catch (error) {
+
+		console.error(error);
+
+		alert("Error guardando subproductos");
+	  }
+	};
+	  
+
+  // ============================================
+  // CERRAR MODAL
+  // ============================================
+  document.getElementById("cerrarSubBtn").onclick = () => {
+
+    document.getElementById("modalSubproductos").style.display = "none";
+  };
+
+  // ============================================
+  // CARGAR GRUPOS
+  // ============================================
+  async function cargarGruposSub() {
+
+    try {
+
+      const sel = document.getElementById("buscarGrupoSub");
+
+      sel.innerHTML =
+        '<option value="">(Todos los grupos)</option>';
+
+      const resp = await fetch("/api/grupos");
+      const data = await resp.json();
+
+      data.forEach(g => {
+
+        sel.innerHTML += `
+          <option value="${g.id_grupo}">
+            ${g.descripcion}
+          </option>
+        `;
+      });
+
+    } catch (error) {
+
+      console.error(error);
+    }
   }
 
-  // Traemos los datos (sin filtros por descripción)
-  const snap = await ref.get();
-
-  const tbody = document.querySelector("#tablaResultadosSub tbody");
-  tbody.innerHTML = "";
-
-  snap.forEach(doc => {
-    const d = doc.data();
-    // Filtro por texto en cualquier parte de la descripción (insensible a mayúsculas)
-    if (d.descripcion.toLowerCase().includes(txt)) {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${d.id_producto}</td>
-        <td>${d.descripcion}</td>
-        <td><button class="btn-chico" onclick="agregarSubproducto(${d.id_producto})">+ Agregar</button></td>
-      `;
-      tbody.appendChild(tr);
-    }
-  });
-};
-
-
-
-  window.agregarSubproducto = function(id) {
-    if (!subProdLista.includes(id)) subProdLista.push(id);
-    renderSubProdTabla();
-  };
-
-  document.getElementById("guardarSubBtn").onclick = async () => {
-    if (!productoActual) return;
-
-    const snap = await db.collection("RELA_PROD_SUB").where("id_producto", "==", productoActual).get();
-    const batch = db.batch();
-    snap.forEach(doc => batch.delete(doc.ref));
-    await batch.commit();
-
-    const batch2 = db.batch();
-    subProdLista.forEach(id => {
-      batch2.set(db.collection("RELA_PROD_SUB").doc(), { id_producto: productoActual, id_prod_sub: id });
-    });
-    await batch2.commit();
-	
-	// guardo marca de subproductos S/N en tabla Productos
-	const tieneSub = subProdLista.length > 0 ? "S" : "N";
-	await db.collection("PRODUCTOS")
-        .doc(String(productoActual))
-        .update({ subproductos: tieneSub });
-
-
-    alert("Subproductos guardados");
-    document.getElementById("modalSubproductos").style.display = "none";
-  };
-
-  document.getElementById("cerrarSubBtn").onclick = () => {
-    document.getElementById("modalSubproductos").style.display = "none";
-  };
-
-async function cargarGruposSub() {
-  const sel = document.getElementById("buscarGrupoSub");
-  sel.innerHTML = '<option value="">(Todos los grupos)</option>';
-  const snap = await db.collection("GRUPOS").orderBy("descripcion").get();
-  snap.forEach(doc => {
-    const g = doc.data();
-    sel.innerHTML += `<option value="${g.id_grupo}">${g.descripcion}</option>`;
-  });
-}
-cargarGruposSub();
+  cargarGruposSub();
 
 });

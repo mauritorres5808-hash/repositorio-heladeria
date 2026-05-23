@@ -3,11 +3,7 @@
 <head>
   <meta charset="utf-8">
   
-  <!-- Firebase v8 -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-  <script src="js/auth.js"></script>
+ <script src="js/auth.js"></script> 
 
   <title>Menú de Compras</title>
 
@@ -136,11 +132,11 @@
   <table>
     <tr>
       <td><button class="boton-redondeado" id="btnCargarCompra" onclick="location.href='compras.html'">Ingresar Compras</button></td>
-      <td><button class="boton-redondeado" id="btnConsCompra" onclick="location.href='compras_consultas.html'">Consultar Compras y Formas de Pago</button></td>
+      <td><button class="boton-redondeado" id="btnConsCompra" onclick="location.href='compras_consultas.html'">Compras x Formas de Pago</button></td>
     </tr>
 
     <tr>
-      <td><button class="boton-redondeado" id="btnTotGrupo" onclick="location.href='totales_grupo_c.html'">Totales x Grupo</button></td>
+      <td><button class="boton-redondeado" id="btnTotGrupo" onclick="location.href='totales_grupo_c.html'">Compras x Grupo</button></td>
       <td><button class="boton-redondeado" id="btnCambiarFP" onclick="location.href='modifica-fpago_c.html'">Cambiar Forma de Pago</button></td>
     </tr>
 
@@ -167,7 +163,8 @@
 verificarSesion(); 
 document.getElementById("userLabel").textContent = localStorage.getItem("usuarioEmail");
 
-document.addEventListener("DOMContentLoaded", () => {
+// BLOQUEA TODOS LOS BOTONES AL CARGAR LA PÁGINA (menos boton Volver)
+document.addEventListener("DOMContentLoaded", async () => {
     const botones = document.querySelectorAll("button");
     botones.forEach(btn => {
         if (btn.id !== "btnVolver") {
@@ -175,7 +172,12 @@ document.addEventListener("DOMContentLoaded", () => {
             btn.title = "No tiene permiso para usar esta función";
         }
     });
-	aplicarPermisos();
+
+    // Esperar permisos
+    await cargarPermisosUsuario();
+
+    // Aplicar permisos
+    aplicarPermisos();
 });
 
 </script>
@@ -186,10 +188,10 @@ document.addEventListener("DOMContentLoaded", () => {
 window.aplicarPermisos = function () {
 
     if (tienePermiso(36)) {btnCargarCompra.disabled = false; btnCargarCompra.title = "";}
-    if (tienePermiso(33)) {btnConsCompra.disabled = false; btnConsCompra.title = "";}
+    if (tienePermiso(30)) {btnConsCompra.disabled = false; btnConsCompra.title = "";}
     if (tienePermiso(31)) {btnTotGrupo.disabled = false; btnTotGrupo.title = "";}
     if (tienePermiso(35)) {btnCambiarFP.disabled = false; btnCambiarFP.title = "";}
-    if (tienePermiso(30)) {btnAnularCompra.disabled = false; btnAnularCompra.title = "";}
+    if (tienePermiso(33)) {btnAnularCompra.disabled = false; btnAnularCompra.title = "";}
     if (tienePermiso(34)) {btnCpaAnu.disabled = false; btnCpaAnu.title = "";}
 
 };

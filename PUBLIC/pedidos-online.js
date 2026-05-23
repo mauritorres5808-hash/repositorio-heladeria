@@ -1,554 +1,1306 @@
 // pedidos-online.js
 
-const formateadorMoneda = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS',   minimumFractionDigits: 0, maximumFractionDigits: 0 });
+let promocionesAplicadas = [];
+let descuentoPromos = 0;
+let totalFinalPromos = 0;
+
+const formateadorMoneda = new Intl.NumberFormat(
+  'es-AR',
+  {
+    style: 'currency',
+    currency: 'ARS',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }
+);
 
 let grupos = [];
 let productos = [];
 let sabores = [];
-let carrito = {}; // { id_producto: [ { sabores: [] }, ... ] }
+
+let carrito = {};
+
 let telefonoEmpresa = "";
 
-// ------------------ carga inicial ------------------
+// =====================================================
+// CARGA INICIAL
+// =====================================================
+
 async function cargarDatos() {
 
   const loading = document.getElementById("loadingMsg");
-  if (loading) loading.style.display = "block";
 
-  // cargar grupos, productos y sabores
+  if (loading) {
+    loading.style.display = "block";
+  }
+
   try {
-    const [gRes, pRes, sRes, eRes] = await Promise.all([
+
+    const [
+      gRes,
+      pRes,
+      sRes,
+      eRes
+    ] = await Promise.all([
+
       fetch(`${API_BASE}/api/grupos`),
       fetch(`${API_BASE}/api/productos`),
       fetch(`${API_BASE}/api/sabores`),
-	  fetch(`${API_BASE}/api/empresa`)
+      fetch(`${API_BASE}/api/empresa`)
+
     ]);
 
-    grupos = await gRes.json();
-    productos = await pRes.json();
-    sabores = await sRes.json();
+	const gData = await gRes.json();
+	const pData = await pRes.json();
+	const sData = await sRes.json();
+	const eData = await eRes.json();
 
-const empresa = await eRes.json();
-telefonoEmpresa = empresa.telefono || "";
+grupos = Array.isArray(gData)
+  ? gData
+  : (gData.grupos || []);
 
-    // inicializar carrito (vacío para cada producto existente)
+productos = Array.isArray(pData)
+  ? pData
+  : (pData.productos || []);
+
+sabores = Array.isArray(sData)
+  ? sData
+  : (sData.sabores || []);
+
+	telefonoEmpresa = eData.empresa?.telefono || eData.telefono || "";
+
+	if (!Array.isArray(grupos)) grupos = [];
+	if (!Array.isArray(productos)) productos = [];
+	if (!Array.isArray(sabores)) sabores = [];
+
+
     carrito = {};
-    productos.forEach(p => carrito[p.id_producto] = []);
+
+    productos.forEach(p => {
+      carrito[p.id_producto] = [];
+    });
 
     renderGrupos();
     renderProductos();
     actualizarTotalUI();
 
-	document.getElementById("loadingMsg").style.display = "none";
-		
-	const cont = document.getElementById("listaProductos");
-	cont.innerHTML = "";
+    document.getElementById("loadingMsg").style.display = "none";
+
+    const cont = document.getElementById("listaProductos");
+
+    cont.innerHTML = "";
+
   } catch (err) {
+
     console.error("Error cargando datos:", err);
-    document.getElementById("listaProductos").innerText = "Error cargando productos.";
-	  if (loading) loading.innerText = "Error cargando productos.";
-    return;
+
+    document.getElementById("listaProductos").innerText =
+      "Error cargando productos.";
+
+    if (loading) {
+      loading.innerText = "Error cargando productos.";
+    }
+
   } finally {
-    // 👇 SIEMPRE se ejecuta, haya error o no
-    if (loading) loading.style.display = "none";
+
+    if (loading) {
+      loading.style.display = "none";
+    }
+
   }
+
 }
 
-// ------------------ render grupos ------------------
+// =====================================================
+// RENDER GRUPOS
+// =====================================================
 function renderGrupos() {
+
   const cmb = document.getElementById("cmbGrupo");
-  cmb.innerHTML = `<option value="">-- Seleccione un grupo --</option>`;
+
+  cmb.innerHTML =
+    `<option value="">-- Seleccione un grupo --</option>`;
 
   grupos
-    .filter(g => (String(g.deshabilitado).toUpperCase() === "N" || g.deshabilitado === undefined) && (String(g.publica).toUpperCase() === "S" || g.deshabilitado === undefined) )
+    .filter(g =>
+      Number(g.deshabilitado || 0) === 0 &&
+      Number(g.publica || 0) === 1
+    )
     .forEach(g => {
+
       const opt = document.createElement("option");
+
       opt.value = g.id_grupo;
-      opt.textContent = `${g.id_grupo} - ${g.descripcion}`;
+
+      opt.textContent =
+        `${g.descripcion}`;
+
       cmb.appendChild(opt);
     });
 }
 
-// ------------------ obtener filtro actual ------------------
+// =====================================================
+// OBTENER FILTROS
+// =====================================================
+
 function getGrupoSeleccionado() {
+
   const val = document.getElementById("cmbGrupo").value;
-  return val === "" ? null : Number(val);
+
+  return val === ""
+    ? null
+    : Number(val);
+
 }
 
 function getTextoBusqueda() {
-  return (document.getElementById("txtBuscar").value || "").trim().toLowerCase();
+
+  return (
+    document.getElementById("txtBuscar").value || ""
+  )
+    .trim()
+    .toLowerCase();
+
 }
 
-// ------------------ render productos (filtrados por grupo y búsqueda) ------------------
+function obtenerProductosParaPromos(){
+
+  const items = [];
+
+  for (const p of productos){
+    const unidades = carrito[p.id_producto] || [];
+
+    if (unidades.length <= 0){
+      continue;
+    }
+
+    items.push({
+      id: p.id_producto,
+      precio: Number(p.precio || 0),
+      cantidad: unidades.length
+    });
+  }
+  return items;
+}
+
+async function recalcularPromociones(){
+
+  try {
+
+    const productosPromo = obtenerProductosParaPromos();
+
+    if (productosPromo.length === 0){
+      promocionesAplicadas = [];
+      descuentoPromos = 0;
+      totalFinalPromos = 0;
+      return;
+    }
+
+    const resp = await fetch(
+      `${API_BASE}/api/promociones/calcular`,
+      {
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json"
+        },
+        body:JSON.stringify({
+          productos: productosPromo
+        })
+      }
+    );
+
+    const data = await resp.json();
+
+    if (!data.ok){
+      return;
+    }
+
+    promocionesAplicadas = data.promocionesAplicadas || [];
+    descuentoPromos = Number(data.descuentoPromos || 0);
+    totalFinalPromos = Number(data.totalFinal || 0);
+
+  } catch(err){
+    console.error(
+      "Error calculando promociones:",
+      err
+    );
+  }
+}
+
+
+// =====================================================
+// RENDER PRODUCTOS
+// =====================================================
+
+
 function renderProductos(){
-	  const cont = document.getElementById("listaProductos");
-	  cont.innerHTML = "";
 
-	  const idGrupo = getGrupoSeleccionado();
-	  const q = getTextoBusqueda();
+  const cont = document.getElementById("listaProductos");
 
-	const lista = productos.filter(p => {
+  cont.innerHTML = "";
 
-	// 🛑 PRIMERO: filtrar por stock
-	  if (Number(p.stock) <= 0) return false;
-  
-	  // 🔴 CASO 1: hay texto de búsqueda → manda el texto (independiente del grupo)
-	  if (q) {
-		const text = (p.descripcion || "").toString().toLowerCase();
-		return text.includes(q);
-	  }
+  const idGrupo = getGrupoSeleccionado();
 
-	  // 🟡 CASO 2: NO hay texto → usar SOLO el grupo
-	  if (idGrupo !== null) {
-		return Number(p.id_grupo) === idGrupo;
-	  }
+  const q = getTextoBusqueda();
 
-	  // ⚫ CASO 3: no hay nada → no mostrar nada
-	  return false;
-	});
+const lista = productos.filter(p => {
 
-  // si no hay grupo seleccionado mostrar mensaje
+  //if (Number(p.stock) <= 0) return false;
+  if (Number(p.deshabilitado || 0) === 1) return false;
+  if (Number(p.publica || 0) === 0) return false;
+
+  if (q) {
+
+    const text =
+      (p.descripcion || "")
+      .toString()
+      .toLowerCase();
+
+    return text.includes(q);
+  }
+
+  if (idGrupo !== null) {
+    return Number(p.id_grupo) === idGrupo;
+  }
+
+  return false;
+});
+
+
   if (lista.length === 0) {
-    cont.innerHTML = `<div class="meta">No hay productos para mostrar. Seleccioná otro grupo o escribe en la búsqueda.</div>`;
+
+    cont.innerHTML = `
+      <div class="meta">
+        No hay productos para mostrar.
+      </div>
+    `;
+
     actualizarTotalUI();
     actualizarCarritoUI();
+
     return;
   }
 
   lista.forEach(p => {
+
     const box = document.createElement("div");
+
     box.className = "producto";
 
     box.innerHTML = `
+
       <div class="header">
+
         <div>
-          <div><b>${p.id_producto} - ${p.descripcion}</b></div>
-          <div class="meta">${formateadorMoneda.format(p.precio)} ${p.sabores==='S' ? '• Hasta ' + p.max_sabores + ' sabores' : ''}</div>
+
+          <div>
+            <b>
+              ${p.descripcion}
+            </b>
+          </div>
+
+          <div class="meta">
+
+            ${formateadorMoneda.format(Number(p.precio || 0))}
+
+            ${
+              Number(p.sabores) === 1
+                ? `• Hasta ${p.max_sabores} sabores`
+                : ""
+            }
+
+          </div>
+
         </div>
+
         <div class="acciones-prod">
-          <button class="agregar" type="button" onclick="agregarUnidad(${p.id_producto})">+ Agregar unidad</button>
-          <span id="count_${p.id_producto}" class="meta">${carrito[p.id_producto] ? carrito[p.id_producto].length : 0} unidad/es</span>
+
+          <button
+            class="agregar"
+            type="button"
+            onclick="agregarUnidad(${p.id_producto})">
+
+            + Agregar unidad
+
+          </button>
+
+          <span
+            id="count_${p.id_producto}"
+            class="meta">
+
+            ${
+              carrito[p.id_producto]
+                ? carrito[p.id_producto].length
+                : 0
+            }
+
+            unidad/es
+
+          </span>
+
         </div>
+
       </div>
+
       <div id="unidades_${p.id_producto}"></div>
+
     `;
 
     cont.appendChild(box);
+
     renderUnidades(p.id_producto);
+
   });
 
   actualizarTotalUI();
   actualizarCarritoUI();
+
 }
 
-// ------------------ agregar / quitar unidad ------------------
+// =====================================================
+// AGREGAR / QUITAR
+// =====================================================
+
 function agregarUnidad(id_producto){
-  if (!carrito[id_producto]) carrito[id_producto] = [];
-  carrito[id_producto].push({ sabores: [] });
+
+  if (!carrito[id_producto]) {
+    carrito[id_producto] = [];
+  }
+
+  carrito[id_producto].push({
+    sabores:[]
+  });
+
   renderUnidades(id_producto);
-  const el = document.getElementById("count_" + id_producto);
-  if (el) el.innerText = carrito[id_producto].length + " unidad/es";
+
+  const el =
+    document.getElementById("count_" + id_producto);
+
+  if (el) {
+
+    el.innerText =
+      carrito[id_producto].length + " unidad/es";
+
+  }
+
   actualizarTotalUI();
   actualizarCarritoUI();
+
 }
 
-function quitarUnidad(id_producto, index){
-  if (!carrito[id_producto]) return;
-  carrito[id_producto].splice(index,1);
-  renderUnidades(id_producto);
-  const el = document.getElementById("count_" + id_producto);
-  if (el) el.innerText = carrito[id_producto].length + " unidad/es";
-  actualizarTotalUI();
-  actualizarCarritoUI();
-}
+function quitarUnidad(id_producto,index){
 
-function descSabor(id) {
-  const s = sabores.find(x => x.id_sabor == id);
-  return s ? s.descripcion : "";
-}
-
-// ------------------ render unidades ------------------
-function renderUnidades(id_producto){
-  const cont = document.getElementById("unidades_" + id_producto);
-  cont.innerHTML = "";
-
-  const prod = productos.find(x => x.id_producto === id_producto);
-
-  // ----------------------------------------------------
-  // ⚠ SI EL PRODUCTO NO REQUIERE SABORES → NO MOSTRAR NADA
-  // ----------------------------------------------------
-  if (prod.sabores !== "S") {
-    // No renderizamos nada de unidades
+  if (!carrito[id_producto]) {
     return;
   }
 
-  // ----------------------------------------------------
-  // 🔽 EL PRODUCTO SÍ REQUIERE SABORES
-  // ----------------------------------------------------
-  carrito[id_producto].forEach((unidad, idx) => {
-    const div = document.createElement("div");
-    div.className = "unidad";
+  carrito[id_producto].splice(index,1);
 
-    let html = `<div class="titulo">Unidad #${idx+1}</div>`;
+  renderUnidades(id_producto);
 
-    // Dibujar selects de sabores
-    for (let s = 1; s <= prod.max_sabores; s++) {
-      const sid = unidad.sabores[s-1] ?? "";
+  const el =
+    document.getElementById("count_" + id_producto);
 
-      html += `
-        <div>
-          <label>Sabor ${s}:</label>
-          <select id="sel_${id_producto}_${idx}_${s-1}"
-                  onchange="onChangeSabor(${id_producto},${idx},${s-1})">
-            <option value="">-- elegir --</option>
-            ${sabores.map(sb => `
-              <option value="${sb.id_sabor}" 
-                      ${String(sb.id_sabor)===String(sid)?'selected':''}>
-                ${sb.descripcion}
-              </option>`).join("")}
-          </select>
-        </div>`;
-    }
+  if (el) {
 
-    // mostrar lista de sabores elegidos
-    const elegidos = (unidad.sabores || [])
-      .filter(x => x !== undefined && x !== "")
-      .map(id => descSabor(id));
+    el.innerText =
+      carrito[id_producto].length + " unidad/es";
 
-    if (elegidos.length > 0) {
-      html += `<div class="meta"><b>Elegidos:</b> ${elegidos.join(", ")}</div>`;
-    }
-
-    // botón quitar unidad
-    html += `
-      <button class="quitar" type="button" onclick="quitarUnidad(${id_producto},${idx})">
-        Quitar unidad
-      </button>`;
-
-    div.innerHTML = html;
-    cont.appendChild(div);
-  });
+  }
 
   actualizarTotalUI();
+  actualizarCarritoUI();
+
 }
 
+// =====================================================
+// DESC SABOR
+// =====================================================
 
-// ------------------ onChange sabor ------------------
-function onChangeSabor(id_producto, uIndex, sIndex){
-  const el = document.getElementById(`sel_${id_producto}_${uIndex}_${sIndex}`);
+function descSabor(id){
+
+  const s =
+    sabores.find(x => x.id_sabor == id);
+
+  return s
+    ? s.descripcion
+    : "";
+
+}
+
+// =====================================================
+// RENDER UNIDADES
+// =====================================================
+
+function renderUnidades(id_producto){
+
+  const cont =
+    document.getElementById("unidades_" + id_producto);
+
+  cont.innerHTML = "";
+
+  const prod =
+    productos.find(x => x.id_producto === id_producto);
+
+  if (Number(prod.sabores) !== 1) {
+    return;
+  }
+
+  carrito[id_producto].forEach((unidad,idx)=>{
+
+    const div = document.createElement("div");
+
+    div.className = "unidad";
+
+    let html =
+      `<div class="titulo">Unidad #${idx+1}</div>`;
+
+    for (let s=1; s<=prod.max_sabores; s++){
+
+      const sid =
+        unidad.sabores[s-1] ?? "";
+
+      html += `
+
+        <div>
+
+          <label>Sabor ${s}:</label>
+
+          <select
+            id="sel_${id_producto}_${idx}_${s-1}"
+            onchange="onChangeSabor(${id_producto},${idx},${s-1})">
+
+            <option value="">
+              -- elegir --
+            </option>
+
+            ${sabores.map(sb => `
+
+              <option
+                value="${sb.id_sabor}"
+
+                ${
+                  String(sb.id_sabor) === String(sid)
+                    ? 'selected'
+                    : ''
+                }>
+
+                ${sb.descripcion}
+
+              </option>
+
+            `).join("")}
+
+          </select>
+
+        </div>
+
+      `;
+
+    }
+
+    const elegidos =
+      (unidad.sabores || [])
+        .filter(x => x !== undefined && x !== "")
+        .map(id => descSabor(id));
+
+    if (elegidos.length > 0){
+
+      html += `
+        <div class="meta">
+          <b>Elegidos:</b>
+          ${elegidos.join(", ")}
+        </div>
+      `;
+
+    }
+
+    html += `
+
+      <button
+        class="quitar"
+        type="button"
+        onclick="quitarUnidad(${id_producto},${idx})">
+
+        Quitar unidad
+
+      </button>
+
+    `;
+
+    div.innerHTML = html;
+
+    cont.appendChild(div);
+
+  });
+
+}
+
+// =====================================================
+// CAMBIO SABOR
+// =====================================================
+
+function onChangeSabor(id_producto,uIndex,sIndex){
+
+  const el =
+    document.getElementById(
+      `sel_${id_producto}_${uIndex}_${sIndex}`
+    );
+
   if (!el) return;
+
   const val = el.value;
 
-  const unidad = (carrito[id_producto] || [])[uIndex];
+  const unidad =
+    (carrito[id_producto] || [])[uIndex];
+
   if (!unidad) return;
 
-  if (val === "") unidad.sabores[sIndex] = undefined;
-  else unidad.sabores[sIndex] = Number(val);
-  
-  // refrescar vista con nombres
+  if (val === "") {
+
+    unidad.sabores[sIndex] = undefined;
+
+  } else {
+
+    unidad.sabores[sIndex] = Number(val);
+
+  }
+
   renderUnidades(id_producto);
+
 }
 
-// ------------------ normalizar teléfono ------------------
-function normalizarTelefono(tel) {
-  tel = tel.replace(/\D/g, "");
+// =====================================================
+// NORMALIZAR TELEFONO
+// =====================================================
 
-  if (tel.startsWith("54911") && tel.length === 13) return "+" + tel;
-  if (tel.startsWith("911") && tel.length === 11) return "+54" + tel;
-  if (tel.startsWith("11") && tel.length === 10) return "+549" + tel;
+function normalizarTelefono(tel){
+
+  tel = tel.replace(/\D/g,"");
+
+  if (
+    tel.startsWith("54911")
+    && tel.length === 13
+  ) {
+    return "+" + tel;
+  }
+
+  if (
+    tel.startsWith("911")
+    && tel.length === 11
+  ) {
+    return "+54" + tel;
+  }
+
+  if (
+    tel.startsWith("11")
+    && tel.length === 10
+  ) {
+    return "+549" + tel;
+  }
 
   return null;
+
 }
 
-// ------------------ validación tel UI ------------------
-function validarTelefonoUI(input) {
-  const msg = document.getElementById("telefonoMsg");
-  let valor = input.value.replace(/\D/g, "");
+// =====================================================
+// VALIDACION TELEFONO
+// =====================================================
 
-  if (valor.length >= 2 && valor.length <= 6)
-    input.value = valor.slice(0,2) + (valor.length>2 ? " " + valor.slice(2) : "");
-  else if (valor.length > 6)
-    input.value = valor.slice(0,2) + " " + valor.slice(2,6) + " " + valor.slice(6);
+function validarTelefonoUI(input){
 
-  const ok = normalizarTelefono(input.value);
+  const msg =
+    document.getElementById("telefonoMsg");
 
-  if (ok) {
+  let valor =
+    input.value.replace(/\D/g,"");
+
+  if (valor.length >= 2 && valor.length <= 6){
+
+    input.value =
+      valor.slice(0,2)
+      + (valor.length > 2
+          ? " " + valor.slice(2)
+          : "");
+
+  } else if (valor.length > 6){
+
+    input.value =
+      valor.slice(0,2)
+      + " "
+      + valor.slice(2,6)
+      + " "
+      + valor.slice(6);
+
+  }
+
+  const ok =
+    normalizarTelefono(input.value);
+
+  if (ok){
+
     input.style.borderColor = "green";
+
     msg.style.color = "green";
-    msg.innerText = "✓ Número válido → " + ok;
+
+    msg.innerText =
+      "✓ Número válido → " + ok;
+
   } else {
+
     input.style.borderColor = "red";
+
     msg.style.color = "#b00";
-    msg.innerText = "Formato inválido. Ej: 11 3456 7890";
+
+    msg.innerText =
+      "Formato inválido. Ej: 11 3456 7890";
+
   }
+
 }
 
-// ------------------ total ------------------
-function calcularTotal() {
+// =====================================================
+// TOTAL
+// =====================================================
+
+function calcularTotal(){
+
   let total = 0;
-  for (const p of productos) {
-    const unidades = carrito[p.id_producto] || [];
-    total += (p.precio || 0) * unidades.length;
+
+  for (const p of productos){
+
+    const unidades =
+      carrito[p.id_producto] || [];
+
+    total +=
+      Number(p.precio || 0)
+      * unidades.length;
+
   }
+
   return total;
+
 }
 
-function actualizarTotalUI() {
+async function actualizarTotalUI(){
+
+  await recalcularPromociones();
+
+  const subtotal = calcularTotal();
+
+  const total =
+    totalFinalPromos > 0
+      ? totalFinalPromos
+      : subtotal;
+
   const tv = document.getElementById("totalValor");
-  if (tv) tv.innerText = calcularTotal();
+
+  if (tv){
+    tv.innerText = formateadorMoneda.format(total);
+  }
+
   actualizarCarritoUI();
 }
 
-// ------------------ actualizar carrito visual (lateral) ------------------
-function actualizarCarritoUI() {
+
+// =====================================================
+// CARRITO VISUAL
+// =====================================================
+
+function actualizarCarritoUI(){
+
   const cont = document.getElementById("carritoItems");
+
   cont.innerHTML = "";
 
   let any = false;
+
   let total = 0;
 
-  for (const p of productos) {
+  for (const p of productos){
+
     const unidades = carrito[p.id_producto] || [];
-    if (!unidades || unidades.length === 0) continue;
+
+    if (!unidades || unidades.length === 0){
+      continue;
+    }
+
     any = true;
 
     const div = document.createElement("div");
+
     div.className = "carrito-item";
 
     const qty = unidades.length;
-    const subtotal = qty * (p.precio || 0);
+
+    const subtotal = qty * Number(p.precio || 0);
+
     total += subtotal;
 
     const left = document.createElement("div");
-    left.innerHTML = `<div style="font-weight:600">${p.descripcion}</div>
-                      <div class="meta">${qty} × ${formateadorMoneda.format(p.precio)} = ${formateadorMoneda.format(subtotal)}</div>`;
+
+    left.innerHTML = `
+      <div style="font-weight:600">
+        ${p.descripcion}
+      </div>
+      <div class="meta">
+        ${qty}
+        ×
+        ${formateadorMoneda.format(Number(p.precio || 0))}
+        =
+        ${formateadorMoneda.format(subtotal)}
+      </div>
+    `;
 
     const right = document.createElement("div");
+
     right.className = "carrito-controls";
+
     right.innerHTML = `
-      <button onclick="agregarUnidad(${p.id_producto})" title="Agregar +">+</button>
-      <button onclick="quitarUnidad(${p.id_producto}, ${Math.max(0, unidades.length-1)})" title="Quitar última">-</button>
+      <button onclick="agregarUnidad(${p.id_producto})">
+        +
+      </button>
+      <button
+        onclick="quitarUnidad(${p.id_producto},${Math.max(0,unidades.length-1)})">
+        -
+      </button>
     `;
 
     div.appendChild(left);
     div.appendChild(right);
+
     cont.appendChild(div);
+
   }
 
-  if (!any) {
+  if (!any){
     cont.innerHTML = "No hay productos seleccionados.";
   }
+		// =====================================
+		// PROMOCIONES aplicadas
+		// =====================================
+		if (promocionesAplicadas.length > 0){
+		  const promoDiv = document.createElement("div");
 
-  document.getElementById("carritoTotal").innerText = formateadorMoneda.format(total);
-  document.getElementById("totalValor").innerText = total;
+		  promoDiv.style.marginTop = "10px";
+		  promoDiv.innerHTML = `
+			  <hr>
+			  <div style="
+				color:green;
+				font-weight:bold;
+				margin-bottom:6px;
+			  ">
+				🎁 Promociones aplicadas
+			  </div>
+			  ${
+				promocionesAplicadas.map(p => `
+				  <div style="
+					font-size:13px;
+					margin-bottom:4px;
+				  ">
+					✔ ${p.descripcion}
+					(-${formateadorMoneda.format(p.descuento)})
+				  </div>
+				`).join("")
+			  }
+			  <div style="
+				margin-top:8px;
+				font-weight:bold;
+				color:#c0392b;
+			  ">
+				Descuento total:
+				${formateadorMoneda.format(descuentoPromos)}
+			  </div>
+			`;
+		  cont.appendChild(promoDiv);
+		}
+
+		//document.getElementById("carritoTotal").innerText = formateadorMoneda.format(total);
+		const totalMostrar =
+		  totalFinalPromos > 0
+			? totalFinalPromos
+			: total;
+
+		document.getElementById("carritoTotal").innerText = formateadorMoneda.format(totalMostrar);
+		document.getElementById("totalValor").innerText = formateadorMoneda.format(total);
 }
 
-// ------------------ VALIDACIÓN SABORES (solo para productos en el carrito) ------------------
-function validarSabores() {
-  for (const p of productos) {
-    const unidades = carrito[p.id_producto] || [];
-    if (!unidades || unidades.length === 0) continue;
-    if (p.sabores !== "S") continue;
+// =====================================================
+// VALIDAR SABORES
+// =====================================================
 
-    for (const unidad of unidades) {
-      const elegidos = (unidad.sabores || []).filter(x => x !== undefined && x !== "");
-      if (elegidos.length === 0) {
-        alert(`⚠ El producto "${p.descripcion}" requiere al menos 1 sabor por unidad.`);
-        return false;
-      }
+function validarSabores(){
+
+  for (const p of productos){
+
+    const unidades =
+      carrito[p.id_producto] || [];
+
+    if (!unidades || unidades.length === 0){
+      continue;
     }
+
+    if (Number(p.sabores) !== 1){
+      continue;
+    }
+
+    for (const unidad of unidades){
+
+      const elegidos =
+        (unidad.sabores || [])
+          .filter(x => x !== undefined && x !== "");
+
+      if (elegidos.length === 0){
+
+        alert(
+          `⚠ El producto "${p.descripcion}" requiere al menos 1 sabor por unidad.`
+        );
+
+        return false;
+
+      }
+
+    }
+
   }
+
   return true;
+
 }
 
-// ------------------ VALIDAR DIRECCIÓN (via backend) ------------------
-async function validarDireccionBackend(direccion) {
+// =====================================================
+// VALIDAR DIRECCION
+// =====================================================
+
+async function validarDireccionBackend(direccion){
+
   try {
-    const resp = await fetch(`${API_BASE}/api/verificar-direccion`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ direccion })
-    });
+
+    const resp = await fetch(
+      `${API_BASE}/api/verificar-direccion`,
+      {
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json"
+        },
+        body:JSON.stringify({
+          direccion
+        })
+      }
+    );
 
     const data = await resp.json();
+
     return data.ok;
 
-  } catch (err) {
-    console.error("Error verificando dirección:", err);
+  } catch(err){
+
+    console.error(
+      "Error verificando dirección:",
+      err
+    );
+
     return false;
+
   }
+
 }
 
+// =====================================================
+// ENVIAR PEDIDO
+// =====================================================
 
-
-// ------------------ enviar pedido ------------------
 async function enviarPedido(){
+
   const nombre = document.getElementById("nombre").value.trim();
   const domicilio = document.getElementById("domicilio").value.trim();
-  
+  const nota = document.getElementById("nota").value.trim();
+  const pagaCon = document.getElementById("paga_con").value.trim();
+  const tel = normalizarTelefono(document.getElementById("telefono").value);
   const domLower = domicilio.toLowerCase();
 
-if (!(domLower.endsWith("bs as") || domLower.endsWith("caba"))) {
-  alert("El domicilio debe terminar con 'Bs As' o 'CABA'.\nEj: Av Triunvirato 123, CABA");
-  return;
-}
+  if (
+    !(
+      domLower.endsWith("bs as")
+      || domLower.endsWith("caba")
+    )
+  ){
+    alert(
+      "El domicilio debe terminar con Bs As o CABA"
+    );
 
-const pagaCon = document.getElementById("paga_con").value.trim();
-  const nota = document.getElementById("nota").value.trim();
-  const tel = normalizarTelefono(document.getElementById("telefono").value);
-
-	if (!nombre || !domicilio || !tel || !pagaCon) {
-	  alert("Complete nombre, domicilio, teléfono y cómo piensa pagar.");
-	  return;
-	}
-
-	// Validar domicilio con backend
-	const direccionOk = await validarDireccionBackend(domicilio);
-
-	if (!direccionOk) {
-	  const seguir = confirm(
-		"No pudimos verificar la dirección.\n" +
-		"¿Deseás continuar igualmente?"
-	  );
-	  if (!seguir) return;
-	}
-
-
-  if (!validarSabores()) return;
-
-  // construir array final de items (cada unidad -> 1 item)
-  const pedidoBackend = [];
-  for (const p of productos) {
-    const unidades = carrito[p.id_producto];
-    if (!unidades || unidades.length === 0) continue;
-
-    for (const unidad of unidades) {
-      const item = {
-        id_producto: p.id_producto,
-        descripcion: p.descripcion,
-        precio: p.precio
-      };
-
-      if (p.sabores === "S") {
-        const sids = (unidad.sabores || [])
-          .map(s => (s === "" || s === undefined || s === null) ? null : Number(s))
-          .filter(s => s !== null && !Number.isNaN(s));
-        item.sabores = sids;
-      } else {
-        item.sabores = [];
-      }
-
-      pedidoBackend.push(item);
-    }
-  }
-
-  if (pedidoBackend.length === 0) {
-    alert("Debe agregar al menos 1 producto.");
     return;
+
   }
 
-  try {
-    let r = await fetch(`${API_BASE}/whatsapp/pedido`, {
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body:JSON.stringify({ nombre, domicilio, telefono:tel, nota, paga_con: pagaCon, pedido:pedidoBackend })
-    });
-    let data = await r.json();
+  if (
+    !nombre
+    || !domicilio
+    || !tel
+    || !pagaCon
+  ){
 
-    if (!data.ok) {
-      alert("Error guardando el pedido: " + (data.error || JSON.stringify(data)));
+    alert(
+      "Complete nombre, domicilio, teléfono y cómo piensa pagar."
+    );
+
+    return;
+
+  }
+
+  const direccionOk =
+    await validarDireccionBackend(domicilio);
+
+  if (!direccionOk){
+
+    const seguir = confirm(
+      "No pudimos verificar la dirección.\n¿Deseás continuar igualmente?"
+    );
+
+    if (!seguir){
       return;
     }
 
-    mostrarMensajeFinal(data.idPedido);
-    resetAll();
-  } catch (err) {
-    console.error("Error enviando pedido:", err);
-    alert("Error enviando el pedido. Revisa la consola.");
   }
+
+  if (!validarSabores()){
+    return;
+  }
+
+
+
+const pedidoBackend = [];
+// =====================================
+// ITEMS DETALLE
+// =====================================
+for (const p of productos){
+
+  const unidades =
+    carrito[p.id_producto];
+
+  if (!unidades || unidades.length === 0){
+    continue;
+  }
+
+  for (const unidad of unidades){
+
+    const item = {
+
+      id_producto: p.id_producto,
+      descripcion: p.descripcion,
+      precio: Number(p.precio || 0)
+
+    };
+
+    if (Number(p.sabores) === 1){
+
+      const sids =
+        (unidad.sabores || [])
+          .map(s => {
+
+            if (
+              s === ""
+              || s === undefined
+              || s === null
+            ){
+              return null;
+            }
+
+            return Number(s);
+
+          })
+
+          .filter(s =>
+            s !== null
+            && !Number.isNaN(s)
+          );
+
+      item.sabores = sids;
+
+    } else {
+
+      item.sabores = [];
+
+    }
+
+    pedidoBackend.push(item);
+
+  }
+
 }
 
-// ------------------ mensaje final ------------------
-function mostrarMensajeFinal(idPedido) {
+// =====================================
+// AGRUPAR PRODUCTOS PARA PROMOS
+// =====================================
+const productosPromo = [];
 
-	// guardar el id para usar después
-	window.idPedidoActual = idPedido;
-	window.nombreClienteActual = document.getElementById("nombre").value.trim();
-	window.pagaConActual = document.getElementById("paga_con").value.trim();
+for (const p of productos){
 
-	document.getElementById("nroPedido").innerHTML = `N° de Pedido: ${idPedido}`;
-	document.getElementById("mensajeFinal").style.display = "block";
+  const unidades =
+    carrito[p.id_producto] || [];
+
+  if (unidades.length === 0){
+    continue;
+  }
+
+  productosPromo.push({
+
+    id: p.id_producto,
+    cantidad: unidades.length,
+    precio: Number(p.precio || 0)
+
+  });
+
 }
 
-function aceptarPedido() {
+// =====================================
+// CALCULAR PROMOCIONES
+// =====================================
+let descuentoPromos = 0;
+let promocionesAplicadas = [];
+let totalFinal = calcularTotal();
 
-	const idPedido = window.idPedidoActual;
-	const nombre = window.nombreClienteActual;
-	const pagaCon = window.pagaConActual;
-	const mensaje = `Hola soy *${nombre}*, mi pedido es el Nro *${idPedido}*.\nPago con: *${pagaCon}*`;
-	const mensajeCodificado = encodeURIComponent(mensaje);
-	//const numeroEmpresa = "5491134692013"; // <-- tu número
-	const numeroEmpresa = telefonoEmpresa;
-	if (!numeroEmpresa) {
-		alert("No se pudo obtener el teléfono de la empresa.");
-		return;
-	}
-	const url = `https://wa.me/${numeroEmpresa}?text=${mensajeCodificado}`;
+try {
 
-	// 👉 esto ahora NO se bloquea
-	window.open(url, "_blank");
+  const promoResp = await fetch(
+    `${API_BASE}/api/promociones/calcular`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type":"application/json"
+      },
+      body: JSON.stringify({
+        productos: productosPromo
+      })
+    }
+  );
 
-	// cerrar popup
-	cerrarMensajeFinal();
+  const promoData = await promoResp.json();
+
+  if (promoData.ok){
+
+    descuentoPromos =
+      Number(promoData.descuentoPromos || 0);
+
+    promocionesAplicadas =
+      promoData.promocionesAplicadas || [];
+
+    totalFinal =
+      Number(promoData.totalFinal || 0);
+
+  }
+
+} catch(err){
+
+  console.error(
+    "Error calculando promociones:",
+    err
+  );
+
 }
 
 
-function cerrarMensajeFinal() {
+  if (pedidoBackend.length === 0){
+
+    alert(
+      "Debe agregar al menos 1 producto."
+    );
+
+    return;
+
+  }
+
+  try {
+
+    const r = await fetch(
+      `${API_BASE}/api/pedidos`,
+      {
+        method:"POST",
+
+        headers:{
+          "Content-Type":"application/json"
+        },
+
+        body:JSON.stringify({
+          nombre,
+          domicilio,
+          telefono: tel,
+          nota,
+          paga_con: pagaCon,
+          detalle: pedidoBackend,
+		  descuento_promociones: descuentoPromos, 
+		  promociones_aplicadas: promocionesAplicadas, 
+		  total_final: totalFinal
+        })
+
+      }
+    );
+
+    const data = await r.json();
+
+    if (!data.ok){
+
+      alert(
+        "Error guardando el pedido: "
+        + (data.error || "")
+      );
+
+      return;
+
+    }
+
+    mostrarMensajeFinal(data.id_pedido);
+
+    resetAll();
+
+  } catch(err){
+
+    console.error(
+      "Error enviando pedido:",
+      err
+    );
+
+    alert(
+      "Error enviando el pedido."
+    );
+
+  }
+
+}
+
+// =====================================================
+// MENSAJE FINAL
+// =====================================================
+
+function mostrarMensajeFinal(idPedido){
+  window.idPedidoActual = idPedido;
+  window.nombreClienteActual = document.getElementById("nombre").value.trim();
+  window.pagaConActual = document.getElementById("paga_con").value.trim();
+  document.getElementById("nroPedido").innerHTML = `N° de Pedido: ${idPedido}`;
+  document.getElementById("mensajeFinal").style.display = "block";
+}
+
+function aceptarPedido(){
+
+  const idPedido = window.idPedidoActual;
+  const nombre = window.nombreClienteActual;
+  const pagaCon = window.pagaConActual;
+//  const mensaje =`Hola soy *${nombre}* mi pedido es el *Nro ${idPedido}* y pago con *${pagaCon}*`;
+//  const mensaje = `👋 Hola soy *${nombre}* 🧾 Mi pedido es el *Nro ${idPedido}* 💰 Pago con: *${pagaCon}*`;
+  const mensaje = `*Nuevo Pedido*\n► Hola soy *${nombre}*\n► Mi pedido es el *Nro: ${idPedido}*\n► Pago con: *${pagaCon}*`;
+  
+  const mensajeCodificado = encodeURIComponent(mensaje);
+  const numeroEmpresa = telefonoEmpresa;
+
+  if (!numeroEmpresa){
+    alert(
+      "No se pudo obtener el teléfono de la empresa."
+    );
+    return;
+  }
+
+  // =====================================
+  // DETECTAR si es CELULAR
+  // =====================================
+  const esMovil = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+  let url = "";
+
+  if (esMovil) {
+	  // CELULAR  ===================================
+    url =`https://wa.me/${numeroEmpresa}?text=${mensajeCodificado}`;
+  } else {
+    // PC =====================================
+    url =`https://web.whatsapp.com/send?phone=${numeroEmpresa}&text=${mensajeCodificado}`;
+  }
+
+//  const url = `https://wa.me/${numeroEmpresa}?text=${mensajeCodificado}`;
+//  window.open(url,"_blank");
+  // abrir en misma pestaña
+  window.location.href = url;
+
+  cerrarMensajeFinal();
+}
+
+
+function cerrarMensajeFinal(){
   document.getElementById("mensajeFinal").style.display = "none";
 }
 
-// ------------------ reset formulario ------------------
-function resetAll() {
+// =====================================================
+// RESET
+// =====================================================
+
+function resetAll(){
+
   document.getElementById("formPedido").reset();
-const cont = document.getElementById("listaProductos");
-cont.innerHTML = "";
-  
+  const cont = document.getElementById("listaProductos");
+  cont.innerHTML = "";
   carrito = {};
-  productos.forEach(p => carrito[p.id_producto] = []);
-  //renderProductos();
+  productos.forEach(p => {
+    carrito[p.id_producto] = [];
+  });
   actualizarTotalUI();
 }
 
-// ------------------ evento cambio grupo ------------------
-function onGrupoChange() {
+// =====================================================
+// EVENTOS
+// =====================================================
+
+function onGrupoChange(){
+
   renderProductos();
+
 }
 
+document.getElementById("btnValidarDom").onclick =
+async () => {
 
+  const dom =
+    document.getElementById("domicilio").value.trim();
 
-document.getElementById("btnValidarDom").onclick = async () => {
-    const dom = document.getElementById("domicilio").value.trim();
-    const msg = document.getElementById("msgValidacionDom");
+  const msg =
+    document.getElementById("msgValidacionDom");
 
-    if (!dom) {
-        msg.style.color = "red";
-        msg.textContent = "Ingrese un domicilio para validar.";
-        return;
-    }
+  if (!dom){
 
-    msg.style.color = "blue";
-    msg.textContent = "Validando domicilio...";
+    msg.style.color = "red";
 
-    const ok = await validarDireccionBackend(dom);
+    msg.textContent =
+      "Ingrese un domicilio para validar.";
 
-    if (ok) {
-        msg.style.color = "green";
-        msg.textContent = "✓ Domicilio válido";
-    } else {
-        msg.style.color = "red";
-        msg.textContent = "✗ No se pudo verificar la dirección";
-    }
+    return;
+
+  }
+
+  msg.style.color = "blue";
+
+  msg.textContent =
+    "Validando domicilio...";
+
+  const ok =
+    await validarDireccionBackend(dom);
+
+  if (ok){
+
+    msg.style.color = "green";
+
+    msg.textContent =
+      "✓ Domicilio válido";
+
+  } else {
+
+    msg.style.color = "red";
+
+    msg.textContent =
+      "✗ No se pudo verificar la dirección";
+
+  }
+
 };
 
+// =====================================================
+// INICIO
+// =====================================================
 
-// ------------------ inicia todo ------------------
 cargarDatos();

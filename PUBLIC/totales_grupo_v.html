@@ -2,12 +2,8 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Totales de Caja por Grupo</title>
+  <title>Ventas por Grupo</title>
 
-  <!-- Firebase v8 -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 <script src="js/auth.js"></script>  <!-- Aquí se verifica la autenticacion-->
 
   <!-- Chart.js -->
@@ -142,7 +138,7 @@
 <body>
   <div class="contenedor">
 
-  <h2 align=center style="background-color: #8AC0FF;">Totales de Caja por Grupo</h2>
+  <h2 align=center style="background-color: #8AC0FF;">Ventas por Grupo</h2>
 
     <div class="filtros">
       <label>Desde: <input type="date" id="fechaDesde"></label>
@@ -198,143 +194,148 @@ verificarSesion();
 
     let grafico = null; // Para poder actualizar el gráfico
 
-    async function calcularTotales() {
-      const mensaje = document.getElementById("mensajeProcesando");
-      mensaje.style.display = "block";
-      mensaje.textContent = "🔄 Procesando, por favor espere...";
+async function calcularTotales() {
 
-      const fechaDesde = document.getElementById("fechaDesde").value;
-      const fechaHasta = document.getElementById("fechaHasta").value;
+  const mensaje = document.getElementById("mensajeProcesando");
+  mensaje.style.display = "block";
+  mensaje.textContent = "🔄 Procesando, por favor espere...";
 
-sin_cierre = document.getElementById("chk_cierre").checked;
+  const fechaDesde = document.getElementById("fechaDesde").value;
+  const fechaHasta = document.getElementById("fechaHasta").value;
 
-      try {
-        const ventasCabSnap = await db.collection("VENTAS_CAB").get();
-        const ventasCab = ventasCabSnap.docs
-          .map(doc => ({ id: doc.id, ...doc.data() }))
-          .filter(v => {
-            const f = convertirFecha(v.fecha);
-            const estados = v.anulada != "S";
-			if (sin_cierre) {
-				const cierres = v.id_cierre === 0;
-				return f >= fechaDesde && f <= fechaHasta && estados && cierres;
-			}else {
-            return f >= fechaDesde && f <= fechaHasta && estados;}
-          });
+  const sin_cierre = document.getElementById("chk_cierre").checked ? 1 : 0;
 
-        if (ventasCab.length === 0) {
-          mensaje.style.display = "none";
-          alert("No se encontraron ventas en ese rango.");
-          return;
-        }
+  try {
 
-        const idsVentas = ventasCab.map(v => v.id_venta);
-        const ventasDetSnap = await db.collection("VENTAS_DET").get();
+    // ============================================
+    // OBTENER DATOS DESDE MYSQL
+    // ============================================
+    const resp = await fetch(
+      `/api/reportes/totales-grupo?desde=${fechaDesde}&hasta=${fechaHasta}&sin_cierre=${sin_cierre}`
+    );
 
-        const ventasDet = ventasDetSnap.docs
-          .map(doc => doc.data())
-          .filter(det => idsVentas.includes(det.id_venta));
+    const datos = await resp.json();
 
-        const productosSnap = await db.collection("PRODUCTOS").get();
-        const gruposSnap = await db.collection("GRUPOS").get();
-
-        const productos = {};
-        productosSnap.forEach(doc => (productos[doc.id] = doc.data()));
-
-        const grupos = {};
-        gruposSnap.forEach(doc => (grupos[doc.id] = doc.data().descripcion));
-
-        const totales = {};
-        ventasDet.forEach(det => {
-          const producto = productos[det.id_producto];
-          if (!producto) return;
-          const id_grupo = producto.id_grupo;
-          if (!totales[id_grupo]) {
-            totales[id_grupo] = {
-              descripcion: grupos[id_grupo] || "Sin grupo",
-              cantidad: 0,
-              total: 0,
-            };
-          }
-          totales[id_grupo].cantidad += det.cantidad;
-          totales[id_grupo].total += det.subtotal;
-        });
-
-        // 🔹 Totales generales
-        const totalGeneralImporte = Object.values(totales).reduce((acc, g) => acc + g.total, 0);
-        const totalGeneralCantidad = Object.values(totales).reduce((acc, g) => acc + g.cantidad, 0);
-
-        const tbody = document.querySelector("#tablaTotales tbody");
-        tbody.innerHTML = "";
-
-        // 🔹 Filas por grupo
-        const labels = [];
-        const data = [];
-        for (const id in totales) {
-          const g = totales[id];
-          const porcentajeCant = ((g.cantidad / totalGeneralCantidad) * 100).toFixed(2);
-          labels.push(g.descripcion);
-          data.push(g.cantidad);
-
-          tbody.innerHTML += `
-            <tr>
-              <td>${g.descripcion}</td>
-              <td>${g.cantidad}</td>
-              <td>${formateadorMoneda.format(g.total)}</td>
-              <td>${porcentajeCant}%</td>
-            </tr>
-          `;
-        }
-
-        // 🔹 Fila total
-        tbody.innerHTML += `
-          <tr class="total">
-            <td colspan="1">TOTAL GENERAL</td>
-            <td>${totalGeneralCantidad}</td>
-            <td>${formateadorMoneda.format(totalGeneralImporte)}</td>
-            <td>100%</td>
-          </tr>
-        `;
-
-        // 🔹 Mostrar gráfico
-        const ctx = document.getElementById("graficoTorta").getContext("2d");
-        if (grafico) grafico.destroy(); // Si ya existía, lo reemplazamos
-
-        grafico = new Chart(ctx, {
-          type: "pie",
-          data: {
-            labels: labels,
-            datasets: [{
-              label: "Cantidad vendida",
-              data: data,
-              backgroundColor: [
-                "#007bff", "#28a745", "#ffc107", "#dc3545",
-                "#17a2b8", "#6f42c1", "#fd7e14", "#20c997"
-              ],
-            }],
-          },
-          options: {
-            responsive: true,
-            plugins: {
-              legend: { position: "bottom" },
-              title: {
-                display: true,
-                text: "Distribución de cantidad de Ventas por Grupo (%)"
-              }
-            }
-          },
-        });
-
-      } catch (error) {
-        console.error("Error al calcular totales:", error);
-        alert("Ocurrió un error al procesar los datos.");
-      } finally {
-        mensaje.style.display = "none";
-      }
+    if (!datos.ok) {
+      throw new Error(datos.mensaje || "Error obteniendo datos");
     }
+
+    const totales = datos.totales;
+
+    if (totales.length === 0) {
+      mensaje.style.display = "none";
+      alert("No se encontraron ventas en ese rango.");
+      return;
+    }
+
+    // ============================================
+    // TOTALES GENERALES
+    // ============================================
+    let totalGeneralCantidad = 0;
+    let totalGeneralImporte = 0;
+
+    totales.forEach(g => {
+      totalGeneralCantidad += Number(g.cantidad || 0);
+      totalGeneralImporte += Number(g.total || 0);
+    });
+
+    // ============================================
+    // ARMAR TABLA
+    // ============================================
+    const tbody = document.querySelector("#tablaTotales tbody");
+    tbody.innerHTML = "";
+
+    const labels = [];
+    const data = [];
+
+    totales.forEach(g => {
+
+      const cantidad = Number(g.cantidad || 0);
+      const total = Number(g.total || 0);
+
+      const porcentajeCant =
+        totalGeneralCantidad > 0
+          ? ((cantidad / totalGeneralCantidad) * 100).toFixed(2)
+          : 0;
+
+      labels.push(g.descripcion);
+      data.push(cantidad);
+
+      tbody.innerHTML += `
+        <tr>
+          <td>${g.descripcion}</td>
+          <td>${cantidad}</td>
+          <td>${formateadorMoneda.format(total)}</td>
+          <td>${porcentajeCant}%</td>
+        </tr>
+      `;
+    });
+
+    // ============================================
+    // TOTAL GENERAL
+    // ============================================
+    tbody.innerHTML += `
+      <tr class="total">
+        <td>TOTAL GENERAL</td>
+        <td>${totalGeneralCantidad}</td>
+        <td>${formateadorMoneda.format(totalGeneralImporte)}</td>
+        <td>100%</td>
+      </tr>
+    `;
+
+    // ============================================
+    // GRAFICO
+    // ============================================
+    const ctx = document.getElementById("graficoTorta").getContext("2d");
+
+    if (grafico) {
+      grafico.destroy();
+    }
+
+    grafico = new Chart(ctx, {
+      type: "pie",
+      data: {
+        labels: labels,
+        datasets: [{
+          label: "Cantidad vendida",
+          data: data,
+          backgroundColor: [
+            "#007bff",
+            "#28a745",
+            "#ffc107",
+            "#dc3545",
+            "#17a2b8",
+            "#6f42c1",
+            "#fd7e14",
+            "#20c997"
+          ]
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            position: "bottom"
+          },
+          title: {
+            display: true,
+            text: "Distribución de cantidad de Ventas por Grupo (%)"
+          }
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error("Error al calcular totales:", error);
+    alert("Ocurrió un error al procesar los datos.");
+  } finally {
+    mensaje.style.display = "none";
+  }
+}
+
+
   </script>
 
-<script src="js/medidor.js"></script>
 
 </body>
 </html>

@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Estadísticas</title>
+
+<script src="js/auth.js"></script>  <!-- 🔹 Aquí se verifica la autenticacion-->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+
+    body {
+      font-family: Arial;
+      background: #8AC0FF;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .contenedor {
+      max-width: 1050px;
+      margin: auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+    }
+
+    h2 {
+      text-align: center;
+      background-color: #8AC0FF;
+      padding: 10px;
+      border-radius: 8px;
+    }
+
+    button {
+      padding: 8px 14px;
+      background: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    button:hover { background-color: red; color: white; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      font-size: 16px;
+    }
+	
+    th, td {
+      padding: 8px;
+      border: 1px solid #0E0D0C;
+      text-align: center;
+    }
+
+    th { background-color: #f2f2f2; }
+	
+	input, select {
+      padding: 6px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      margin-top: 4px;
+      font-size: 14px;
+    }
+	
+tr:nth-child(even){
+    background:#F9F9F9;
+}
+
+.div-centrado {
+    /* Tu estilo (ancho, alto, colores, etc.) */
+    width: 100%;
+	text-align: center;
+    /*height: 100px;*/
+    background-color: #f0f0f0;
+      font-size: 16px;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="contenedor">
+  
+
+		<h2>📊 Estadísticas</h2>
+
+		<label>Desde:</label>
+		<input type="date" id="desde">
+
+		<label>Hasta:</label>
+		<input type="date" id="hasta">
+
+		<br><br>
+<div class="div-centrado">
+		<label><b>
+		<input type="radio" name="tipo" value="clientes" checked>Clientes con más compras (top 10)
+		</label>
+
+		<label>
+		<input type="radio" name="tipo" value="productos">Productos con más ventas (top 10)
+		</label>
+
+		<label>
+		<input type="radio" name="tipo" value="sabores">Sabores con más ventas (top 10)
+		</label>
+
+		<br><br>
+
+		<label>
+		<input type="radio" name="tipo" value="dias">Días con más ventas
+		</label>
+
+		<label>
+		<input type="radio" name="tipo" value="horarios">Horarios con más ventas
+		</label></b>
+</div>
+		<br><br>
+
+		<button class="boton" onclick="consultar()">Consultar</button>
+		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button onclick="window.location.href='menu-general.html'">&#8617; Volver</button>
+
+		<div id="resultado"></div>
+
+		<br>
+		<canvas id="grafico"></canvas>
+
+</div>
+
+<script>
+
+verificarSesion();
+
+    const hoy = new Date();
+    const yyyy = hoy.getFullYear();
+    const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+    const dd = String(hoy.getDate()).padStart(2, '0');
+    const fechaHoy = `${yyyy}-${mm}-${dd}`;
+    document.getElementById("desde").value = fechaHoy;
+    document.getElementById("hasta").value = fechaHoy;
+
+	let chart = null;
+
+	async function consultar(){
+
+		const desde = document.getElementById("desde").value;
+		const hasta = document.getElementById("hasta").value;
+
+		const tipo = document.querySelector('input[name="tipo"]:checked').value;
+
+		if (tipo === 'clientes') {consultarClientesMas();}
+		if (tipo === 'productos') {consultarProductosMasVendidos();}
+		if (tipo === 'dias') {consultarDiasMasVendidos();}
+		if (tipo === 'horarios') {consultarHorasMasVendidas();}
+		if (tipo === 'sabores') {consultarSaboresMasVendidos();}
+
+	}
+
+async function consultarClientesMas() {
+	const desde = document.getElementById("desde").value;
+	const hasta = document.getElementById("hasta").value;
+
+    let url = '';
+    // =====================================
+    // CLIENTES
+    // =====================================
+    url = `/api/estadisticas/clientes?desde=${desde}&hasta=${hasta}`;
+
+    const resp = await fetch(url);
+    const data = await resp.json();
+
+    if(!data.ok){
+        alert(data.error);
+        return;
+    }
+
+        if (data.datos.length === 0) {
+			if(chart){
+				chart.destroy();
+			}
+            resultado.innerHTML = 'No hay datos';
+            return;
+        }
+
+    mostrarClientes(data.datos);
+}
+
+function mostrarClientes(datos){
+
+    let html = `
+        <table>
+        <tr>
+            <th>Cliente</th>
+            <th><b>Total Compras</b></th>
+            <th>Delivery propio</th>
+            <th>On Line</th>
+            <th>Total Vendido</th>
+            <th>Ticket promedio</th>
+        </tr>
+    `;
+
+    datos.forEach(d => {
+        html += `
+            <tr>
+                <td>${d.nombre}</td>
+                <td><b>${d.cantidad_ventas}</b></td>
+                <td>${d.cant_delivery}</td>
+                <td>${d.cant_online}</td>
+                <td>$ ${Number(d.total_vendido).toLocaleString('es-AR')}</td>
+                <td>$ ${Number(d.ticket_promedio).toLocaleString('es-AR')}</td>
+            </tr>
+        `;
+    });
+
+    html += `</table>`;
+
+    document.getElementById("resultado").innerHTML = html;
+
+    // =====================================
+    // GRAFICO
+    // =====================================
+    const labels = datos.map(x => x.nombre);
+    const cant_total = datos.map(x => x.cantidad_ventas);
+	const cant_delivery = datos.map(x => Number(x.cant_delivery));
+	const cant_online = datos.map(x => Number(x.cant_online));
+
+    if(chart){
+        chart.destroy();
+    }
+
+    const ctx = document.getElementById('grafico');
+
+    chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [
+			{
+                label: 'Total Compras',
+                data: cant_total,
+				backgroundColor: '#57534D'
+            },
+			{
+				label: 'Delivery propio',
+				data: cant_delivery,
+				backgroundColor: '#FFE72E'
+			},			
+			{
+				label: 'On Line',
+				data: cant_online,
+				backgroundColor: '#E58448'
+			},			
+			]
+        },
+
+		options: {
+			responsive: true,
+			plugins: {
+				legend: {
+					display: true
+				},
+				title: {
+					display: true,
+					text: 'Clientes con más compras'
+				}
+			},
+			scales: {
+				y: {
+					beginAtZero: true
+				}
+			}
+		}
+    });
+}
+
+async function consultarProductosMasVendidos() {
+    const desde = document.getElementById('desde').value;
+    const hasta = document.getElementById('hasta').value;
+
+    const resultado = document.getElementById('resultado');
+
+    resultado.innerHTML = 'Consultando...';
+
+    try {
+        const resp = await fetch(
+            `/api/estadisticas/productos-mas-vendidos?desde=${desde}&hasta=${hasta}`
+        );
+
+        const data = await resp.json();
+
+        if (!data.ok) {
+			resultado.innerHTML = `
+                <span style="color:red">
+                    ${data.error}
+                </span>
+            `;
+
+            return;
+        }
+
+        const datos = data.datos;
+
+        if (datos.length === 0) {
+			if(chart){
+				chart.destroy();
+			}
+            resultado.innerHTML = 'No hay datos';
+            return;
+        }
+
+        // =========================================
+        // TABLA
+        // =========================================
+
+        let html = `
+        <table>
+            <tr>
+                <th>Producto</th>
+                <th><b>Total Ventas</b></th>
+                <th>Delivery propio</th>
+                <th>Rappi</th>
+                <th>Pedidos Ya</th>
+                <th>Mostrador</th>
+                <th>On Line</th>
+                <th>Total Vendido</th>
+            </tr>
+        `;
+
+        datos.forEach(d => {
+           html += `
+                <tr>
+                    <td> ${d.descripcion} </td>
+                    <td><b> ${d.cantidad}</b></td>
+                    <td> ${d.cant_delivery} </td>
+                    <td> ${d.cant_rappi} </td>
+                    <td> ${d.cant_pedidosya} </td>
+                    <td> ${d.cant_mostrador} </td>
+                    <td> ${d.cant_online} </td>
+                    <td> $ ${Number(d.total).toLocaleString('es-AR')} </td>
+                </tr>
+            `;
+        });
+
+        html += '</table>';
+        resultado.innerHTML = html;
+
+        // =========================================
+        // GRAFICO
+        // =========================================
+        const labels = datos.map(x => x.descripcion);
+        const cantidades = datos.map(x => Number(x.cantidad));
+        const cant_delivery = datos.map(x => Number(x.cant_delivery));
+        const cant_rappi = datos.map(x => Number(x.cant_rappi));
+        const cant_pedidosya = datos.map(x => Number(x.cant_pedidosya));
+        const cant_mostrador = datos.map(x => Number(x.cant_mostrador));
+        const cant_online = datos.map(x => Number(x.cant_online));
+
+        const ctx = document
+            .getElementById('grafico')
+            .getContext('2d');
+
+        // destruir gráfico anterior
+        if (chart) {
+            chart.destroy();
+        }
+
+     chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [
+				{
+                    label: 'Total Ventas',
+                    data: cantidades,
+                    backgroundColor: '#57534D'
+                },
+				{
+                    label: 'Delivery',
+                    data: cant_delivery,
+                    backgroundColor: '#FFE72E'
+                },
+				{
+                    label: 'Rappi',
+                    data: cant_rappi,
+                    backgroundColor: '#57D670'
+                },
+				{
+                    label: 'Pedidos Ya',
+                    data: cant_pedidosya,
+                    backgroundColor: '#EB428E'
+                },
+				{
+                    label: 'Mostrador',
+                    data: cant_mostrador,
+                    backgroundColor: '#E58448'
+                },
+				{
+                    label: 'On Line',
+                    data: cant_online,
+                    backgroundColor: '#FB2C36'
+                }
+
+				]
+            },
+
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: true
+                    },
+                    title: {
+                        display: true,
+                        text: 'Productos más vendidos'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+    } catch (err) {
+    console.error(err);
+
+        resultado.innerHTML = `
+            <span style="color:red">
+                Error consultando estadísticas
+            </span>
+        `;
+    }
+}		
+		
+// =========================================
+// DIAS MAS VENDIDOS
+// =========================================
+async function consultarDiasMasVendidos() {
+    const desde = document.getElementById('desde').value;
+    const hasta = document.getElementById('hasta').value;
+
+    let url = '';
+    url = `/api/estadisticas/dias-mas-ventas?desde=${desde}&hasta=${hasta}`;
+
+    const resp = await fetch(url);
+    const data = await resp.json();
+
+    if (!data.ok) {
+        alert(data.error || 'Error');
+        return;
+    }
+	
+	        if (data.datos.length === 0) {
+			if(chart){
+				chart.destroy();
+			}
+            resultado.innerHTML = 'No hay datos';
+            return;
+			}
+
+    mostrarDiasMasVentas(data.datos);
+}
+
+function mostrarDiasMasVentas(datos) {
+
+    let html = `
+        <table>
+		<tr>
+			<th>Día</th>
+			<th><b>Total Ventas</b></th>
+			<th>Delivery propio</th>
+			<th>Rappi</th>
+			<th>Pedidos Ya</th>
+			<th>Mostrador</th>
+			<th>On Line</th>
+			<th>Total Vendido</th>
+			<th>Ticket promedio</th>
+		</tr>
+    `;
+
+    datos.forEach(d => {
+        html += `
+            <tr>
+                <td>${d.nombre}</td>
+                <td><b>${d.cantidad}</b></td>
+                <td>${d.cant_delivery}</td>
+                <td>${d.cant_rappi}</td>
+                <td>${d.cant_pedidosya}</td>
+                <td>${d.cant_mostrador}</td>
+                <td>${d.cant_online}</td>
+                <td>$ ${Number(d.total).toLocaleString('es-AR')}</td>
+                <td>$ ${Number(d.ticket_promedio).toLocaleString('es-AR')}</td>
+            </tr>
+        `;
+    });
+
+    html += `</table>`;
+
+    document.getElementById("resultado").innerHTML = html;
+
+    // =====================================
+    // GRAFICO
+    // =====================================
+        const labels = datos.map(x => x.nombre);
+        const cantidades = datos.map(x => Number(x.cantidad));
+        const cant_delivery = datos.map(x => Number(x.cant_delivery));
+        const cant_rappi = datos.map(x => Number(x.cant_rappi));
+        const cant_pedidosya = datos.map(x => Number(x.cant_pedidosya));
+        const cant_mostrador = datos.map(x => Number(x.cant_mostrador));
+        const cant_online = datos.map(x => Number(x.cant_online));
+
+    const ctx = document
+        .getElementById('grafico')
+        .getContext('2d');
+
+        // destruir gráfico anterior
+        if (chart) {
+            chart.destroy();
+        }
+		
+    chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [
+                    {
+                        label: 'Total Ventas',
+                        data: cantidades,
+                        backgroundColor: '#57534D'
+                    },
+                    {
+                        label: 'Delivery propio',
+                        data: cant_delivery,
+                        backgroundColor: '#FFE72E'
+                    },
+                    {
+                        label: 'Rappi',
+                        data: cant_rappi,
+                        backgroundColor: '#57D670'
+                    },
+                    {
+                        label: 'Pedidos Ya',
+                        data: cant_pedidosya,
+                        backgroundColor: '#EB428E'
+                    },
+                    {
+                        label: 'Mostrador',
+                        data: cant_mostrador,
+                        backgroundColor: '#E58448'
+                    },
+                    {
+                        label: 'OnLine',
+                        data: cant_online,
+                        backgroundColor: '#FB2C36'
+                    }
+				]
+            },
+
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: true
+                    },
+                    title: {
+                        display: true,
+                        text: 'Dias más vendidos'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+	
+}
+
+
+async function consultarHorasMasVendidas() {
+
+    try {
+
+	const desde = document.getElementById("desde").value;
+	const hasta = document.getElementById("hasta").value;
+
+        const resp = await fetch(`/api/estadisticas/ventas-por-hora?desde=${desde}&hasta=${hasta}`);
+
+        const data = await resp.json();
+
+        if (!data.ok) {
+            alert(data.error);
+            return;
+        }
+
+        const datos = data.datos;
+
+        if (data.datos.length === 0) {
+			if(chart){
+				chart.destroy();
+			}
+            resultado.innerHTML = 'No hay datos';
+            return;
+        }
+
+        // =====================================
+        // GRAFICO
+        // =====================================
+        const labels = datos.map(x => x.hora + ':00');
+        const delivery = datos.map(x => Number(x.cant_delivery));
+        const rappi = datos.map(x => Number(x.cant_rappi));
+        const pedidosya = datos.map(x => Number(x.cant_pedidosya));
+        const mostrador = datos.map(x => Number(x.cant_mostrador));
+        const online = datos.map(x => Number(x.cant_online));
+        const general = datos.map(x => Number(x.cant_ventas));
+
+        const ctx = document.getElementById('grafico');
+
+        if (chart) {
+            chart.destroy();
+        }
+
+        chart = new Chart(ctx, {
+
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [
+                    {
+                        label: 'Total Ventas',
+                        data: general,
+                        backgroundColor: '#57534D'
+                    },
+                    {
+                        label: 'Delivery propio',
+                        data: delivery,
+                        backgroundColor: '#FFE72E'
+                    },
+                    {
+                        label: 'Rappi',
+                        data: rappi,
+                        backgroundColor: '#57D670'
+                    },
+                    {
+                        label: 'Pedidos Ya',
+                        data: pedidosya,
+                        backgroundColor: '#EB428E'
+                    },
+                    {
+                        label: 'Mostrador',
+                        data: mostrador,
+                        backgroundColor: '#E58448'
+                    },
+                    {
+                        label: 'OnLine',
+                        data: online,
+                        backgroundColor: '#FB2C36'
+                    }
+                ]
+            },
+
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top'
+                    },
+                    title: {
+                        display: true,
+                        text: 'Horas más vendidas'
+                    }
+                }
+            }
+        });
+
+        // =====================================
+        // TABLA
+        // =====================================
+        let html = `
+            <table border="1" cellpadding="6">
+            <tr>
+                <th>Hora</th>
+                <th><b>Total Ventas</b></th>
+                <th>Total</th>
+                <th>Delivery propio</th>
+                <th>Rappi</th>
+                <th>Pedidos Ya</th>
+                <th>Mostrador</th>
+                <th>OnLine</th>
+                <th>Ticket Prom.</th>
+            </tr>
+        `;
+
+        for (const d of datos) {
+            html += `
+                <tr>
+                    <td>${d.hora}:00</td>
+                    <td><b> ${d.cant_ventas}</b> </td>
+                    <td> $ ${Number(d.total_general).toLocaleString()} </td>
+                    <td>  ${Number(d.cant_delivery).toLocaleString()} </td>
+                    <td>  ${Number(d.cant_rappi).toLocaleString()} </td>
+                    <td>  ${Number(d.cant_pedidosya).toLocaleString()} </td>
+                    <td>  ${Number(d.cant_mostrador).toLocaleString()} </td>
+                    <td>  ${Number(d.cant_online).toLocaleString()} </td>
+                    <td> $ ${Number(d.ticket_promedio).toFixed(2)} </td>
+                </tr>
+            `;
+        }
+        html += `</table>`;
+
+        document.getElementById("resultado").innerHTML = html;
+
+    } catch (err) {
+        console.error(err);
+        alert(err.message);
+    }
+}
+
+
+async function consultarSaboresMasVendidos() {
+
+    try {
+
+        const desde = document.getElementById("desde").value;
+        const hasta = document.getElementById("hasta").value;
+
+        const resp = await fetch(
+            `/api/estadisticas/estadisticas-sabores?desde=${desde}&hasta=${hasta}`
+        );
+
+        const data = await resp.json();
+
+        if (!data.ok) {
+            alert(data.error);
+            return;
+        }
+
+        const datos = data.datos;
+
+        if (datos.length === 0) {
+			if(chart){
+				chart.destroy();
+			}
+            resultado.innerHTML = 'No hay datos';
+            return;
+        }
+
+        // =====================================
+        // GRAFICO
+        // =====================================
+
+        const labels = datos.map(x => x.sabor);
+        const cantidades = datos.map(x => x.cantidad);
+
+        const ctx = document.getElementById('grafico');
+
+        if (chart) {
+            chart.destroy();
+        }
+
+        chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [
+                    {
+                        label: 'Cantidad',
+                        data: cantidades,
+                        backgroundColor: '#3498db'
+                    }
+                ]
+            },
+
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+
+        // =====================================
+        // TABLA
+        // =====================================
+
+        let html = `<table border="1" cellpadding="6">
+            <tr>
+                <th>Sabor</th>
+                <th><b>Cantidad</b></th>
+                <th>%</th>
+            </tr>
+        `;
+
+        for (const d of datos) {
+            html += `
+                <tr>
+                    <td> ${d.sabor} </td>
+                    <td><b> ${d.cantidad}</b> </td>
+                    <td> ${d.porcentaje} % </td>
+                </tr>
+            `;
+        }
+
+        html += `</table>`;
+
+        document.getElementById("resultado").innerHTML = html;
+
+    } catch (err) {
+        console.error(err);
+        alert(err.message);
+    }
+}
+
+       
+</script>
+
+</body>
+</html>

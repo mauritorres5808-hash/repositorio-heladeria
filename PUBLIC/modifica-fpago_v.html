@@ -5,10 +5,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Modificar Formas de Pago - Ventas</title>
 
-  <!-- Firebase v8 (compatible con firestore) -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 <script src="js/auth.js"></script>  <!-- Aqui se verifica la autenticacion-->
 
   <style>
@@ -93,7 +89,7 @@
         <div class="fila">
           <div class="label">Forma Pago 1 actual:</div>
           <div id="m_fpago1_actual"></div>
-          <div class="label">Importe 1:</div>
+          <div class="label">Importe 1 actual:</div>
           <div id="m_imp1_actual" class="text-right"></div>
         </div>
 
@@ -111,7 +107,7 @@
         <div class="fila">
           <div class="label">Forma Pago 2 actual:</div>
           <div id="m_fpago2_actual"></div>
-          <div class="label">Importe 2:</div>
+          <div class="label">Importe 2 actual:</div>
           <div id="m_imp2_actual" class="text-right"></div>
         </div>
 
@@ -150,115 +146,158 @@
 
 verificarSesion();
 
+const formateador = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
 
-  const formateador = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
+  // mostrar usuario
 
-  // comprobar auth
-  firebase.auth().onAuthStateChanged(user => {
-    if (!user) {
-      window.location.href = "login.html";
-      return;
-    }
-    document.getElementById("usuario").innerHTML = `Usuario: <b>${user.email}</b>`;
-  });
+		const usuarioData = JSON.parse(localStorage.getItem("usuarioData"));
+		const usuario = usuarioData.email; 
+//console.log(usuarioData);
+document.getElementById("usuario").innerHTML = `Usuario: <b>${usuario}</b>`;
+  
 
    function convertirFecha(fechaStr) {
       const [dia, mes, año] = fechaStr.split("/");
 	          return `${año}-${mes.padStart(2, "0")}-${dia.padStart(2, "0")}`;
       //return `${año}-${mes}-${dia}`;
     }
-function convertirFechaInput(fechaStr) {
-  const [año, mes, dia] = fechaStr.split("-");
-  return `${año}-${mes.padStart(2, "0")}-${dia.padStart(2, "0")}`;
-  //return `${dia}/${mes}/${año}`;
-}
+	function convertirFechaInput(fechaStr) {
+	  const [año, mes, dia] = fechaStr.split("-");
+	  return `${año}-${mes.padStart(2, "0")}-${dia.padStart(2, "0")}`;
+	  //return `${dia}/${mes}/${año}`;
+	}
 
   // Map de formas de pago (id -> "id - descripcion")
   let MAP_FP = {};
 
   // cargar formas de pago habilitadas (deshabilitado != "S")
-  async function cargarFormasPagoMapa() {
-    MAP_FP = {};
-    try {
-      const snap = await db.collection("F_PAGO").orderBy("descripcion").get();
-      snap.forEach(doc => {
-        const d = doc.data();
-        // incluir todas, pero marcar deshabilitado si corresponde
-        //MAP_FP[d.id_fpago] = `${d.id_fpago} - ${d.descripcion}`;
-        MAP_FP[d.id_fpago] = `${d.descripcion}`;
-      });
-    } catch (e) {
-      console.error("Error cargando formas de pago:", e);
-    }
-  }
+	async function cargarFormasPagoMapa() {
+		// =====================================
+		// FORMAS DE PAGO
+		// =====================================
+	  MAP_FP = {};
+	  try {
+		const respFP = await fetch('/api/fpago');
+		const dataFP = await respFP.json();
+		const formasPago = {};
+		dataFP.formasPago.forEach(d => {MAP_FP[d.id_fpago] = d.descripcion;});
+	  } catch (e) {
+		console.error("Error cargando formas de pago:", e);
+	  }
+	}
+
 
   // Buscar ventas por fecha (input YYYY-MM-DD) -> comparar con campo fecha 'DD/MM/YYYY'
-  async function buscarVentasPorFecha() {
-    const fechaInput = document.getElementById("fechaConsulta").value;
-    const resultado = document.getElementById("resultado");
-    if (!fechaInput) { alert("Seleccione una fecha."); return; }
-const fechaNorm = convertirFechaInput(fechaInput);
-    resultado.innerHTML = "<p style='text-align:center'>🔄 Buscando ventas...</p>";
-    await cargarFormasPagoMapa();
+	async function buscarVentasPorFecha() {
 
-    try {
-      // traigo todas las ventas del día comparando normalizadas
-      const snap = await db.collection("VENTAS_CAB").get();
-      const ventas = snap.docs.map(d => ({ docId: d.id, ...d.data() })).filter(v => {
-        const fNorm = convertirFecha(v.fecha);
-		const estados = v.anulada === "N";
-		const cierres = v.id_cierre === 0;
-        return fNorm === fechaNorm && estados && cierres;
-      });
+	  const fechaInput = document.getElementById("fechaConsulta").value;
+	  const resultado = document.getElementById("resultado");
 
-      if (ventas.length === 0) {
-        resultado.innerHTML = "<p style='text-align:center'>No se encontraron ventas para esa fecha.</p>";
-        return;
-      }
+	  if (!fechaInput) {
+		alert("Seleccione una fecha.");
+		return;
+	  }
 
-      // construir tabla
-      let html = `<table>
-        <thead><tr>
-          <th>Hora Venta</th><th>N° Venta</th><th>Tipo Venta</th><th>Subtotal</th><th>Descuento</th><th>Recargo</th><th>Total</th>
-          <th>FPago 1</th><th>Imp 1</th><th>FPago 2</th><th>Imp 2</th><th>Acciones</th>
-        </tr></thead><tbody>`;
+	  resultado.innerHTML = "<p style='text-align:center'>🔄 Buscando ventas...</p>";
 
-      for (const v of ventas.sort((a,b)=> (a.hora||"") < (b.hora||"") ? -1 : 1)) {
+	  await cargarFormasPagoMapa();
 
-        const fp1txt = MAP_FP[v.f_pago1] || (v.f_pago1 ? v.f_pago1 : "");
-        const fp2txt = MAP_FP[v.f_pago2] || (v.f_pago2 ? v.f_pago2 : "");
+	  try {
 
-        const imp1 = v.importe_fp1 || 0;
-        const imp2 = v.importe_fp2 || 0;
+		const response = await fetch(`/api/ventas_cab/fecha/${fechaInput}`);
 
-        const tieneCierre = (typeof v.id_cierre !== "undefined" && v.id_cierre !== 0 && v.id_cierre !== null && v.id_cierre !== "");
-        html += `<tr>
-          <td>${v.hora || ""}</td>
-          <td>${v.id_venta}</td>
-          <td>${descripcionTipoVenta(v.tipo_venta)}</td>
-          <td>${formateador.format(v.subtotal || 0)}</td>
-          <td>${formateador.format(v.descuento || 0)}</td>
-          <td>${formateador.format(v.recargo || 0)}</td>
-          <td>${formateador.format(v.total || 0)}</td>
-          <td>${fp1txt}</td>
-          <td>${formateador.format(imp1)}</td>
-          <td>${fp2txt}</td>
-          <td>${formateador.format(imp2)}</td>
-          <td class="acciones">
-            <button onclick="verDetalleVenta(${v.id_venta})">Ver</button>
-            ${tieneCierre ? '' : `<button onclick="abrirModalModificar(${v.id_venta})">&#9999;&#65039; Modificar FP</button>`}
-          </td>
-        </tr>`;
-      }
+		let ventas = await response.json();
 
-      html += `</tbody></table>`;
-      resultado.innerHTML = html;
+		ventas = ventas.filter(v =>
+		  v.anulada === 0 &&
+		  v.id_cierre === 0
+		);
 
-    } catch (e) {
-      console.error(e);
-      resultado.innerHTML = `<p style="color:red;text-align:center">Error: ${e.message}</p>`;
-    }
-  }
+		if (ventas.length === 0) {
+		  resultado.innerHTML = "<p style='text-align:center'>No se encontraron ventas para esa fecha.</p>";
+		  return;
+		}
+
+		let html = `
+		  <table>
+			<thead>
+			  <tr>
+				<th>Hora Venta</th>
+				<th>N° Venta</th>
+				<th>Tipo Venta</th>
+				<th>Subtotal</th>
+				<th>Descuento</th>
+				<th>Recargo</th>
+				<th>Total</th>
+				<th>FPago 1</th>
+				<th>Imp 1</th>
+				<th>FPago 2</th>
+				<th>Imp 2</th>
+				<th>Acciones</th>
+			  </tr>
+			</thead>
+			<tbody>
+		`;
+
+		ventas.sort((a, b) =>
+		  (a.hora || "") < (b.hora || "") ? -1 : 1
+		);
+
+		for (const v of ventas) {
+
+		  const fp1txt =
+			MAP_FP[v.f_pago1] || v.f_pago1 || "";
+
+		  const fp2txt =
+			MAP_FP[v.f_pago2] || v.f_pago2 || "";
+
+		  const imp1 = v.importe_fp1 || 0;
+		  const imp2 = v.importe_fp2 || 0;
+
+		  html += `
+			<tr>
+			  <td>${v.hora || ""}</td>
+			  <td>${v.id_venta}</td>
+			  <td>${descripcionTipoVenta(v.tipo_venta)}</td>
+			  <td>${formateador.format(v.subtotal || 0)}</td>
+			  <td>${formateador.format(v.descuento || 0)}</td>
+			  <td>${formateador.format(v.recargo || 0)}</td>
+			  <td>${formateador.format(v.total || 0)}</td>
+			  <td>${fp1txt}</td>
+			  <td>${formateador.format(imp1)}</td>
+			  <td>${fp2txt}</td>
+			  <td>${formateador.format(imp2)}</td>
+			  <td class="acciones">
+				<button onclick="verDetalleVenta(${v.id_venta})">
+				  Ver
+				</button>
+
+				<button onclick="abrirModalModificar(${v.id_venta})">
+				  ✏️ Modificar FP
+				</button>
+			  </td>
+			</tr>
+		  `;
+		}
+
+		html += `
+			</tbody>
+		  </table>
+		`;
+
+		resultado.innerHTML = html;
+
+	  } catch (e) {
+
+		console.error(e);
+
+		resultado.innerHTML = `
+		  <p style="color:red;text-align:center">
+			Error: ${e.message}
+		  </p>
+		`;
+	  }
+	}
 
   function descripcionTipoVenta(id) {
     switch (id) {
@@ -274,69 +313,64 @@ const fechaNorm = convertirFechaInput(fechaInput);
   // ---------------- Modal Modificar ----------------
   let ventaEditando = null; // objeto de la venta seleccionada (campos del documento + docId)
 
-  async function abrirModalModificar(idVenta) {
-    // buscamos el documento por id_venta
-    try {
-      const snap = await db.collection("VENTAS_CAB").where("id_venta", "==", idVenta).limit(1).get();
-      if (snap.empty) { alert("No se encontró la venta."); return; }
-      const doc = snap.docs[0];
-      ventaEditando = { docId: doc.id, ...doc.data() };
+	async function abrirModalModificar(idVenta) {
 
-      // cargar formas de pago disponibles (deshabilitado != "S")
-      const fpsnap = await db.collection("F_PAGO").orderBy("descripcion").get();
-      const fpSelect1 = document.getElementById("m_fpago1_nuevo");
-      const fpSelect2 = document.getElementById("m_fpago2_nuevo");
-      fpSelect1.innerHTML = `<option value="">-- (vacío) --</option>`;
-      fpSelect2.innerHTML = `<option value="">-- (vacío) --</option>`;
-      fpsnap.forEach(fdoc => {
-        const f = fdoc.data();
-        if (f.deshabilitado === "S") return; // no incluir deshabilitadas
-        //const label = `${f.id_fpago} - ${f.descripcion}`;
-        const label = `${f.descripcion}`;
-        fpSelect1.innerHTML += `<option value="${f.id_fpago}">${label}</option>`;
-        fpSelect2.innerHTML += `<option value="${f.id_fpago}">${label}</option>`;
-      });
+	  try {
 
-      // Rellenar datos actuales en modal
-      document.getElementById("m_nroventa").textContent = ventaEditando.id_venta;
-      document.getElementById("m_fecha").textContent = ventaEditando.fecha || "";
-      document.getElementById("m_total").textContent = formateador.format(ventaEditando.total || 0);
+		const responseVenta = await fetch(
+		  `/api/ventas_cab/${idVenta}`
+		);
 
-      document.getElementById("m_fpago1_actual").textContent = MAP_FP[ventaEditando.f_pago1] || (ventaEditando.f_pago1 ? ventaEditando.f_pago1 : "");
-      document.getElementById("m_imp1_actual").textContent = formateador.format(ventaEditando.importe_fp1 || 0);
+		ventaEditando = await responseVenta.json();
 
-      document.getElementById("m_fpago2_actual").textContent = MAP_FP[ventaEditando.f_pago2] || (ventaEditando.f_pago2 ? ventaEditando.f_pago2 : "");
-      document.getElementById("m_imp2_actual").textContent = formateador.format(ventaEditando.importe_fp2 || 0);
+		const responseFP = await fetch("/api/fpago");
+		const datos = await responseFP.json();
+		const formasPago = datos.formasPago;
 
-      // inicializar selects -> por defecto mostrar las formas actuales si están habilitadas
-      // si la forma actual está deshabilitada, dejamos vacío para forzar nueva selección
-      const trySelectOption = (selectEl, val) => {
-        if (!val && (val !== 0)) { selectEl.value = ""; return; }
-        // buscar si la opción existe en el select
-        const opt = Array.from(selectEl.options).find(o => o.value == String(val));
-        if (opt) selectEl.value = String(val);
-        else selectEl.value = "";
-      };
+		const fpSelect1 = document.getElementById("m_fpago1_nuevo");
+		const fpSelect2 = document.getElementById("m_fpago2_nuevo");
 
-      trySelectOption(document.getElementById("m_fpago1_nuevo"), ventaEditando.f_pago1);
-      trySelectOption(document.getElementById("m_fpago2_nuevo"), ventaEditando.f_pago2);
+		fpSelect1.innerHTML = `<option value="">-- (vacío) --</option>`;
+		fpSelect2.innerHTML = `<option value="">-- (vacío) --</option>`;
 
-      // set importes nuevos inicialmente iguales a actuales (si select vacío, se manejará en recalc)
-      document.getElementById("m_imp1_nuevo").value = (ventaEditando.importe_fp1 || 0).toFixed(2);
-      document.getElementById("m_imp2_nuevo").value = (ventaEditando.importe_fp2 || 0).toFixed(2);
+		formasPago.forEach(f => {
+		  if (parseInt(f.deshabilitado) === 1) return;
+		  
+		  const label = `${f.descripcion}`;
+		  fpSelect1.innerHTML += `<option value="${f.id_fpago}">${label}</option>`;
+		  fpSelect2.innerHTML += `<option value="${f.id_fpago}">${label}</option>`;
+		});
 
-      // abrir modal
-      document.getElementById("msgModal").textContent = "";
-      document.getElementById("modalModificar").style.display = "flex";
+		// formateo fecha
+		const fechaTexto = ventaEditando.fecha;
+		const fechaFormateada =
+				fechaTexto.substring(8,10) + "/" +
+				fechaTexto.substring(5,7) + "/" +
+				fechaTexto.substring(0,4);
 
-      // recalcular para forzar lógica (en caso de selects vacíos)
-      recalcularImportesModal(0);
+		document.getElementById("m_nroventa").textContent = ventaEditando.id_venta;
+		document.getElementById("m_fecha").textContent = fechaFormateada || "";
+		document.getElementById("m_total").textContent = formateador.format(ventaEditando.total || 0);
+		document.getElementById("m_fpago1_actual").textContent = MAP_FP[ventaEditando.f_pago1] || "";
+		document.getElementById("m_imp1_actual").textContent = formateador.format(parseFloat(ventaEditando.importe_fp1 || 0).toFixed(2));
+		document.getElementById("m_fpago2_actual").textContent = MAP_FP[ventaEditando.f_pago2] || "";
+		document.getElementById("m_imp2_actual").textContent = formateador.format(parseFloat(ventaEditando.importe_fp2 || 0).toFixed(2));
 
-    } catch (e) {
-      console.error(e);
-      alert("Error al cargar la venta: " + e.message);
-    }
-  }
+		fpSelect1.value = ventaEditando.f_pago1 || "";
+		fpSelect2.value = ventaEditando.f_pago2 || "";
+
+		document.getElementById("m_imp1_nuevo").textContent = parseFloat(ventaEditando.importe_fp1 || 0).toFixed(2);
+		document.getElementById("m_imp2_nuevo").textContent = parseFloat(ventaEditando.importe_fp2 || 0).toFixed(2);
+		document.getElementById("msgModal").textContent = "";
+		document.getElementById("modalModificar").style.display = "flex";
+
+	  } catch (e) {
+
+		console.error(e);
+
+		alert("Error al cargar la venta");
+	  }
+	}
 
   function cerrarModalModificar() {
     ventaEditando = null;
@@ -454,62 +488,67 @@ const fechaNorm = convertirFechaInput(fechaInput);
 
     try {
       document.getElementById("msgModal").textContent = "🔄 Guardando cambios...";
-      // buscar doc por id_venta
-      const snap = await db.collection("VENTAS_CAB").where("id_venta", "==", ventaEditando.id_venta).limit(1).get();
-      if (snap.empty) { alert("No se encontró el documento para actualizar."); document.getElementById("msgModal").textContent = ""; return; }
-      const docRef = snap.docs[0].ref;
+	  
+	  const updateObj = {
+					  f_pago1: sel1 ? parseInt(sel1) : 0,
+					  fp_descrip1: MAP_FP[sel1],
+					  importe_fp1: +(imp1.toFixed(2)),
+					  f_pago2: sel2 ? parseInt(sel2) : 0,
+					  fp_descrip2: MAP_FP[sel2],
+					  importe_fp2: +(imp2.toFixed(2))
+					};
 
-      // preparar objeto update
-      const updateObj = {
-        f_pago1: sel1 ? parseInt(sel1) : 0,
-		fp_descrip1: MAP_FP[sel1],
-        importe_fp1: +(imp1.toFixed(2)),
-        f_pago2: sel2 ? parseInt(sel2) : 0,
-		fp_descrip2: MAP_FP[sel2],
-        importe_fp2: +(imp2.toFixed(2))
-      };
-
-      await docRef.update(updateObj);
+		// buscar doc por id_venta
+		await fetch(`/api/ventas_cab/${ventaEditando.id_venta}/fpago`, {
+		  method: "PUT",
+		  headers: {
+			"Content-Type": "application/json"
+		  },
+		  body: JSON.stringify(updateObj)
+		});
 
 		// === Registrar auditoría ===
+		// recuperar usuario logueado desde localStorage/sessionStorage 
+		const idUsuario = parseInt(localStorage.getItem("usuarioId")) || 0;
+		const usuarioData = JSON.parse(localStorage.getItem("usuarioData"));
+		const usuario = usuarioData.nombre; 
+//console.log("idUsuario:" + idUsuario);
+//console.log("usuario:" + usuario);
+		
+		const ahora = new Date();
+		const fechaHoy = ahora.getFullYear() + "-" + String(ahora.getMonth() + 1).padStart(2, "0") + "-" + String(ahora.getDate()).padStart(2, "0"); 
+		const horaActual = String(ahora.getHours()).padStart(2, "0") + ":" + String(ahora.getMinutes()).padStart(2, "0") + ":" + String(ahora.getSeconds()).padStart(2, "0");
+				
 		try {
-		  const user = firebase.auth().currentUser;
-		  const emailUser = user ? user.email : "desconocido";
-  
-		  // buscar el usuario por email para obtener su id_usuario
-		  let idUsuario = 0;
-		  const snapUsr = await db.collection("USUARIOS").where("email", "==", emailUser).limit(1).get();
-		  if (!snapUsr.empty) idUsuario = snapUsr.docs[0].data().id_usuario;
+			const auditoriaData = {
+			  usuario: usuario,
+			  fecha: fechaHoy,
+			  hora: horaActual,
+			fecha_venta: ventaEditando.fecha.substring(0, 10),
+			  id_venta: ventaEditando.id_venta,
+			  id_usuario: idUsuario,
+			  tipo: "FP",
+			  valor_anterior_fpago1: ventaEditando.f_pago1 || 0,
+			  valor_nuevo_fpago1: updateObj.f_pago1 || 0,
+			  valor_anterior_imp_fpago1: parseFloat(ventaEditando.importe_fp1 || 0),
+			  valor_nuevo_imp_fpago1: parseFloat(updateObj.importe_fp1 || 0),
+			  valor_anterior_fpago2: ventaEditando.f_pago2 || 0,
+			  valor_nuevo_fpago2: updateObj.f_pago2 || 0,
+			  valor_anterior_imp_fpago2: parseFloat(ventaEditando.importe_fp2 || 0),
+			  valor_nuevo_imp_fpago2: parseFloat(updateObj.importe_fp2 || 0)
+			};
 
-		  const fecha = new Date();
-		  const fechaStr = fecha.toLocaleDateString("es-AR");
-		  const horaStr = fecha.toLocaleTimeString("es-AR", { hour12: false });
-
-		  const auditoriaData = {
-			id_usuario: idUsuario,
-			email: emailUser,
-			tipo: "FP", // cambio de forma de pago
-			fecha: fechaStr,
-			hora: horaStr,
-			id_venta: ventaEditando.id_venta,
-			fecha_venta: ventaEditando.fecha,
-			valor_anterior: {
-			  f_pago1: ventaEditando.f_pago1 || 0,
-  			  fp_descrip1: MAP_FP[ventaEditando.f_pago1],
-			  importe_fp1: ventaEditando.importe_fp1 || 0,
-			  f_pago2: ventaEditando.f_pago2 || 0,
-  			  fp_descrip2: MAP_FP[ventaEditando.f_pago2],
-			  importe_fp2: ventaEditando.importe_fp2 || 0
-			},
-			valor_nuevo: updateObj
-		  };
-
-		  await db.collection("VENTAS_AUDITORIA").add(auditoriaData);
-		  console.log("Auditoría registrada correctamente.");
+			await fetch("/api/ventas_auditoria", {
+			  method: "POST",
+			  headers: {
+				"Content-Type": "application/json"
+			  },
+			  body: JSON.stringify(auditoriaData)
+			});
+			console.log("Auditoría registrada correctamente.");
 		} catch (errAud) {
 		  console.error("Error registrando auditoría:", errAud);
 		}
-
 
 		document.getElementById("msgModal").textContent = "✅ Cambios guardados.";
 		// cerrar modal tras breve delay y recargar lista
@@ -524,40 +563,70 @@ const fechaNorm = convertirFechaInput(fechaInput);
     }
   }
 
-  // ---------------- Modal Detalle ----------------
-  async function verDetalleVenta(idVenta) {
-    try {
-      const snap = await db.collection("VENTAS_DET").where("id_venta","==", idVenta).get();
-      let html = `<h4>Venta N° ${idVenta}</h4>`;
-      if (snap.empty) {
-        html += "<p>No hay productos para esta venta.</p>";
-      } else {
-        html += `<table><thead><tr><th>Código</th><th>Descripción</th><th>Precio</th><th>Cantidad</th><th>Subtotal</th></tr></thead><tbody>`;
-        for (const d of snap.docs) {
-          const pd = d.data();
-        
-			// busco descripcion del producto
-			let descripcion = "";
-			const prodSnap = await db.collection("PRODUCTOS").where("id_producto", "==", pd.id_producto).limit(1).get();
-			descripcion = !prodSnap.empty ? prodSnap.docs[0].data().descripcion : "(No encontrada)";
+/*
+function convertirFecha(fechaStr) {
+    const [dia, mes, año] = fechaStr.split("/");
+    return `${año}-${mes.padStart(2, "0")}-${dia.padStart(2, "0")}`;
+}
+*/
 
-          html += `<tr>
-            <td>${pd.id_producto}</td>
-			<td>${descripcion}</td>
-            <td>${formateador.format(pd.precio || 0)}</td>
-            <td>${pd.cantidad}</td>
-            <td>${formateador.format(pd.subtotal || 0)}</td>
-          </tr>`;
-        }
-        html += `</tbody></table>`;
-      }
-      document.getElementById("detalleContenido").innerHTML = html;
-      document.getElementById("modalDetalle").style.display = "flex";
-    } catch (e) {
-      console.error(e);
-      alert("Error al obtener detalle: " + e.message);
-    }
-  }
+  // ---------------- Modal Detalle ----------------
+	async function verDetalleVenta(idVenta) {
+
+	  try {
+		const response = await fetch(
+		  `/api/ventas_det/${idVenta}`
+		);
+
+		const detalle = await response.json();
+
+		let html = `<h4>Venta N° ${idVenta}</h4>`;
+
+		if (detalle.length === 0) {
+		  html += "<p>No hay productos para esta venta.</p>";
+		} else {
+
+		  html += `
+			<table>
+			  <thead>
+				<tr>
+				  <th>Código</th>
+				  <th>Descripción</th>
+				  <th>Precio</th>
+				  <th>Cantidad</th>
+				  <th>Subtotal</th>
+				</tr>
+			  </thead>
+			  <tbody>
+		  `;
+
+		  detalle.forEach(pd => {
+			html += `
+			  <tr>
+				<td>${pd.id_producto}</td>
+				<td>${pd.descripcion}</td>
+				<td>${formateador.format(pd.precio || 0)}</td>
+				<td>${pd.cantidad}</td>
+				<td>${formateador.format(pd.subtotal || 0)}</td>
+			  </tr>
+			`;
+		  });
+
+		  html += `
+			  </tbody>
+			</table>
+		  `;
+		}
+
+		document.getElementById("detalleContenido").innerHTML = html;
+		document.getElementById("modalDetalle").style.display = "flex";
+
+	  } catch (e) {
+		console.error(e);
+		alert("Error al obtener detalle");
+	  }
+	}
+
   function cerrarModalDetalle() { document.getElementById("modalDetalle").style.display = "none"; }
 
   // cerrar clic fuera
@@ -581,7 +650,6 @@ const fechaNorm = convertirFechaInput(fechaInput);
 
 </script>
 
-<script src="js/medidor.js"></script>
 
 </body>
 </html>

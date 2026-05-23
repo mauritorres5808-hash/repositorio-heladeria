@@ -4,12 +4,7 @@
   <meta charset="UTF-8">
   <title>ABM de Usuarios</title>
 
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 <script src="js/auth.js"></script>  <!-- Aquí se verifica la autenticacion-->
-<script src="js/permisos.js"></script>  <!-- permisos de usuarios -->
 
 <style>
     body {
@@ -115,14 +110,18 @@
 
     <br>
     <br>
-    <label>Email </label>
-    <input size="30" type="email" id="email" placeholder="usuario@mail.com">
+    <label>Usuario </label>
+    <input size="30" type="email" id="email" placeholder="nombre para ingresar">
 &nbsp;&nbsp;&nbsp;
     <label>Nivel </label>
     <select id="nivel">
       <option value="1">1 - Vendedor</option>
       <option value="2">2 - Supervisor</option>
     </select>
+
+		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+		<label for="deshabili">Deshabilitado?</label>
+		<input class="input-pequeno" type="checkbox" id="deshabili">
 
     <br>
     <br>
@@ -141,8 +140,9 @@
         <tr>
           <th>ID</th>
           <th>Nombre</th>
-          <th>Email</th>
+          <th>Usuario</th>
           <th>Nivel</th>
+          <th>Deshabilitado</th>
           <th>Acciones</th>
         </tr>
       </thead>
@@ -157,8 +157,6 @@ verificarSesion();
 </script>
 
   <script src="./js/usuarios.js"></script>
-
-<script src="js/medidor.js"></script>
 
 </body>
 </html>

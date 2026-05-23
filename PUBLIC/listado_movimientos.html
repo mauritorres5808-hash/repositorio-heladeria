@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Listado de Movimientos</title>
+
+<script src="js/auth.js"></script>
+
+<style>
+
+body{
+    font-family:Arial;
+    background:#8AC0FF;
+    margin:0;
+    padding:20px;
+}
+
+.contenedor{
+    max-width:1200px;
+    margin:auto;
+    background:white;
+    padding:20px;
+    border-radius:10px;
+}
+
+h2{
+    text-align:center;
+    background:#8AC0FF;
+    padding:10px;
+    border-radius:8px;
+}
+
+label{
+    font-weight:bold;
+}
+
+input, select{
+    padding:6px;
+    border-radius:5px;
+    border:1px solid #999;
+    font-size:14px;
+}
+
+button{
+    padding:8px 16px;
+    border:none;
+    border-radius:6px;
+    background:#007bff;
+    color:white;
+    cursor:pointer;
+}
+
+button:hover{
+    background:red;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:20px;
+}
+
+th, td{
+    border:1px solid #000;
+    padding:6px;
+    text-align:center;
+}
+
+th{
+    background:#f2f2f2;
+}
+
+.fila-anulada{
+    background:#FFB3B3;
+}
+
+.total{
+    font-size:22px;
+    font-weight:bold;
+    text-align:right;
+    margin-top:15px;
+}
+
+    .alert-modern{background:#e9f7ef;border-left:6px solid red;padding:10px;border-radius:6px;margin:10px 0}
+
+
+</style>
+</head>
+
+<body>
+
+<div class="contenedor">
+
+<h2>📋 Listado de Movimientos</h2>
+
+<div style="display:flex; gap:15px; flex-wrap:wrap; align-items:end;">
+
+<div>
+<label>Fecha Desde</label><br>
+<input type="date" id="fecha_desde">
+</div>
+
+<div>
+<label>Fecha Hasta</label><br>
+<input type="date" id="fecha_hasta">
+</div>
+
+<div>
+<label>Tipo</label><br>
+<select id="tipo">
+    <option value="T">Todos</option>
+    <option value="I">Ingresos</option>
+    <option value="E">Egresos</option>
+</select>
+</div>
+
+<div>
+<button onclick="consultar()">🔍 Consultar</button>
+</div>
+
+<div>
+<button onclick="window.location.href='menu-caja.html'">
+↩ Volver
+</button>
+</div>
+
+<div id="mensajeTipo" class="alert-modern">los movimientos en rojo (anulados) no suman en el Total.</div>
+
+
+</div>
+
+<table id="tabla">
+
+<thead>
+<tr>
+    <th>Fecha</th>
+    <th>Hora</th>
+    <th>Tipo</th>
+    <th>Descripcion</th>
+    <th>Importe</th>
+    <th>Estado</th>
+    <th>ID Cierre</th>
+</tr>
+</thead>
+
+<tbody></tbody>
+
+</table>
+
+<div class="total" id="totalGeneral">
+TOTAL: $ 0
+</div>
+
+</div>
+
+<script>
+
+verificarSesion();
+
+const formateador = new Intl.NumberFormat('es-AR', {
+    style:'currency',
+    currency:'ARS'
+});
+
+// fechas de hoy
+const hoy = new Date();
+
+const yyyy = hoy.getFullYear();
+const mm = String(hoy.getMonth()+1).padStart(2,'0');
+const dd = String(hoy.getDate()).padStart(2,'0');
+
+const fechaHoy = `${yyyy}-${mm}-${dd}`;
+
+document.getElementById("fecha_desde").value = fechaHoy;
+document.getElementById("fecha_hasta").value = fechaHoy;
+
+function normalizarFecha(fechaStr){
+
+    if (!fechaStr) return "";
+
+    if (fechaStr.includes("T")) {
+        fechaStr = fechaStr.split("T")[0];
+    }
+
+    if (fechaStr.includes("-")) {
+
+        const [a,m,d] = fechaStr.split("-");
+
+        return `${d}/${m}/${a}`;
+    }
+
+    return fechaStr;
+}
+
+async function consultar(){
+
+    try{
+
+        const fecha_desde = document.getElementById("fecha_desde").value;
+        const fecha_hasta = document.getElementById("fecha_hasta").value;
+
+        const tipo = document.getElementById("tipo").value;
+
+        const resp = await fetch(
+            `/api/movimientos/listado?fecha_desde=${fecha_desde}&fecha_hasta=${fecha_hasta}&tipo=${tipo}`
+        );
+
+        const data = await resp.json();
+
+        const tbody = document.querySelector("#tabla tbody");
+
+        tbody.innerHTML = "";
+
+        let total = 0;
+
+        data.forEach(m => {
+
+            let importe = Number(m.importe || 0);
+
+            if (m.tipo === 'E') {
+                importe = importe * -1;
+            }
+
+            if (m.anulado == 0) {
+                total += importe;
+            }
+
+            const tr = document.createElement("tr");
+
+            if (m.anulado == 1) {
+                tr.classList.add("fila-anulada");
+            }
+
+            tr.innerHTML = `
+                <td>${normalizarFecha(m.fecha)}</td>
+                <td>${m.hora}</td>
+                <td>
+                    ${m.tipo === 'I'
+                        ? 'Ingreso'
+                        : 'Egreso'}
+                </td>
+                <td style="text-align:left;">
+                    ${m.descripcion}
+                </td>
+                <td>
+                    ${formateador.format(importe)}
+                </td>
+                <td style="
+                    ${m.anulado == 1
+                        ? 'color:red;font-weight:bold;'
+                        : ''}
+                ">
+                    ${m.anulado == 1
+                        ? 'Anulado'
+                        : 'Activo'}
+                </td>
+                <td>
+                    ${m.id_cierre}
+                </td>
+            `;
+
+            tbody.appendChild(tr);
+
+        });
+
+        document.getElementById("totalGeneral").innerHTML =
+            `TOTAL: ${formateador.format(total)}`;
+
+    } catch(error){
+
+        console.error(error);
+
+        alert("Error obteniendo movimientos");
+    }
+}
+
+consultar();
+
+</script>
+
+</body>
+</html>

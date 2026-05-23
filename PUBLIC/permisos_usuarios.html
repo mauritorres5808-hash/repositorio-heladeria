@@ -5,10 +5,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Permisos por Usuario</title>
 
-  <!-- Firebase v8 -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 <script src="js/auth.js"></script>  <!-- Aqui se verifica la autenticacion-->
 
   <style>
@@ -90,79 +86,103 @@ verificarSesion();
       btnGuardar.addEventListener('click', guardarPermisos);
       btnLimpiar.addEventListener('click', limpiarChecks);
 
-    async function cargarUsuarios() {
-      usuarioSelect.innerHTML = '<option value="">--Seleccione--</option>';
-      const snap = await db.collection('USUARIOS')
-	  	.where('nivel',"==",1)
-		.orderBy('nombre').get();
-      snap.forEach(d => {
-        const u = d.data();
-        usuarioSelect.innerHTML += `<option value="${u.id_usuario}">${u.nombre}</option>`;
-      });
-    }
+		async function cargarUsuarios() {
 
-    async function cargarModulos() {
-      moduloSelect.innerHTML = '<option value="">--Seleccione--</option>';
-      const snap = await db.collection('MODULOS').orderBy('descripcion').get();
-      snap.forEach(d => {
-        const m = d.data();
-        moduloSelect.innerHTML += `<option value="${m.id_modulo}">${m.descripcion}</option>`;
-      });
-    }
+		  usuarioSelect.innerHTML = '<option value="">--Seleccione--</option>';
 
-/*    async function cargarFuncionesDelModulo() {
-      const idUsuario = usuarioSelect.value;
-      const idModulo = moduloSelect.value;
-      if (!idUsuario) return alert('Seleccione un usuario.');
-      if (!idModulo) return alert('Seleccione un m贸dulo.');
+		  try {
+			const resp = await fetch('/api/permisos-usuarios/usuarios');
+			const data = await resp.json();
 
-      tbody.innerHTML = '<tr><td colspan="3">Cargando funciones...</td></tr>';
+			if (!data.ok) {
+			  alert('Error cargando usuarios');
+			  return;
+			}
 
-      // 1) obtener funciones del modulo
-      const fSnap = await db.collection('FUNCIONES').where('id_modulo','==',parseInt(idModulo)).orderBy('id_funcion').get();
-      funcionesDelModulo = fSnap.docs.map(d => ({ docId: d.id, ...d.data() }));
+			data.usuarios.forEach(u => {
+			  usuarioSelect.innerHTML += `
+				<option value="${u.id_usuario}">
+				  ${u.nombre}
+				</option>
+			  `;
+			});
 
-      // 2) obtener permisos actuales del usuario (todas) y filtrarlos por m贸dulo
-      const permisosSnap = await db.collection('USUARIOS_FUNCIONES').where('id_usuario','==',parseInt(idUsuario)).get();
-      const funcionesUsuario = permisosSnap.docs.map(d => d.data().id_funcion); // array
-      // convertimos a Set para checks r谩pidos
-      asignadasActuales = new Set(funcionesUsuario.map(n => parseInt(n)));
+		  } catch (err) {
+			console.error(err);
+			alert('Error cargando usuarios');
+		  }
+		}
 
-      renderTablaFunciones();
-    }
-*/
-async function cargarFuncionesDelModulo() {
-  const idUsuario = usuarioSelect.value;
-  const idModulo = moduloSelect.value;
-  if (!idUsuario) return alert('Seleccione un usuario.');
-  if (!idModulo) return alert('Seleccione un m贸dulo.');
 
-  tbody.innerHTML = '<tr><td colspan="3">Cargando funciones...</td></tr>';
+		async function cargarModulos() {
+		  moduloSelect.innerHTML = '<option value="">--Seleccione--</option>';
 
-  // Usuario actual
-  const idUsuarioActual = window.usuarioSistema?.id_usuario || 0;
+		  try {
+			const resp = await fetch('/api/permisos-usuarios/modulos');
+			const data = await resp.json();
 
-  // 1) obtener funciones del modulo
-  const fSnap = await db.collection('FUNCIONES')
-    .where('id_modulo','==',parseInt(idModulo))
-    .orderBy('id_funcion')
-    .get();
+			if (!data.ok) {
+			  alert('Error cargando módulos');
+			  return;
+			}
 
-  funcionesDelModulo = fSnap.docs
-    .map(d => ({ docId: d.id, ...d.data() }))
-    // FILTRO CORRECTO
-    .filter(f => idUsuarioActual === 1 ? true : f.id_funcion !== 51);
+			data.modulos.forEach(m => {
+			  moduloSelect.innerHTML += `
+				<option value="${m.id_modulo}">
+				  ${m.descripcion}
+				</option>
+			  `;
+			});
 
-  // 2) obtener permisos del usuario
-  const permisosSnap = await db.collection('USUARIOS_FUNCIONES')
-    .where('id_usuario','==',parseInt(idUsuario))
-    .get();
+		  } catch (err) {
+			console.error(err);
+			alert('Error cargando módulos');
+		  }
+		}
 
-  const funcionesUsuario = permisosSnap.docs.map(d => d.data().id_funcion);
-  asignadasActuales = new Set(funcionesUsuario.map(n => parseInt(n)));
 
-  renderTablaFunciones();
-}
+		async function cargarFuncionesDelModulo() {
+
+		  const idUsuario = usuarioSelect.value;
+		  const idModulo = moduloSelect.value;
+
+		  if (!idUsuario) {
+			return alert('Seleccione un usuario.');
+		  }
+
+		  if (!idModulo) {
+			return alert('Seleccione un módulo.');
+		  }
+
+		  tbody.innerHTML = '<tr><td colspan="3">Cargando funciones...</td></tr>';
+
+		  try {
+			const resp = await fetch(
+			  `/api/permisos-usuarios/funciones?id_usuario=${idUsuario}&id_modulo=${idModulo}`
+			);
+
+			const data = await resp.json();
+
+			if (!data.ok) {
+			  alert(data.mensaje || 'Error');
+			  return;
+			}
+
+			funcionesDelModulo = data.funciones;
+
+			asignadasActuales =
+				new Set(
+				  data.permisos.map(p => parseInt(p))
+				);
+
+			renderTablaFunciones();
+
+		  } catch (err) {
+			console.error(err);
+			alert('Error cargando funciones');
+		  }
+		}
+
 
     function renderTablaFunciones() {
       tbody.innerHTML = '';
@@ -187,55 +207,54 @@ async function cargarFuncionesDelModulo() {
       checks.forEach(ch => ch.checked = false);
     }
 
-    async function guardarPermisos() {
-      const idUsuario = usuarioSelect.value;
-      const idModulo = moduloSelect.value;
-      if (!idUsuario || !idModulo) return alert('Seleccione usuario y m贸dulo.');
+		async function guardarPermisos() {
+		  const idUsuario = usuarioSelect.value;
+		  const idModulo = moduloSelect.value;
 
-      // obtener funciones seleccionadas en la tabla
-      const checks = Array.from(tbody.querySelectorAll('input[type="checkbox"]'));
-      const seleccionadas = checks.filter(c => c.checked).map(c => parseInt(c.dataset.id));
+		  if (!idUsuario || !idModulo) {
+			return alert('Seleccione usuario y módulo.');
+		  }
 
-      try {
-        // eliminaci贸n previa de USUARIOS_FUNCIONES para este usuario pero SOLO de las funciones que pertenecen al m贸dulo seleccionado.
-        // Para esto primero obtenemos las funciones del m贸dulo (ids).
-        const idsModulo = funcionesDelModulo.map(f => f.id_funcion);
+		  const checks = Array.from(tbody.querySelectorAll('input[type="checkbox"]'));
 
-        // recuperar docs USUARIOS_FUNCIONES del usuario que tengan id_funcion IN idsModulo
-        // Firestore no permite .where('id_funcion','in',[]) con array vac铆o -> solo si hay elementos
-        if (idsModulo.length > 0) {
-          // obtenemos los docs existentes a borrar
-          const existentesSnap = await db.collection('USUARIOS_FUNCIONES')
-            .where('id_usuario','==', parseInt(idUsuario))
-            .where('id_funcion','in', idsModulo).get();
+		  const seleccionadas =
+			  checks
+				.filter(c => c.checked)
+				.map(c => parseInt(c.dataset.id));
 
-          // batch delete
-          const batch = db.batch();
-          existentesSnap.forEach(d => batch.delete(db.collection('USUARIOS_FUNCIONES').doc(d.id)));
-          await batch.commit();
-        }
+		  try {
+			const resp = await fetch('/api/permisos-usuarios/guardar', {
+				  method: 'POST',
+				  headers: {
+					'Content-Type': 'application/json'
+				  },
 
-        // ahora creamos los nuevos permisos seleccionados
-        if (seleccionadas.length > 0) {
-          const batch2 = db.batch();
-          seleccionadas.forEach(idf => {
-            const ref = db.collection('USUARIOS_FUNCIONES').doc();
-            batch2.set(ref, { id_usuario: parseInt(idUsuario), id_funcion: parseInt(idf) });
-          });
-          await batch2.commit();
-        }
+				  body: JSON.stringify({
+					id_usuario: parseInt(idUsuario),
+					id_modulo: parseInt(idModulo),
+					funciones: seleccionadas
+				  })
+				});
 
-        alert('鉁?Permisos actualizados correctamente.');
-        // recargar vista
-        await cargarFuncionesDelModulo();
-      } catch (e) {
-        console.error(e);
-        alert('Error al guardar permisos: ' + e.message);
-      }
-    }
+			const data = await resp.json();
+
+			if (!data.ok) {
+			  alert(data.mensaje || 'Error guardando');
+			  return;
+			}
+
+			alert('Permisos actualizados.');
+
+			await cargarFuncionesDelModulo();
+
+		  } catch (err) {
+			console.error(err);
+			alert('Error guardando permisos');
+		  }
+		}
+
   </script>
 
-<script src="js/medidor.js"></script>
 
 </body>
 </html>

@@ -5,10 +5,7 @@
   <meta charset="UTF-8">
   <title>ABM de Productos</title>
 
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-<script src="js/auth.js"></script>  <!-- ?? Aquí se verifica la autenticacion-->
+<script src="js/auth.js"></script>  <!-- Aqui se verifica la autenticacion -->
 
   <style>
 
@@ -177,6 +174,13 @@ button:hover {
 			<button id="btnVerificar">&#9989; Verificar</button>
 			<button id="btnBuscar">&#128269; Buscar</button>
 			<button id="btnVaciar" onclick="limpiar_datos()">&#9851; Limpiar</button>
+				&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	<button class="boton-redondeado"  onclick="window.location.href='menu-tablas.html'">&#8617; Volver</button>
+
 		</div>
 	</div>
 
@@ -209,8 +213,8 @@ button:hover {
 			<input class="input-pequeno" type="number" id="stock"/>
 		</div>
 		<div>
-			<label for="stock_min">Stock Minimo</label>
-			<input class="input-pequeno" type="number" id="stock_min"/>
+			<label for="stock_minimo">Stock Minimo</label>
+			<input class="input-pequeno" type="number" id="stock_minimo"/>
 		</div>
 		<div>
 			<label for="publica" style="font-size: 14px">Publica Producto en Home?
@@ -284,9 +288,26 @@ button:hover {
 
 verificarSesion();
 
-document.addEventListener("DOMContentLoaded", () => {
-	aplicarPermisos();
+// BLOQUEA TODOS LOS BOTONES AL CARGAR LA PÁGINA (menos boton Volver)
+document.addEventListener("DOMContentLoaded", async () => {
+
+/*
+    // Deshabilitar todos los botones
+    const botones = document.querySelectorAll("button");
+    botones.forEach(btn => {
+        if (btn.id !== "btnVolver") {
+            btn.disabled = true;
+            btn.title = "No tiene permiso para usar esta función";
+        }
+    });
+*/
+    // Esperar permisos
+    await cargarPermisosUsuario();
+
+    // Aplicar permisos
+    aplicarPermisos();
 });
+
 </script>
 
 <script src="js/permisos.js"></script>
@@ -330,25 +351,35 @@ function mostrarImagen(pRuta) {
     const precio = document.getElementById("precio");
 
     // --- Cargar grupos en combo ---
-    function cargarGrupos() {
-	try {
-      db.collection("GRUPOS")
-	  .where("deshabilitado","==","N")
-	  .orderBy("descripcion")
-	  .get()
-        .then(snapshot => {
-          grupo.innerHTML = "<option value=''>Seleccione grupo...</option>";
-          snapshot.forEach(doc => {
-            const data = doc.data();
-            grupo.innerHTML += `<option value="${data.id_grupo}">${data.descripcion}</option>`;
-          });
-        })
-	} catch (e) {
-		console.error(e);
-		alert("Error cargando grupos: " + e.message);
-//        .catch(e => alert("Error cargando grupos: " + e.message));
-		}
-  }
+	function cargarGrupos() {
+
+		fetch('/api/grupos')
+			.then(resp => resp.json())
+			.then(data => {
+
+				grupo.innerHTML =
+					"<option value=''>Seleccione grupo...</option>";
+
+				data.forEach(g => {
+
+					if (g.deshabilitado === 0) {
+
+						grupo.innerHTML += `
+							<option value="${g.id_grupo}">
+								${g.descripcion}
+							</option>
+						`;
+					}
+				});
+			})
+			.catch(error => {
+
+				console.error(error);
+
+				alert("Error cargando grupos");
+			});
+	}
+
     cargarGrupos();
 
 	document.getElementById("btnVerificar").onclick = () => {
@@ -361,115 +392,217 @@ function mostrarImagen(pRuta) {
 
     // --- Verificar existencia de producto ---
 	async function verificarProducto() {
-	  const codigo = parseInt(idProd.value);
-	  if (!codigo) return;  // No mostrar alerta en blur, solo en botón
 
-	  const doc = await db.collection("PRODUCTOS").doc(String(codigo)).get();
-	  if (doc.exists) {
-		const data = doc.data();
-		desc.value = data.descripcion;
-		conteni.value = data.contenido;
-		grupo.value = data.id_grupo;
-		precio.value = data.precio;
-		cod_barra.value = data.cod_barra;
-		stock.value = data.stock;
-		stock_min.value = data.stock_min;
-		cant_sabores.value = data.max_sabores;
-		document.getElementById("deshabili").checked = (data.deshabilitado === "S");
-		document.getElementById("publica").checked = (data.publica === "S");
-		document.getElementById("publica_s").checked = (data.publica_s === "S");
-		document.getElementById("modif_precio").checked = (data.modifica === "S");
-		document.getElementById("requiere_sab").checked = (data.sabores === "S");
-	  mostrarImagen(data.imagen);
-		
-	  } else {
-		alert("Producto no encontrado.");
-		limpiar_datos();
-		return;
-	  }
+		const codigo = parseInt(idProd.value);
+
+		if (!codigo) return;
+
+		try {
+
+			const resp = await fetch(`/api/productos/${codigo}`);
+
+			const data = await resp.json();
+
+			if (!data) {
+
+				alert("Producto no encontrado.");
+
+				limpiar_datos();
+
+				return;
+			}
+
+			desc.value = data.descripcion;
+			conteni.value = data.contenido;
+			grupo.value = data.id_grupo;
+			precio.value = data.precio;
+			cod_barra.value = data.cod_barra;
+			stock.value = data.stock;
+			stock_minimo.value = data.stock_minimo;
+			cant_sabores.value = data.max_sabores;
+
+			document.getElementById("deshabili").checked =
+				(data.deshabilitado === 1);
+
+			document.getElementById("publica").checked =
+				(data.publica === 1);
+
+			document.getElementById("publica_s").checked =
+				(data.publica_s === 1);
+
+			document.getElementById("modif_precio").checked =
+				(data.modifica === 1);
+
+			document.getElementById("requiere_sab").checked =
+				(data.sabores === 1);
+
+			mostrarImagen(data.imagen);
+
+		} catch (error) {
+
+			console.error(error);
+
+			alert("Error verificando producto");
+		}
 	}
 
     // --- Alta de producto ---
-    document.getElementById("btnAlta").onclick = async () => {
-      const grupoSel = parseInt(grupo.value);
-	  const codigo = parseInt(idProd.value) || 0;
-		if (codigo !== 0) return alert("Para dar de alta NO debe ingresar un codigo."+"\n"+"Este se genera automaticamente."+"\n"+"Borrar el codigo ,cargar los demas campos y volver a presionar el boton de ALTA");
+	document.getElementById("btnAlta").onclick = async () => {
+
+		const codigo = parseInt(idProd.value) || 0;
+
+		if (codigo !== 0) {
+
+			return alert(
+				"Para dar de alta NO debe ingresar un codigo."
+			);
+		}
+
 		if (!(await valida_campos())) return;
 
-      // Buscar ultimo producto del grupo
-      const snapshot = await db.collection("PRODUCTOS")
-        .where("id_grupo", "==", grupoSel)
-        .orderBy("id_producto", "desc")
-        .limit(1)
-        .get();
+		try {
 
-      let nuevoCodigo = grupoSel * 1000 + 1;
-      if (!snapshot.empty) {
-        const ultimo = snapshot.docs[0].data().id_producto;
-        nuevoCodigo = ultimo + 1;
-      }
+			const resp = await fetch('/api/productos', {
 
-      await db.collection("PRODUCTOS").doc(String(nuevoCodigo)).set({
-        id_producto: nuevoCodigo,
-        descripcion: desc.value.trim(),
-        //contenido: desc.conteni.trim(),
-contenido: conteni.value.trim(),
-        id_grupo: grupoSel,
-        precio: parseFloat(precio.value),
-        cod_barra: cod_barra.value,
-        stock: parseInt(stock.value, 10) || 0,
-        imagen: "",
-        stock_min: parseInt(stock_min.value, 10) || 0,
-        max_sabores: parseInt(cant_sabores.value, 10) || 0, //cant_sabores.value,
-		deshabilitado: document.getElementById("deshabili").checked ? "S" : "N" ,
-		publica: document.getElementById("publica").checked ? "S" : "N" ,
-		publica_s: document.getElementById("publica_s").checked ? "S" : "N" ,
-		modifica: document.getElementById("modif_precio").checked ? "S" : "N" ,
-		sabores: document.getElementById("requiere_sab").checked ? "S" : "N" 
-      });
+				method: 'POST',
 
-      alert(`Producto agregado con codigo ${nuevoCodigo}`);
-      //idProd.value = nuevoCodigo;
-	  limpiar_datos();
-    };
+				headers: {
+					'Content-Type': 'application/json'
+				},
+
+				body: JSON.stringify({
+
+					descripcion: desc.value.trim(),
+					contenido: conteni.value.trim(),
+					id_grupo: parseInt(grupo.value),
+					precio: parseFloat(precio.value),
+					cod_barra: cod_barra.value,
+					stock: parseFloat(stock.value),
+					stock_minimo: parseFloat(stock_minimo.value),
+					max_sabores: parseInt(cant_sabores.value, 10) || 0,
+
+					imagen: "",
+
+					deshabilitado:
+						document.getElementById("deshabili").checked
+							? 1 : 0,
+
+					publica:
+						document.getElementById("publica").checked
+							? 1 : 0,
+
+					publica_s:
+						document.getElementById("publica_s").checked
+							? 1 : 0,
+
+					modifica:
+						document.getElementById("modif_precio").checked
+							? 1 : 0,
+
+					sabores:
+						document.getElementById("requiere_sab").checked
+							? 1 : 0
+				})
+			});
+
+			const data = await resp.json();
+
+			if (!data.ok) {
+
+				alert("Error grabando producto");
+
+				return;
+			}
+
+			alert(
+				`Producto agregado con codigo ${data.id_producto}`
+			);
+
+			limpiar_datos();
+
+		} catch (error) {
+
+			console.error(error);
+
+			alert("Error grabando producto");
+		}
+	};
 
     // --- Modificar producto ---
-    document.getElementById("btnModificar").onclick = async () => {
-      const codigo = parseInt(idProd.value);
-      if (!codigo) return alert("Ingrese un codigo.");
+	document.getElementById("btnModificar").onclick = async () => {
+
+		const codigo = parseInt(idProd.value);
+
+		if (!codigo) {
+
+			return alert("Ingrese un codigo.");
+		}
 
 		if (!(await valida_campos())) return;
 
-		const checkPublica = document.getElementById('publica');
-		const Publik = checkPublica.checked ? "S" : "N";
-		const checkPublica_s = document.getElementById('publica_s');
-		const Publik_s = checkPublica_s.checked ? "S" : "N";
-		const checkDeshabili = document.getElementById('deshabili');
-		const Desha = checkDeshabili.checked ? "S" : "N";
-		const checkModi = document.getElementById('modif_precio');
-		const ModiP = checkModi.checked ? "S" : "N";
-		const checkRequiere = document.getElementById('requiere_sab');
-		const requi = checkRequiere.checked ? "S" : "N";
+		try {
 
-      await db.collection("PRODUCTOS").doc(String(codigo)).update({
-        descripcion: desc.value.trim(),
-        contenido: conteni.value.trim(),
-        id_grupo: parseInt(grupo.value),
-        cod_barra: cod_barra.value,
-        stock: parseFloat(stock.value),
-        stock_min: parseFloat(stock_min.value),
-        //imagen: "",
-        precio: parseFloat(precio.value),
-        deshabilitado: Desha,
-        publica: Publik,
-        publica_s: Publik_s,
-        modifica: ModiP,
-        sabores: requi,
-        max_sabores: parseInt(cant_sabores.value, 10) || 0
-      });
-      alert("Producto actualizado correctamente.");
-	  limpiar_datos();
-    };
+			const resp = await fetch(`/api/productos/${codigo}`, {
+
+				method: 'PUT',
+
+				headers: {
+					'Content-Type': 'application/json'
+				},
+
+				body: JSON.stringify({
+
+					descripcion: desc.value.trim(),
+					contenido: conteni.value.trim(),
+					id_grupo: parseInt(grupo.value),
+					precio: parseFloat(precio.value),
+					cod_barra: cod_barra.value,
+					stock: parseFloat(stock.value),
+					stock_minimo: parseFloat(stock_minimo.value),
+					max_sabores: parseInt(cant_sabores.value, 10) || 0,
+
+					deshabilitado:
+						document.getElementById("deshabili").checked
+							? 1 : 0,
+
+					publica:
+						document.getElementById("publica").checked
+							? 1 : 0,
+
+					publica_s:
+						document.getElementById("publica_s").checked
+							? 1 : 0,
+
+					modifica:
+						document.getElementById("modif_precio").checked
+							? 1 : 0,
+
+					sabores:
+						document.getElementById("requiere_sab").checked
+							? 1 : 0
+				})
+			});
+
+			const data = await resp.json();
+
+			if (!data.ok) {
+
+				alert("Error modificando producto");
+
+				return;
+			}
+
+			alert("Producto actualizado correctamente.");
+
+			limpiar_datos();
+
+		} catch (error) {
+
+			console.error(error);
+
+			alert("Error modificando producto");
+		}
+	};
 
 
 async function valida_campos() {
@@ -492,7 +625,7 @@ async function valida_campos() {
 		alert("Ingrese el stock");
 	  return false;
 	  };
-      if (stock_min.value == 0 || typeof stock_min.value === 'undefined' || stock_min.value === null) {
+      if (stock_minimo.value == 0 || typeof stock_minimo.value === 'undefined' || stock_minimo.value === null) {
 		alert("Ingrese el stock minimo");
 	  return false;
 	  };
@@ -514,7 +647,7 @@ async function limpiar_datos() {
     document.getElementById("precio").value = "0";
     document.getElementById("cod_barra").value = "";
     document.getElementById("stock").value = "0";
-    document.getElementById("stock_min").value = "0";
+    document.getElementById("stock_minimo").value = "0";
     document.getElementById("deshabili").checked = "";
     document.getElementById("publica").checked = "";
     document.getElementById("publica_s").checked = "";
@@ -529,45 +662,59 @@ async function limpiar_datos() {
     document.getElementById("btnBuscar").onclick = () => modal.style.display = "flex";
     document.getElementById("btnCerrarModal").onclick = () => modal.style.display = "none";
 
-    document.getElementById("btnBuscarProd").onclick = async () => {
-      const texto = document.getElementById("txtBuscarDesc").value.trim().toLowerCase();
-      if (!texto) return alert("Ingrese texto a buscar.");
+	document.getElementById("btnBuscarProd").onclick = async () => {
 
-      const tablaBody = document.querySelector("#tablaResultados tbody");
-      tablaBody.innerHTML = "";
+		const texto =
+			document.getElementById("txtBuscarDesc")
+				.value
+				.trim();
 
-      const snapshot = await db.collection("PRODUCTOS").get();
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        if (data.descripcion.toLowerCase().includes(texto)) {
-          const fila = document.createElement("tr");
-          fila.innerHTML = `
-            <td>${data.id_producto}</td>
-            <td>${data.descripcion}</td>`;
-            
-          fila.onclick = () => {
-            idProd.value = data.id_producto;
-            desc.value = data.descripcion;
-            grupo.value = data.id_grupo;
-			contenido.value=data.contenido;
-            precio.value = data.precio;
-            cod_barra.value = data.precio;
-			stock.value = data.stock;
-			stock_min.value = data.stock_min;
-			cant_sabores.value = data.max_sabores;
-			document.getElementById("deshabili").checked = (data.deshabilitado === "S");
-			document.getElementById("publica").checked = (data.publica === "S");
-			document.getElementById("publica_s").checked = (data.publica_s === "S");
-			document.getElementById("modif_precio").checked = (data.modifica === "S");
-			document.getElementById("requiere_sab").checked = (data.sabores === "S");
-		  mostrarImagen(data.imagen);			
-			
-            modal.style.display = "none";
-          };
-          tablaBody.appendChild(fila);
-        }
-      });
-    };
+		if (!texto) {
+
+			return alert("Ingrese texto a buscar.");
+		}
+
+		try {
+
+			const resp = await fetch(
+				`/api/productos/buscar/${texto}`
+			);
+
+			const data = await resp.json();
+
+			const tablaBody =
+				document.querySelector("#tablaResultados tbody");
+
+			tablaBody.innerHTML = "";
+
+			data.forEach(prod => {
+
+				const fila = document.createElement("tr");
+
+				fila.innerHTML = `
+					<td>${prod.id_producto}</td>
+					<td>${prod.descripcion}</td>
+				`;
+
+				fila.onclick = () => {
+
+					idProd.value = prod.id_producto;
+
+					verificarProducto();
+
+					modal.style.display = "none";
+				};
+
+				tablaBody.appendChild(fila);
+			});
+
+		} catch (error) {
+
+			console.error(error);
+
+			alert("Error buscando productos");
+		}
+	};
 
 document.getElementById("btnSubproductos").onclick = () => {
   if (!id_producto.value) return alert("Primero elige un producto.");
@@ -603,7 +750,7 @@ document.getElementById("btnSubproductos").onclick = () => {
     <button class="btn-confirm" id="guardarSubBtn">&#128190; Guardar Cambios</button>
     <button id="cerrarSubBtn">&#129144; Salir</button>
   </div>
-<div class="alert-modern">&#9888;&#65039;  !! RECUERDE GUARDAR LOS CAMBIOS !! &#9888;&#65039;</div>
+<div class="alert-modern">&#x2B06;&#x2B06;   RECUERDE GUARDAR LOS CAMBIOS  &#x2B06;&#x2B06;</div>
 
 <h4 style="text-align:center;">Agregar Subproducto</h4>
 
@@ -612,7 +759,7 @@ document.getElementById("btnSubproductos").onclick = () => {
 <br>
 <label style="font-size: 14px">busqueda por parte del nombre (dentro del Grupo seleccionado):</label>
 <input type="text" id="buscarSubTxt" placeholder="parte de la descripcion" style="width:100%;">
-<button id="buscarSubBtn"> Buscar (por Grupo + parte del nombre)</button>
+<button id="buscarSubBtn">&#9660; Buscar (por Grupo + parte del nombre)</button>
 
     <table id="tablaResultadosSub" >
       <thead>
@@ -628,9 +775,7 @@ document.getElementById("btnSubproductos").onclick = () => {
   </div>
 </div>
 
-<script src="./js/productos-sub.js"></script>
-
-<!-- <script src="js/medidor.js"></script> -->
+<script src="/js/productos-sub.js"></script>
 
 </body>
 </html>

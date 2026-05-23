@@ -5,10 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Consulta de Compras</title>
 
-  <!-- Firebase v8 -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 <script src="js/auth.js"></script>  <!-- Aquí se verifica la autenticacion -->
 
   <!-- Chart.js -->
@@ -226,186 +222,329 @@ verificarSesion();
       document.getElementById("filtroNro").style.display = tipo === "nro" ? "block" : "none";
     }
 
-    function normalizarFecha(fechaStr) {
-      if (fechaStr.includes("/")) {
-        const [dia, mes, año] = fechaStr.split("/");
-        return `${año}-${mes.padStart(2, "0")}-${dia.padStart(2, "0")}`;
-      }
-      return fechaStr;
-    }
+	// consultar Compra
+	async function consultarCompras() {
 
-    async function consultarCompras() {
-      const tipoConsulta = document.querySelector('input[name="tipoConsulta"]:checked').value;
-      const resultado = document.getElementById("resultado");
-      const graficoContainer = document.getElementById("graficoContainer");
-      const selectorGrafico = document.getElementById("selectorGrafico");
-      graficoContainer.style.display = "none";
-      selectorGrafico.style.display = "none";
-      resultado.innerHTML = "<p><b>Procesando, por favor espere...</b></p>";
+	  const tipoConsulta =
+		document.querySelector('input[name="tipoConsulta"]:checked').value;
 
-      try {
-        const formasPagoSnap = await db.collection("F_PAGO").get();
-        const formasPago = {};
-        formasPagoSnap.forEach(d => formasPago[d.data().id_fpago] = d.data().descripcion);
+	  const resultado =
+		document.getElementById("resultado");
 
-        let compras = [];
-//        let tipoConsulta === "fecha" : document.getElementById("tipoCompraNro").value;
+	  const graficoContainer =
+		document.getElementById("graficoContainer");
 
-        if (tipoConsulta === "fecha") {
-          const fDesde = document.getElementById("fechaDesde").value;
-          const fHasta = document.getElementById("fechaHasta").value;
-          const desdeNorm = normalizarFecha(fDesde);
-          const hastaNorm = normalizarFecha(fHasta);
-			sin_det = document.getElementById("chk_detalle").checked;
-			sin_cierre = document.getElementById("chk_cierre").checked;
+	  const selectorGrafico =
+		document.getElementById("selectorGrafico");
 
-			let query = db.collection("COMPRAS_CAB");
-			if (sin_cierre) {
-			  query = query.where("id_cierre", "==", 0);
-			}
-			const snap = await query.get();
-          compras = snap.docs.map(d => d.data())
-            .filter(v => {
-              const fNorm = normalizarFecha(v.fecha);
-              const dentroRango = fNorm >= desdeNorm && fNorm <= hastaNorm;
-              return dentroRango;
-            });
-        } else {
-     //sin_det = false;
-			sin_det = document.getElementById("chk_detalle").checked;
-			sin_cierre = document.getElementById("chk_cierre").checked;
+	  graficoContainer.style.display = "none";
+	  selectorGrafico.style.display = "none";
 
-          const nro = parseInt(document.getElementById("nroCompra").value);
-			let query = db.collection("COMPRAS_CAB");
-			query = query.where("id_compra", "==", nro)
-			if (sin_cierre) {
-			  query = query.where("id_cierre", "==", 0);
-			}
-			const snap = await query.get();
+	  resultado.innerHTML =
+		"<p><b>Procesando, por favor espere...</b></p>";
 
-          compras = snap.docs.map(d => d.data())
-        }
+	  try {
 
-        if (compras.length === 0) {
-          resultado.innerHTML = "<p>No se encontraron compras.</p>";
-          return;
-        }
-
-        let totalGeneral = 0;
-        let resumenFP = {};
-        let resumenPorFecha = {};
-        const agrupadas = {};
-
-        compras.forEach(v => {
-          if (!agrupadas[v.fecha]) agrupadas[v.fecha] = [];
-          agrupadas[v.fecha].push(v);
-        });
-
-		if (!sin_det){
-			let html = "";
-			//for (const fecha of Object.keys(agrupadas).sort()) {
-			for (const fecha of Object.keys(agrupadas).sort((a, b) => {
-				return normalizarFecha(a).localeCompare(normalizarFecha(b));
-					})) {
-  
-			  let totalDia = 0;
-			  html += `<h3>📅 Fecha: ${fecha}</h3>`;
-					html += ` <div id="mensajeTipo" class="alert-modern">las compras en ROJO son anuladas y no suman en el Total.</div>`
-
-				html += `<table border='1'>
-				  <tr>
-					<th>Hora</th><th>N° Compra</th>
-					<th>TOTAL</th>
-					<th>Forma Pago</th>
-					<th>Detalle</th><th>Cierre</th>
-				  </tr>`;
-
-				for (const v of agrupadas[fecha]) {
-					html += `<tr style="border: 3px solid black;" ${v.anulada === "S" ? `class="tachado"` : ""}>
-					  <td>${v.hora}</td>
-					  <td ${v.anulada === "S" ? `style="background-color: #FF6467; color:white;"` : ""}>${v.id_compra}</td>
-					  <td>${formateadorMoneda.format(v.total)}</td>
-					  <td>${formasPago[v.f_pago1] || ""}</td>
-					  <td><button onclick="verDetalle(${v.id_compra})">Ver</button></td>
-					  <td>${v.id_cierre || "-"}</td>
-					</tr>`;
-
-					if (v.anulada == "S") { // no suma en el total !!!
-					null;
-					}else{
-						totalDia += v.total;
-						totalGeneral += v.total;
-
-						resumenFP[v.f_pago1] = (resumenFP[v.f_pago1] || 0) + (v.total || 0);
-					}
-			  }
-
-			  html += `<tr class="total"><td colspan="2">Total del día</td><td>${formateadorMoneda.format(totalDia)}</td><td colspan="5"></td></tr>`;
-			  html += `</table>`;
-			  resumenPorFecha[fecha] = totalDia;
-
-			}
-			html += `<h3 style="text-align:center;">TOTAL GENERAL: ${formateadorMoneda.format(totalGeneral)}</h3>`;
-			resultado.innerHTML = html;
-		}			
-		else {
-			let html = "";
-			for (const fecha of Object.keys(agrupadas).sort()) {
-			  let totalDia = 0;
-
-			  for (const v of agrupadas[fecha]) {
-
-				if (v.anulada == "S") { // no suma en el total !!!
-				null;
-				}else{
-					totalDia += v.total;
-					totalGeneral += v.total;
-
-					resumenFP[v.f_pago1] = (resumenFP[v.f_pago1] || 0) + (v.total || 0);
-				}
-			  }
-			  resumenPorFecha[fecha] = totalDia;
-			}
-			html += `<h3 style="text-align:center;">TOTAL GENERAL: ${formateadorMoneda.format(totalGeneral)}</h3>`;
-			resultado.innerHTML = html;
+		// =====================================
+        // Traer formas de pago
+		// =====================================
+		const responseFP = await fetch("/api/fpago");
+		const fpData = await responseFP.json();
+		if (!fpData.ok) {
+			alert(fpData.mensaje || "Error obteniendo formas de pago");
+			return;
 		}
-	
-/*	
-        datosFormaPago = {
-          etiquetas: Object.keys(resumenFP).map(fp => formasPago[fp]),
-          valores: Object.values(resumenFP)
-        };
-*/
-
-const totalFP = Object.values(resumenFP).reduce((a, b) => a + b, 0);
-
-const etiquetas = [];
-const valores = [];
-
-Object.keys(resumenFP).forEach(fp => {
-  const valor = resumenFP[fp];
-  const porcentaje = ((valor / totalFP) * 100).toFixed(1);
-
-  etiquetas.push(`${fp} - ${formasPago[fp]} (${porcentaje}%)`);
-  valores.push(valor);
-});
-
-datosFormaPago = { etiquetas, valores };
+		const formasPago = {};
+		fpData.formasPago.forEach(x => {formasPago[x.id_fpago] = x.descripcion;});
 
 
-        datosFecha = {
-          etiquetas: Object.keys(resumenPorFecha).sort(),
-          valores: Object.values(resumenPorFecha)
-        };
+		// =====================================
+		// PARAMETROS
+		// =====================================
+		const sin_det =
+		  document.getElementById("chk_detalle").checked;
 
-        selectorGrafico.style.display = "block";
-        mostrarGrafico();
+		const sin_cierre =
+		  document.getElementById("chk_cierre").checked;
 
-      } catch (e) {
-        console.error(e);
-        resultado.innerHTML = `<p style="color:red">Error: ${e.message}</p>`;
-      }
-    }
+		let url =
+		  '/api/compras/consultas?';
+
+		// =====================================
+		// POR FECHAS
+		// =====================================
+		if (tipoConsulta === "fecha") {
+
+		  const fDesde =
+			document.getElementById("fechaDesde").value;
+
+		  const fHasta =
+			document.getElementById("fechaHasta").value;
+
+		  url += `tipo=fecha`;
+		  url += `&desde=${fDesde}`;
+		  url += `&hasta=${fHasta}`;
+
+		} else {
+
+		  const nro =
+			document.getElementById("nroCompra").value;
+
+		  url += `tipo=nro`;
+		  url += `&id_compra=${nro}`;
+		}
+
+		url += `&sin_cierre=${sin_cierre ? 1 : 0}`;
+
+		// =====================================
+		// CONSULTA
+		// =====================================
+		const resp =
+		  await fetch(url);
+
+		const data =
+		  await resp.json();
+
+		if (!data.ok) {
+
+		  resultado.innerHTML =
+			"<p>Error obteniendo compras</p>";
+
+		  return;
+		}
+
+		const compras =
+		  data.compras;
+
+		if (compras.length === 0) {
+
+		  resultado.innerHTML =
+			"<p>No se encontraron compras.</p>";
+
+		  return;
+		}
+
+		// =====================================
+		// AGRUPAR
+		// =====================================
+		let totalGeneral = 0;
+
+		let resumenFP = {};
+
+		let resumenPorFecha = {};
+
+		const agrupadas = {};
+
+		compras.forEach(v => {
+
+		  if (!agrupadas[v.fecha]) {
+			agrupadas[v.fecha] = [];
+		  }
+
+		  agrupadas[v.fecha].push(v);
+		});
+
+		// =====================================
+		// DETALLE
+		// =====================================
+		if (!sin_det) {
+
+		  let html = "";
+
+		  for (const fecha of Object.keys(agrupadas).sort()) {
+
+			let totalDia = 0;
+
+			html += `<h3>📅 Fecha: ${convertirFechaOK(fecha)}</h3>`;
+
+			html += `
+			  <div class="alert-modern">
+				las compras en ROJO son anuladas y no suman en el Total.
+			  </div>
+			`;
+
+			html += `
+			  <table border='1'>
+				<tr>
+				  <th>Hora</th>
+				  <th>N° Compra</th>
+				  <th>TOTAL</th>
+				  <th>Forma Pago</th>
+				  <th>Detalle</th>
+				  <th>Cierre</th>
+				</tr>
+			`;
+
+			for (const v of agrupadas[fecha]) {
+
+			  html += `
+				<tr
+				  style="border:3px solid black;"
+				  ${v.anulada == 1 ? `class="tachado"` : ""}
+				>
+
+				  <td>${v.hora}</td>
+
+				  <td
+					${v.anulada == 1
+					  ? `style="background-color:#FF6467;color:white;"`
+					  : ""}
+				  >
+					${v.id_compra}
+				  </td>
+
+				  <td>
+					${formateadorMoneda.format(v.total)}
+				  </td>
+
+				  <td>
+					${formasPago[v.f_pago1] || ""}
+				  </td>
+
+				  <td>
+					<button onclick="verDetalle(${v.id_compra})">
+					  Ver
+					</button>
+				  </td>
+
+				  <td>
+					${v.id_cierre || "-"}
+				  </td>
+
+				</tr>
+			  `;
+
+			  if (v.anulada != 1) {
+
+				totalDia += Number(v.total);
+
+				totalGeneral += Number(v.total);
+
+				resumenFP[v.f_pago1] =
+				  (resumenFP[v.f_pago1] || 0)
+				  + Number(v.total);
+			  }
+			}
+
+			html += `
+			  <tr class="total">
+
+				<td colspan="2">
+				  Total del día
+				</td>
+
+				<td>
+				  ${formateadorMoneda.format(totalDia)}
+				</td>
+
+				<td colspan="5"></td>
+
+			  </tr>
+			`;
+
+			html += `</table>`;
+
+			resumenPorFecha[convertirFechaOK(fecha)] = totalDia;
+		  }
+
+		  html += `
+			<h3 style="text-align:center;">
+			  TOTAL GENERAL:
+			  ${formateadorMoneda.format(totalGeneral)}
+			</h3>
+		  `;
+
+		  resultado.innerHTML = html;
+
+		} else {
+
+		  let html = "";
+
+		  for (const fecha of Object.keys(agrupadas).sort()) {
+
+			let totalDia = 0;
+
+			for (const v of agrupadas[fecha]) {
+
+			  if (v.anulada != 1) {
+
+				totalDia += Number(v.total);
+
+				totalGeneral += Number(v.total);
+
+				resumenFP[v.f_pago1] =
+				  (resumenFP[v.f_pago1] || 0)
+				  + Number(v.total);
+			  }
+			}
+
+			resumenPorFecha[convertirFechaOK(fecha)] = totalDia;
+		  }
+
+		  html += `
+			<h3 style="text-align:center;">
+			  TOTAL GENERAL:
+			  ${formateadorMoneda.format(totalGeneral)}
+			</h3>
+		  `;
+
+		  resultado.innerHTML = html;
+		}
+
+		// =====================================
+		// GRAFICO FPAGO
+		// =====================================
+		const totalFP =
+		  Object.values(resumenFP)
+		  .reduce((a,b)=>a+b,0);
+
+		const etiquetas = [];
+		const valores = [];
+
+		Object.keys(resumenFP).forEach(fp => {
+
+		  const valor =
+			resumenFP[fp];
+
+		  const porcentaje =
+			((valor / totalFP) * 100).toFixed(1);
+
+		  etiquetas.push(
+			`${fp} - ${formasPago[fp]} (${porcentaje}%)`
+		  );
+
+		  valores.push(valor);
+		});
+
+		datosFormaPago = {
+		  etiquetas,
+		  valores
+		};
+
+		// =====================================
+		// GRAFICO FECHA
+		// =====================================
+		datosFecha = {
+
+		  etiquetas:
+			Object.keys(resumenPorFecha).sort(),
+
+		  valores:
+			Object.values(resumenPorFecha)
+		};
+
+		selectorGrafico.style.display = "block";
+
+		mostrarGrafico();
+
+	  } catch (e) {
+
+		console.error(e);
+
+		resultado.innerHTML =
+		  `<p style="color:red">Error: ${e.message}</p>`;
+	  }
+	}
 
     function mostrarGrafico() {
       const tipoGrafico = document.querySelector('input[name="tipoGrafico"]:checked').value;
@@ -444,42 +583,99 @@ datosFormaPago = { etiquetas, valores };
       }
     }
 
-    async function verDetalle(idCompra) {
-      const detSnap = await db.collection("COMPRAS_DET").where("id_compra", "==", idCompra).get();
-      const cont = document.getElementById("detalleContenido");
-      const encabezado = document.getElementById("encabezado_detalle");
-      encabezado.innerHTML = "Detalle de Productos - Compra Nro. " + idCompra;
+	// ver detalle de la compra
+	async function verDetalle(idCompra) {
 
-      if (detSnap.empty) {
-        cont.innerHTML = "<p>No se encontraron productos para esta compra.</p>";
-        document.getElementById("detalleModal").style.display = "flex";
-        return;
-      }
+	  try {
+		const resp =
+		  await fetch(`/api/compras/detalle/${idCompra}`);
 
-      const cacheProductos = {};
-      let html = `<table><tr><th>Cod Producto</th><th>Descripción</th><th>Precio Unitario</th><th>Cantidad</th><th>Subtotal</th></tr>`;
-      for (const doc of detSnap.docs) {
-        const data = doc.data();
-        let descripcion = "";
-        if (cacheProductos[data.id_producto]) {
-          descripcion = cacheProductos[data.id_producto];
-        } else {
-          const prodSnap = await db.collection("PRODUCTOS").where("id_producto", "==", data.id_producto).limit(1).get();
-          descripcion = !prodSnap.empty ? prodSnap.docs[0].data().descripcion : "(No encontrada)";
-          cacheProductos[data.id_producto] = descripcion;
-        }
-        html += `<tr>
-          <td>${data.id_producto}</td>
-          <td>${descripcion}</td>
-          <td>${formateadorMoneda.format(data.precio || 0)}</td>
-          <td>${data.cantidad}</td>
-          <td>${formateadorMoneda.format(data.subtotal)}</td>
-        </tr>`;
-      }
-      html += "</table>";
-      cont.innerHTML = html;
-      document.getElementById("detalleModal").style.display = "flex";
-    }
+		const data =
+		  await resp.json();
+
+		const cont =
+		  document.getElementById("detalleContenido");
+
+		const encabezado =
+		  document.getElementById("encabezado_detalle");
+
+		encabezado.innerHTML =
+		  "Detalle de Productos - Compra Nro. " + idCompra;
+
+		if (!data.ok || data.detalle.length === 0) {
+
+		  cont.innerHTML =
+			"<p>No se encontraron productos para esta compra.</p>";
+
+		  document.getElementById("detalleModal").style.display = "flex";
+
+		  return;
+		}
+
+		let html = `
+		  <table>
+
+			<tr>
+			  <th>Cod Producto</th>
+			  <th>Descripción</th>
+			  <th>Precio Unitario</th>
+			  <th>Cantidad</th>
+			  <th>Subtotal</th>
+			</tr>
+		`;
+
+		data.detalle.forEach(d => {
+
+		  html += `
+			<tr>
+
+			  <td>${d.id_producto}</td>
+
+			  <td>${d.descripcion}</td>
+
+			  <td>
+				${formateadorMoneda.format(d.precio || 0)}
+			  </td>
+
+			  <td>${d.cantidad}</td>
+
+			  <td>
+				${formateadorMoneda.format(d.subtotal || 0)}
+			  </td>
+
+			</tr>
+		  `;
+		});
+
+		html += `</table>`;
+
+		cont.innerHTML = html;
+
+		document.getElementById("detalleModal").style.display = "flex";
+
+	  } catch (error) {
+
+		console.error(error);
+
+		alert('Error obteniendo detalle');
+	  }
+	}
+
+
+// Convertir yyyy-mm-dd → dd/mm/yyyy
+function convertirFechaOK(f) {
+  if (!f) return "";
+  // Si viene como objeto Date
+  if (typeof f === "object") {
+    f = f.toISOString().split("T")[0];
+  }
+  // Si viene como string ISO
+  if (String(f).includes("T")) {
+    f = String(f).split("T")[0];
+  }
+  const [yyyy, mm, dd] = String(f).split("-");
+  return `${dd}/${mm}/${yyyy}`;
+}
 
     function cerrarModal() {
       document.getElementById("detalleModal").style.display = "none";
@@ -487,7 +683,6 @@ datosFormaPago = { etiquetas, valores };
 	
   </script>
 
-<script src="js/medidor.js"></script>
 
 </body>
 </html>

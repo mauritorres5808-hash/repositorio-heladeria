@@ -4,10 +4,7 @@
   <meta charset="UTF-8">
   <title>ABM de Sabores</title>
 
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-<script src="js/auth.js"></script>  <!-- Aqui se verifica la autenticacion-->
+<script src="js/auth.js"></script>  <!-- Aqui se verifica la autenticacion -->
 
   <style>
     body {
@@ -183,9 +180,27 @@
 
 verificarSesion();
 
-document.addEventListener("DOMContentLoaded", () => {
-	aplicarPermisos();
+// BLOQUEA TODOS LOS BOTONES AL CARGAR LA PÁGINA (menos boton Volver)
+document.addEventListener("DOMContentLoaded", async () => {
+
+/*
+    // Deshabilitar todos los botones
+    const botones = document.querySelectorAll("button");
+    botones.forEach(btn => {
+        if (btn.id !== "btnVolver") {
+            btn.disabled = true;
+            btn.title = "No tiene permiso para usar esta función";
+        }
+    });
+*/
+    // Esperar permisos
+    await cargarPermisosUsuario();
+
+    // Aplicar permisos
+    aplicarPermisos();
 });
+
+
 </script>
 
 <script src="js/permisos.js"></script>
@@ -214,66 +229,124 @@ ArmarTabla();
     const contenido = document.getElementById("contenido");
 
     // --- Verificar existencia ---
-    document.getElementById("btnVerificar").onclick = async () => {
-      const codigo = parseInt(idSabor.value);
-      if (!codigo) return alert("Ingrese un codigo valido.");
-      const docSnap = await db.collection("SABORES").doc(String(codigo)).get();
-      if (docSnap.exists) {
-        const data = docSnap.data();
-        descripcion.value = data.descripcion;
-        contenido.value = data.contenido;
-        document.getElementById("deshabili").checked = (data.deshabilitado === "S");
-		document.getElementById("tipo_sabor").value = data.id_tipo || "";
-      } else {
-        alert("Sabor no encontrado.");
-        limpiarCampos();
-      }
-    };
+document.getElementById("btnVerificar").onclick = async () => {
+
+  const codigo = parseInt(idSabor.value);
+
+  if (!codigo)
+    return alert("Ingrese un codigo valido.");
+
+  const resp = await fetch(`/api/sabores/${codigo}`);
+  const data = await resp.json();
+
+  if (data.error) {
+    alert("Sabor no encontrado.");
+    limpiarCampos();
+    return;
+  }
+
+  descripcion.value = data.descripcion || "";
+  contenido.value = data.contenido || "";
+
+  document.getElementById("deshabili").checked =
+    data.deshabilitado == 1;
+
+  document.getElementById("tipo_sabor").value =
+    data.id_tipo_sabor || "";
+};
 
     // --- Alta ---
-    document.getElementById("btnAlta").onclick = async () => {
-      if (idSabor.value)
-        return alert("Para dar de alta NO debe ingresar un codigo."+"\n"+"Este se genera automaticamente."+"\n"+"Borrar el codigo ,cargar los demas campos y volver a presionar el boton de ALTA");;
-      if (!await validarCampos()) return;
+document.getElementById("btnAlta").onclick = async () => {
 
-      const snapshot = await db.collection("SABORES")
-        .orderBy("id_sabor", "desc").limit(1).get();
-      let nuevoId = 1;
-      if (!snapshot.empty) nuevoId = snapshot.docs[0].data().id_sabor + 1;
+  if (idSabor.value)
+    return alert(
+      "Para dar de alta NO debe ingresar un codigo.\n" +
+        "Este se genera automaticamente.\nBorrar el codigo y volver a intentar."
+    );
 
-      await db.collection("SABORES").doc(String(nuevoId)).set({
-        id_sabor: nuevoId,
-        descripcion: descripcion.value.trim(),
-        contenido: contenido.value.trim(),
-		 id_tipo: parseInt(document.getElementById("tipo_sabor").value),
-        deshabilitado: document.getElementById("deshabili").checked ? "S" : "N"
-      });
+  if (!await validarCampos())
+    return;
 
-      alert(`Sabor agregado con codigo ${nuevoId}`);
-      limpiarCampos();
-	  ArmarTabla();
+  const resp = await fetch('/api/sabores', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
 
-    };
+      id_tipo_sabor: parseInt(
+        document.getElementById("tipo_sabor").value
+      ),
+
+      descripcion: descripcion.value.trim(),
+
+      contenido: contenido.value.trim()
+    })
+  });
+
+  const data = await resp.json();
+
+  if (!data.ok) {
+    alert("Error guardando sabor");
+    return;
+  }
+
+  alert(`Sabor agregado con codigo ${data.id}`);
+
+  limpiarCampos();
+
+  ArmarTabla();
+};
+
 
     // --- Modificar ---
-    document.getElementById("btnModificar").onclick = async () => {
-      const codigo = parseInt(idSabor.value);
-      if (!codigo) return alert("Ingrese un codigo valido.");
-      if (!await validarCampos()) return;
+document.getElementById("btnModificar").onclick = async () => {
 
-      const deshab = document.getElementById("deshabili").checked ? "S" : "N";
+  const codigo = parseInt(idSabor.value);
 
-      await db.collection("SABORES").doc(String(codigo)).update({
-        descripcion: descripcion.value.trim(),
-        contenido: contenido.value.trim(),
-		  id_tipo: parseInt(document.getElementById("tipo_sabor").value),
-        deshabilitado: deshab
-      });
-      alert("Sabor actualizado correctamente.");
-      limpiarCampos();
-	  ArmarTabla();
+  if (!codigo)
+    return alert("Ingrese un codigo valido.");
 
-    };
+  if (!await validarCampos())
+    return;
+
+  const resp = await fetch(`/api/sabores/${codigo}`, {
+
+    method: 'PUT',
+
+    headers: {
+      'Content-Type': 'application/json'
+    },
+
+    body: JSON.stringify({
+
+      id_tipo_sabor: parseInt(
+        document.getElementById("tipo_sabor").value
+      ),
+
+      descripcion: descripcion.value.trim(),
+
+      contenido: contenido.value.trim(),
+
+      deshabilitado:
+        document.getElementById("deshabili").checked ? 1 : 0
+    })
+  });
+
+  const data = await resp.json();
+
+  if (!data.ok) {
+    alert("Error actualizando sabor");
+    return;
+  }
+
+  alert("Sabor actualizado correctamente.");
+
+  limpiarCampos();
+
+  ArmarTabla();
+};
+
 
     async function validarCampos() {
       if (!descripcion.value.trim()) { 
@@ -301,95 +374,158 @@ ArmarTabla();
     document.getElementById("btnCerrarModal").onclick = () => modal.style.display = "none";
 
     document.getElementById("btnBuscarSabor").onclick = async () => {
-      const texto = document.getElementById("txtBuscarNombre").value.trim().toLowerCase();
-      if (!texto) return alert("Ingrese texto a buscar.");
 
-      const tablaBody = document.querySelector("#tablaResultados tbody");
-      tablaBody.innerHTML = "";
+	  const texto =
+		document.getElementById("txtBuscarNombre")
+		  .value
+		  .trim()
+		  .toLowerCase();
 
-      const snapshot = await db.collection("SABORES").get();
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        if (data.descripcion.toLowerCase().includes(texto)) {
-          const fila = document.createElement("tr");
-          fila.innerHTML = `<td>${data.id_sabor}</td><td>${data.descripcion}</td>`;
-          fila.onclick = () => {
-            idSabor.value = data.id_sabor;
-            descripcion.value = data.descripcion;
-            document.getElementById("deshabili").checked = (data.deshabilitado === "S");
-			contenido.value = data.contenido;
-			document.getElementById("tipo_sabor").value = data.id_tipo || "";
-            modal.style.display = "none";
-          };
-          tablaBody.appendChild(fila);
-        }
-      });
-    };
+	  if (!texto)
+		return alert("Ingrese texto a buscar.");
+
+	  const tablaBody =
+		document.querySelector("#tablaResultados tbody");
+
+	  tablaBody.innerHTML = "";
+
+	  const resp = await fetch('/api/sabores');
+	  const data = await resp.json();
+
+	  data.forEach((item) => {
+
+		if (
+		  item.descripcion.toLowerCase().includes(texto)
+		) {
+
+		  const fila = document.createElement("tr");
+
+		  fila.innerHTML = `
+			<td>${item.id_sabor}</td>
+			<td>${item.descripcion}</td>
+		  `;
+
+		  fila.onclick = () => {
+
+			idSabor.value = item.id_sabor;
+			descripcion.value = item.descripcion || "";
+			contenido.value = item.contenido || "";
+			document.getElementById("deshabili").checked = item.deshabilitado == 1;
+			document.getElementById("tipo_sabor").value = item.id_tipo_sabor || "";
+
+			modal.style.display = "none";
+		  };
+
+		  tablaBody.appendChild(fila);
+		}
+	  });
+	};
 	
 	// listado de los sabores
-    function ArmarTabla() {
-	
-      db.collection("SABORES")
-		.get()
-        .then((querySnapshot) => {
-          let html = "";
+ async function ArmarTabla() {
 
-        if (querySnapshot.empty) {
-            html += "<p>No se encontraron sabores.</p>";
-          } else {
-			html += "<table><tr><th>Codigo</th><th>Descripcion</th><th>Contenido</th><th>Tipo</th><th>Deshabilitado</th></tr>";
-			let cant = 0;
-            querySnapshot.forEach((doc) => {
-              const data = doc.data();
-			  const tipoDesc = tiposSabores.find(t => t.id_tipo == data.id_tipo)?.descripcion || "";
-              html += `<tr>
-                <td>${data.id_sabor}</td>
-                <td>${data.descripcion}</td>
-                <td>${data.contenido}</td>
-				  <td>${tipoDesc}</td>
-				  <td>${data.deshabilitado || "N"}</td>
-              </tr>`;
-			cant += 1;
-            });
-			html += `<tr class="total-row" style="font-weight:bold;background:#f2f2f2">
-			  <td colspan="1">CANTIDAD </td>
-			  <td>${cant || "0"}</td>
-			  <td></td>
-			</tr>`;
-            html += "</table>";
-          }
-          document.getElementById("listado").innerHTML = html;
-        })
-        .catch((error) => {
-          console.error("Error buscando sabores: ", error);
-        });
+  try {
+
+    const resp = await fetch('/api/sabores');
+    const data = await resp.json();
+
+    let html = "";
+
+    if (!data || data.length === 0) {
+
+      html += "<p>No se encontraron sabores.</p>";
+
+    } else {
+
+      html += `
+        <table>
+          <tr>
+            <th>Codigo</th>
+            <th>Descripcion</th>
+            <th>Contenido</th>
+            <th>Tipo</th>
+            <th>Deshabilitado</th>
+          </tr>
+      `;
+
+      let cant = 0;
+
+      data.forEach((item) => {
+
+        const tipoDesc =
+          item.desc_tipo_sabor || "";
+
+        html += `
+          <tr>
+            <td>${item.id_sabor}</td>
+            <td>${item.descripcion}</td>
+            <td>${item.contenido || ""}</td>
+            <td>${tipoDesc}</td>
+			<td style="${item.deshabilitado == 1 ? 'background-color:#FF6467;color:white;' : ''}">
+				${item.deshabilitado == 1 ? 'S' : 'N'}
+			</td>
+          </tr>
+        `;
+
+        cant++;
+
+      });
+
+      html += `
+        <tr class="total-row"
+            style="font-weight:bold;background:#f2f2f2">
+
+          <td colspan="1">CANTIDAD</td>
+          <td>${cant}</td>
+          <td></td>
+          <td></td>
+          <td></td>
+
+        </tr>
+      `;
+
+      html += "</table>";
     }
 
+    document.getElementById("listado").innerHTML = html;
+
+  } catch (error) {
+
+    console.error("Error buscando sabores:", error);
+
+  }
+}
+
+
 async function cargarTiposSabores() {
-const snap = await db.collection("TIPO_SABORES")
-    .where("deshabilitado", "!=", "S")
-    .orderBy("deshabilitado")   // 🔥 requerido por Firestore
-    .orderBy("descripcion")
-    .get();
+
+  const resp = await fetch('/api/tipo-sabores');
+  const data = await resp.json();
 
   const combo = document.getElementById("tipo_sabor");
-  combo.innerHTML = `<option value="">Seleccione tipo...</option>`;
+
+  combo.innerHTML = `
+    <option value="">
+      Seleccione tipo...
+    </option>
+  `;
 
   tiposSabores = [];
 
-  snap.forEach(doc => {
-    const data = doc.data();
-    tiposSabores.push(data);
+  data.forEach(item => {
 
-    combo.innerHTML += `<option value="${data.id_tipo}">
-      ${data.descripcion}
-    </option>`;
+    tiposSabores.push(item);
+
+    combo.innerHTML += `
+      <option value="${item.id_tipo_sabor}">
+        ${item.descripcion}
+      </option>
+    `;
   });
 }
 
   </script>
-  
-<script src="js/medidor.js"></script>
+
 
 </body>
 </html>

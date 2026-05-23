@@ -3,9 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <title>Auditoría de Ventas</title>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
   <script src="js/auth.js"></script>  <!-- Aqui se verifica la autenticacion-->
 
   <style>
@@ -36,10 +33,12 @@
       gap: 15px;
       margin-bottom: 20px;
     }
-    input, select {
+	input, select {
       padding: 6px;
-      border-radius: 5px;
-      border: 1px solid #999;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      margin-top: 4px;
+      font-size: 14px;
     }
     button {
       padding: 8px 16px;
@@ -122,6 +121,7 @@
           <th>ID Venta</th>
           <th>Fecha Venta</th>
           <th>Total</th>
+          <th>id_Usuario</th>
           <th>Usuario</th>
           <th>Tipo (*)</th>
           <th>Valor Anterior</th>
@@ -136,90 +136,201 @@
 
 verificarSesion();
 
-    // === CARGAR USUARIOS ===
-    async function cargarUsuarios() {
-      const sel = document.getElementById('usuarioFiltro');
-      const snap = await db.collection('USUARIOS').orderBy('nombre').get();
-      snap.forEach(doc => {
-        const d = doc.data();
-        sel.innerHTML += `<option value="${d.email}">${d.nombre} (${d.email})</option>`;
-      });
-    }
-    cargarUsuarios();
-/*
+
     const hoy = new Date();
     const yyyy = hoy.getFullYear();
     const mm = String(hoy.getMonth() + 1).padStart(2, '0');
     const dd = String(hoy.getDate()).padStart(2, '0');
     const fechaHoy = `${yyyy}-${mm}-${dd}`;
     document.getElementById("fechaFiltro").value = fechaHoy;
-*/	
+	
+
+    // === CARGAR USUARIOS ===
+	async function cargarUsuarios() {
+
+	  try {
+
+		const sel = document.getElementById('usuarioFiltro');
+
+		sel.innerHTML = `<option value="">(Todos)</option>`;
+
+		const resp = await fetch('/api/usuarios');
+		const data = await resp.json();
+
+		if (!data.ok) {
+		  alert('Error cargando usuarios');
+		  return;
+		}
+
+		data.usuarios.forEach(u => {
+		  // OCULTAR ADMINISTRADOR
+		  if (u.id_usuario == 1) {
+			return;
+		  }
+
+		  sel.innerHTML += `
+			<option value="${u.id_usuario}">
+			  ${u.nombre}
+			</option>
+		  `;
+		});
+
+	  } catch (error) {
+		console.error(error);
+		alert('Error cargando usuarios');
+	  }
+	}
+	
+	
+    cargarUsuarios();
 	
     // === BUSCAR AUDITORÍA ===
-    async function buscarAuditoria() {
-      const tbody = document.querySelector("#tablaAuditoria tbody");
-      const msg = document.getElementById("mensaje");
-      tbody.innerHTML = "";
-      msg.textContent = "🔎 Buscando registros...";
+	async function buscarAuditoria() {
 
-      let query = db.collection("VENTAS_AUDITORIA");
-      const fechaFiltro = document.getElementById("fechaFiltro").value;
-      const usuarioFiltro = document.getElementById("usuarioFiltro").value;
-      const tipoFiltro = document.getElementById("tipoFiltro").value;
+	  const tbody = document.querySelector("#tablaAuditoria tbody");
 
-      if (fechaFiltro) {
-        const [a, m, d] = fechaFiltro.split("-");
-        const fechaNorm = `${d}/${m}/${a}`;
-        query = query.where("fecha", "==", fechaNorm);
-      }
-      if (usuarioFiltro) query = query.where("email", "==", usuarioFiltro);
-      if (tipoFiltro) query = query.where("tipo", "==", tipoFiltro);
+	  const msg = document.getElementById("mensaje");
 
-      const snap = await query.orderBy("fecha", "desc").orderBy("hora", "desc").get();
+	  tbody.innerHTML = "";
 
-      if (snap.empty) {
-        msg.textContent = "❌ No se encontraron registros.";
-        return;
-      }
+	  msg.textContent = "🔎 Buscando registros...";
 
-      msg.textContent = "";
-      snap.forEach(doc => {
-        const d = doc.data();
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${d.fecha}</td>
-          <td>${d.hora}</td>
-          <td>${d.id_venta}</td>
-          <td>${d.fecha_venta}</td>
-		  <td>$ ${d.valor_anterior.importe_fp1 + d.valor_anterior.importe_fp2}</td>
-          <td>${d.email}</td>
-          <td>${d.tipo}</td>
-			<td>${formatearValores(d.valor_anterior)}</td>
-			<td>${formatearValores(d.valor_nuevo)}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-	
-	function formatearValores(valor) {
-		if (!valor) return "-";
-		if (typeof valor === "object") {
+	  try {
+		const fechaFiltro = document.getElementById("fechaFiltro").value;
+		const usuarioFiltro = document.getElementById("usuarioFiltro").value;
+		const tipoFiltro = document.getElementById("tipoFiltro").value;
 
-		// Ordenar las claves del mapa alfabéticamente
-		const entradasOrdenadas = Object.entries(valor)
-		  .sort(([keyA], [keyB]) => keyA.localeCompare(keyB));
+		let url = `/api/auditoria-ventas?`;
 
-		// Mostrar clave: valor en líneas separadas, pero sin saltos excesivos
-		return entradasOrdenadas
-		  .map(([k, v]) => `<div><b>${k}</b>: ${v}</div>`)
-		  .join("");
+		if (fechaFiltro) {
+		  url += `fecha=${fechaFiltro}&`;
 		}
-		return valor;
+
+		if (usuarioFiltro) {
+		  url += `id_usuario=${usuarioFiltro}&`;
+		}
+
+		if (tipoFiltro) {
+		  url += `tipo=${tipoFiltro}&`;
+		}
+
+		const resp = await fetch(url);
+		const data = await resp.json();
+
+		if (!data.ok) {
+		  msg.textContent = "❌ Error obteniendo auditoría.";
+		  return;
+		}
+
+		if (data.auditoria.length === 0) {
+		  msg.textContent = "❌ No se encontraron registros.";
+		  return;
+		}
+
+		msg.textContent = "";
+
+		data.auditoria.forEach(d => {
+
+		  const total =
+			  Number(d.valor_anterior_imp_fpago1 || 0)
+			+ Number(d.valor_anterior_imp_fpago2 || 0);
+
+		  const tr =
+			  document.createElement("tr");
+
+		  tr.innerHTML = `
+			<td>${formatearFecha(d.fecha)}</td>
+			<td>${d.hora || ''}</td>
+			<td>${d.id_venta || ''}</td>
+			<td>${formatearFecha(d.fecha_venta)}</td>
+			<td>$ ${total.toFixed(2)}</td>
+			<td>${d.id_usuario || ''}</td>
+			<td>${d.usuario || ''}</td>
+			<td>${d.tipo || ''}</td>
+			<td>${formatearValoresAnteriores(d)}</td>
+			<td>${formatearValoresNuevos(d)}</td>
+		  `;
+
+		  tbody.appendChild(tr);
+		});
+
+	  } catch (error) {
+
+		console.error(error);
+
+		msg.textContent =
+			"❌ Error obteniendo auditoría.";
+	  }
 	}
+	
+function formatearValoresAnteriores(d) {
+
+  return `
+    <div>
+      <b>FP1:</b> ${d.valor_anterior_fpago1 || 0}
+    </div>
+
+    <div>
+      <b>Imp FP1:</b>
+      $ ${Number(d.valor_anterior_imp_fpago1 || 0).toFixed(2)}
+    </div>
+
+    <div>
+      <b>FP2:</b> ${d.valor_anterior_fpago2 || 0}
+    </div>
+
+    <div>
+      <b>Imp FP2:</b>
+      $ ${Number(d.valor_anterior_imp_fpago2 || 0).toFixed(2)}
+    </div>
+  `;
+}
+
+
+function formatearValoresNuevos(d) {
+
+  return `
+    <div>
+      <b>FP1:</b> ${d.valor_nuevo_fpago1 || 0}
+    </div>
+
+    <div>
+      <b>Imp FP1:</b>
+      $ ${Number(d.valor_nuevo_imp_fpago1 || 0).toFixed(2)}
+    </div>
+
+    <div>
+      <b>FP2:</b> ${d.valor_nuevo_fpago2 || 0}
+    </div>
+
+    <div>
+      <b>Imp FP2:</b>
+      $ ${Number(d.valor_nuevo_imp_fpago2 || 0).toFixed(2)}
+    </div>
+  `;
+}
+
+
+function formatearFecha(fecha) {
+
+  if (!fecha) return '';
+
+  const f = new Date(fecha);
+
+  const dia =
+      String(f.getDate()).padStart(2, '0');
+
+  const mes =
+      String(f.getMonth() + 1).padStart(2, '0');
+
+  const anio =
+      f.getFullYear();
+
+  return `${dia}/${mes}/${anio}`;
+}
 
   </script>
 
-<script src="js/medidor.js"></script>
 
 </body>
 </html>

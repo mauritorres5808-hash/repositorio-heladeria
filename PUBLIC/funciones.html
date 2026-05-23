@@ -5,10 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ABM - Funciones</title>
 
-  <!-- Firebase v8 (compatible con firestore) -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 <script src="js/auth.js"></script>  <!-- Aqui se verifica la autenticacion-->
 
   <style>
@@ -95,13 +91,9 @@ verificarSesion();
 
     let funcionesCache = []; // cache actuales mostradas
     let modulosMap = {};     // id_modulo -> descripcion
-    let seleccionadoDocId = null; // doc id de la función seleccionada (si editando)
 
-    // auth guard
-    firebase.auth().onAuthStateChanged(user => {
-      if (!user) window.location.href = 'login.html';
-      else init();
-    });
+init();
+
 
     async function init() {
       await cargarModulos();
@@ -112,48 +104,66 @@ verificarSesion();
       btnEliminar.addEventListener('click', eliminarFuncion);
     }
 
-    async function cargarModulos() {
-      selectModulo.innerHTML = '<option value="">-- Todos los módulos --</option>';
-      const snap = await db.collection('MODULOS').orderBy('descripcion').get();
-      snap.forEach(d => {
-        const data = d.data();
-        modulosMap[data.id_modulo] = data.descripcion;
-        selectModulo.innerHTML += `<option value="${data.id_modulo}">${data.descripcion}</option>`;
-      });
-    }
+	//cargar modulos
+	async function cargarModulos() {
 
-  /*  async function listarFunciones() {
-      tbody.innerHTML = '<tr><td colspan="4">Cargando...</td></tr>';
-      const idMod = selectModulo.value;
-      let q = db.collection('FUNCIONES').orderBy('id_funcion');
-      if (idMod) q = q.where('id_modulo', '==', parseInt(idMod));
-      const snap = await q.get();
-      funcionesCache = snap.docs.map(d => ({ docId: d.id, ...d.data() }));
-      renderTabla();
-      clearForm();
-    }
-	*/
-async function listarFunciones() {
-  tbody.innerHTML = '<tr><td colspan="4">Cargando...</td></tr>';
-  const idMod = selectModulo.value;
+	  selectModulo.innerHTML = '<option value="">-- Todos los módulos --</option>';
 
-  let q = db.collection('FUNCIONES').orderBy('id_funcion');
+	  const resp = await fetch('/api/funciones/modulos');
 
-  if (idMod) q = q.where('id_modulo', '==', parseInt(idMod));
+	  const data = await resp.json();
 
-  // Obtener usuario actual
-  const idUsuarioActual = window.usuarioSistema?.id_usuario || 0;
+	  if (!data.ok) {
+		alert('Error cargando módulos');
+		return;
+	  }
 
-  const snap = await q.get();
+	  data.modulos.forEach(m => {
+		modulosMap[m.id_modulo] = m.descripcion;
 
-  funcionesCache = snap.docs
-    .map(d => ({ docId: d.id, ...d.data() }))
-    // FILTRO REAL AQUÍ
-    .filter(f => idUsuarioActual === 1 ? true : f.id_funcion !== 51);
+		selectModulo.innerHTML += `
+		  <option value="${m.id_modulo}">
+			${m.descripcion}
+		  </option>
+		`;
+	  });
+	}
 
-  renderTabla();
-  clearForm();
-}
+	// listar funciones
+	async function listarFunciones() {
+
+	  tbody.innerHTML = '<tr><td colspan="4">Cargando...</td></tr>';
+
+	  const idMod = selectModulo.value;
+
+	  let url = '/api/funciones';
+
+	  if (idMod) {
+		url += `?id_modulo=${idMod}`;
+	  }
+
+	  const resp = await fetch(url);
+	  const data = await resp.json();
+
+	  if (!data.ok) {
+		tbody.innerHTML = '<tr><td colspan="4">Error cargando funciones</td></tr>';
+		return;
+	  }
+
+	  // Obtener usuario actual
+	  const idUsuarioActual = window.usuarioSistema?.id_usuario || 0;
+
+	  funcionesCache = data.funciones
+		.filter(f =>
+		  idUsuarioActual === 1
+			? true
+			: f.id_funcion !== 51
+		);
+
+	  renderTabla();
+	  clearForm();
+	}
+
 
     function renderTabla() {
       tbody.innerHTML = '';
@@ -169,7 +179,7 @@ async function listarFunciones() {
           <td style="text-align:left">${f.descripcion}</td>
           <td>${modDesc}</td>
           <td class="acciones">
-            <button onclick="editar(${f.id_funcion}, '${escapeQuotes(f.descripcion)}', ${f.id_modulo}, '${f.docId}')">✏️ modificar</button>
+            <button onclick="editar(${f.id_funcion}, '${escapeQuotes(f.descripcion)}', ${f.id_modulo})">✏️ modificar</button>
           </td>
         `;
         tbody.appendChild(tr);
@@ -179,13 +189,12 @@ async function listarFunciones() {
     // helper to escape quotes for inline onclick
     function escapeQuotes(s) { return (s||'').replace(/'/g, "\\'").replace(/"/g, '&quot;'); }
 
-    window.editar = function(id_funcion, descripcion, id_modulo, docId) {
-      idInput.value = id_funcion;
-      descInput.value = descripcion;
-      selectModulo.value = id_modulo;
-      seleccionadoDocId = docId;
-      idInput.disabled = true; // id no editable when editing
-    };
+	window.editar = function(id_funcion, descripcion, id_modulo) {
+	  idInput.value = id_funcion;
+	  descInput.value = descripcion;
+	  selectModulo.value = id_modulo;
+	  idInput.disabled = true;
+	};
 
     function nuevoRegistro() {
       clearForm();
@@ -195,64 +204,88 @@ async function listarFunciones() {
     function clearForm() {
       idInput.value = '';
       descInput.value = '';
-      seleccionadoDocId = null;
       idInput.disabled = false;
     }
 
-    async function guardarFuncion() {
-      const idf = parseInt(idInput.value);
-      const desc = descInput.value.trim();
-      const idMod = parseInt(selectModulo.value);
+	// guardar funcion
+	async function guardarFuncion() {
 
-      if (!idf || !desc || !idMod) { alert('Complete ID, Descripción y seleccione Módulo.'); return; }
+	  const idf = parseInt(idInput.value);
+	  const desc = descInput.value.trim();
+	  const idMod = parseInt(selectModulo.value);
 
-      try {
-        // Buscamos si existe doc con id_funcion = idf
-        const snap = await db.collection('FUNCIONES').where('id_funcion','==',idf).limit(1).get();
-        if (!snap.empty && !seleccionadoDocId) {
-          // existe y estamos creando -> error
-          alert('Ya existe una función con ese id_funcion.');
-          return;
-        }
+	  if (!idf || !desc || !idMod) {
+		alert('Complete ID, Descripción y Módulo.');
+		return;
+	  }
 
-        if (seleccionadoDocId) {
-          // actualizar doc existente
-          await db.collection('FUNCIONES').doc(seleccionadoDocId).update({
-            id_funcion: idf,
-            descripcion: desc,
-            id_modulo: idMod
-          });
-        } else {
-          // crear nuevo doc
-          await db.collection('FUNCIONES').add({
-            id_funcion: idf,
-            descripcion: desc,
-            id_modulo: idMod
-          });
-        }
-        alert('✅ Guardado correctamente.');
-        await listarFunciones();
-      } catch (e) {
-        console.error(e);
-        alert('Error al guardar: ' + e.message);
-      }
-    }
+	  try {
 
-    async function eliminarFuncion() {
-      if (!seleccionadoDocId) return alert('Seleccione una función para eliminar (hacer click en modificar).');
-      if (!confirm('Confirma eliminar la función seleccionada?')) return;
-      try {
-        await db.collection('FUNCIONES').doc(seleccionadoDocId).delete();
-        alert('🗑️ Función eliminada.');
-        await listarFunciones();
-      } catch (e) {
-        console.error(e);
-        alert('Error al eliminar: ' + e.message);
-      }
-    }
+		const resp = await fetch('/api/funciones', {
+			  method: 'POST',
+			  headers: {
+				'Content-Type': 'application/json'
+			  },
+
+			  body: JSON.stringify({
+				id_funcion: idf,
+				descripcion: desc,
+				id_modulo: idMod
+			  })
+			});
+
+		const data = await resp.json();
+
+		if (!data.ok) {
+		  alert(data.mensaje || 'Error guardando');
+		  return;
+		}
+
+		alert('✅ Guardado correctamente.');
+
+		await listarFunciones();
+
+	  } catch (e) {
+		console.error(e);
+		alert('Error al guardar');
+	  }
+	}	
+
+
+	// eliminar funcion
+	async function eliminarFuncion() {
+
+	  const idf = parseInt(idInput.value);
+
+	  if (!idf) {
+		alert('Seleccione una función.');
+		return;
+	  }
+
+	  if (!confirm('¿Confirma eliminar la función?')) {
+		return;
+	  }
+
+	  try {
+		const resp = await fetch(`/api/funciones/${idf}`, {method: 'DELETE'});
+		const data = await resp.json();
+
+		if (!data.ok) {
+		  alert(data.mensaje || 'Error eliminando');
+		  return;
+		}
+
+		alert('🗑️ Función eliminada.');
+
+		await listarFunciones();
+
+	  } catch (e) {
+		console.error(e);
+		alert('Error eliminando');
+	  }
+	}
   </script>
 
-<script src="js/medidor.js"></script>
 
 </body>
 </html>

@@ -3,9 +3,7 @@
 <head>
   <meta charset="utf-8">
   <title>Menú principal</title>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
 <script src="js/auth.js"></script>  <!-- 🔹 Aquí se verifica la autenticacion-->
 
 	<style>
@@ -279,9 +277,6 @@ button small {
 			<td>
 			  <button class="boton-redondeado" onclick="location.href='menu-general.html'">&#128273; General</button>
 			</td>
-			<td>
-		<!--	  <button class="boton-redondeado" onclick="location.href='otra.html'">otra opcion</button> -->
-			</td>
         </tr>
       </table>
 
@@ -294,23 +289,10 @@ button small {
 
   <script>
 
-/*
-  // Mostrar la fecha actual con formato DD/MM/YYYY
-  const hoy = new Date();
-  const fechaFormateada = hoy.toLocaleDateString('es-AR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
-  });
-
-  // Mostrar el dia de la semana
-  const opciones = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-  const diaDeLaSemana = hoy.toLocaleDateString('es-ES', { weekday: 'long' });
-document.getElementById("tit-fecha").textContent = "___________ " + diaDeLaSemana + " " + fechaFormateada + " ___________";
-*/
 
 verificarSesion(); 
 document.getElementById("userLabel").textContent = localStorage.getItem("usuarioEmail");
+
 
 function mostrarEmpresa(data) {
     let html = `  
@@ -320,47 +302,74 @@ function mostrarEmpresa(data) {
     if (!data) {
         html += "<span style='color:red'>No se encontraron los datos de la empresa</span></h4>";
     } else {
-        html += `<span style="color: blue;">${data.nombre_empresa}</span></h4>`;
+        html += `<span style="color: blue;">${data.nombre}</span></h4>`;
     }
 
     document.getElementById("resultado").innerHTML = html;
 }
 
-function buscarDatosEmpresa() {
-    const empresaGuardada = localStorage.getItem("empresaData");
+async function buscarDatosEmpresa() {
 
-    // 🔹 Si ya tenemos los datos guardados → NO leer Firestore
-    if (empresaGuardada) {
-        mostrarEmpresa(JSON.parse(empresaGuardada));
-        return;
+    try {
+
+        const empresaGuardada =
+            localStorage.getItem("empresaData");
+
+        // =====================================
+        // SI EXISTE EN LOCALSTORAGE
+        // =====================================
+        if (
+            empresaGuardada &&
+            empresaGuardada !== "undefined"
+        ) {
+
+            mostrarEmpresa(
+                JSON.parse(empresaGuardada)
+            );
+
+            return;
+        }
+
+        // =====================================
+        // BUSCAR DESDE API
+        // =====================================
+        const resp =
+            await fetch('/api/empresa');
+
+        const data =
+            await resp.json();
+
+        if (!data) {
+
+            mostrarEmpresa(null);
+            return;
+        }
+
+        // =====================================
+        // GUARDAR EMPRESA
+        // =====================================
+        localStorage.setItem(
+            "empresaData",
+            JSON.stringify(data)
+        );
+
+        mostrarEmpresa(data);
+
+    } catch (error) {
+
+        console.error(error);
+
+        localStorage.removeItem("empresaData");
+
+        mostrarEmpresa(null);
     }
-
-    // 🔹 Si no está guardado → leer Firestore UNA sola vez
-    db.collection("EMPRESA")
-        .get()
-        .then((querySnapshot) => {
-            if (querySnapshot.empty) {
-                mostrarEmpresa(null);
-                return;
-            }
-
-            // Asumo que solo hay un documento en EMPRESA
-            const data = querySnapshot.docs[0].data();
-
-            // Guardar en localStorage
-            localStorage.setItem("empresaData", JSON.stringify(data));
-
-            // Mostrar datos
-            mostrarEmpresa(data);
-        })
-        .catch((error) => {
-            console.error("Error buscando datos de la empresa: ", error);
-        });
 }
 
+
 function logout() {
-    firebase.auth().signOut();
-    localStorage.removeItem("usuarioData");
+
+    localStorage.clear();
+
     window.location.href = "login.html";
 }
 

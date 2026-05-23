@@ -2,12 +2,8 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Totales de Caja por Grupo - COMPRAS</title>
+  <title>Compras por Grupo</title>
 
-  <!-- Firebase v8 -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 <script src="js/auth.js"></script>  <!-- ?? Aquí se verifica la autenticacion-->
 
   <!-- Chart.js -->
@@ -142,7 +138,7 @@
 <body>
   <div class="contenedor">
 
-  <h2 align=center style="background-color: #8AC0FF;">COMPRAS - Totales de Caja por Grupo</h2>
+  <h2 align=center style="background-color: #8AC0FF;">Compras por Grupo</h2>
 
     <div class="filtros">
       <label>Desde: <input type="date" id="fechaDesde"></label>
@@ -199,142 +195,223 @@ verificarSesion();
 
     let grafico = null; // Para poder actualizar el gráfico
 
-    async function calcularTotales() {
-      const mensaje = document.getElementById("mensajeProcesando");
-      mensaje.style.display = "block";
-      mensaje.textContent = "🔄 Procesando, por favor espere...";
+async function calcularTotales() {
 
-      const fechaDesde = document.getElementById("fechaDesde").value;
-      const fechaHasta = document.getElementById("fechaHasta").value;
-sin_cierre = document.getElementById("chk_cierre").checked;
+  const mensaje =
+    document.getElementById(
+      "mensajeProcesando"
+    );
 
-      try {
-        const comprasCabSnap = await db.collection("COMPRAS_CAB").get();
-        const comprasCab = comprasCabSnap.docs
-          .map(doc => ({ id: doc.id, ...doc.data() }))
-          .filter(v => {
-            const f = convertirFecha(v.fecha);
-			            const estados = v.anulada != "S";
-			if (sin_cierre) {
-				const cierres = v.id_cierre === 0;	
-				return f >= fechaDesde && f <= fechaHasta && estados && cierres;
-			}else {
-            return f >= fechaDesde && f <= fechaHasta && estados;}			
-		});
+  mensaje.style.display = "block";
 
-        if (comprasCab.length === 0) {
-          mensaje.style.display = "none";
-          alert("No se encontraron compras en ese rango.");
-          return;
-        }
+  mensaje.textContent =
+    "🔄 Procesando, por favor espere...";
 
-        const idsCompras = comprasCab.map(v => v.id_compra);
-        const comprasDetSnap = await db.collection("COMPRAS_DET").get();
+  const fechaDesde =
+    document.getElementById(
+      "fechaDesde"
+    ).value;
 
-        const comprasDet = comprasDetSnap.docs
-          .map(doc => doc.data())
-          .filter(det => idsCompras.includes(det.id_compra));
+  const fechaHasta =
+    document.getElementById(
+      "fechaHasta"
+    ).value;
 
-        const productosSnap = await db.collection("PRODUCTOS").get();
-        const gruposSnap = await db.collection("GRUPOS").get();
+  const sin_cierre =
+    document.getElementById(
+      "chk_cierre"
+    ).checked;
 
-        const productos = {};
-        productosSnap.forEach(doc => (productos[doc.id] = doc.data()));
+  try {
 
-        const grupos = {};
-        gruposSnap.forEach(doc => (grupos[doc.id] = doc.data().descripcion));
+    // =====================================
+    // API
+    // =====================================
+    const resp = await fetch(
 
-        const totales = {};
-        comprasDet.forEach(det => {
-          const producto = productos[det.id_producto];
-          if (!producto) return;
-          const id_grupo = producto.id_grupo;
-          if (!totales[id_grupo]) {
-            totales[id_grupo] = {
-              descripcion: grupos[id_grupo] || "Sin grupo",
-              cantidad: 0,
-              total: 0,
-            };
-          }
-          totales[id_grupo].cantidad += det.cantidad;
-          totales[id_grupo].total += det.subtotal;
-        });
+      `/api/compras/totales-grupo?desde=${fechaDesde}&hasta=${fechaHasta}&sin_cierre=${sin_cierre}`
 
-        // 🔹 Totales generales
-        const totalGeneralImporte = Object.values(totales).reduce((acc, g) => acc + g.total, 0);
-        const totalGeneralCantidad = Object.values(totales).reduce((acc, g) => acc + g.cantidad, 0);
+    );
 
-        const tbody = document.querySelector("#tablaTotales tbody");
-        tbody.innerHTML = "";
+    const totales =
+      await resp.json();
 
-        // 🔹 Filas por grupo
-        const labels = [];
-        const data = [];
-        for (const id in totales) {
-          const g = totales[id];
-          const porcentajeCant = ((g.cantidad / totalGeneralCantidad) * 100).toFixed(2);
-          labels.push(g.descripcion);
-          data.push(g.cantidad);
+    if (!totales.length) {
 
-          tbody.innerHTML += `
-            <tr>
-              <td>${g.descripcion}</td>
-              <td>${g.cantidad}</td>
-              <td>${formateadorMoneda.format(g.total)}</td>
-              <td>${porcentajeCant}%</td>
-            </tr>
-          `;
-        }
+      mensaje.style.display = "none";
 
-        // 🔹 Fila total
-        tbody.innerHTML += `
-          <tr class="total">
-            <td colspan="1">TOTAL GENERAL</td>
-            <td>${totalGeneralCantidad}</td>
-            <td>${formateadorMoneda.format(totalGeneralImporte)}</td>
-            <td>100%</td>
-          </tr>
-        `;
+      alert(
+        "No se encontraron compras en ese rango."
+      );
 
-        // 🔹 Mostrar gráfico
-        const ctx = document.getElementById("graficoTorta").getContext("2d");
-        if (grafico) grafico.destroy(); // Si ya existía, lo reemplazamos
-
-        grafico = new Chart(ctx, {
-          type: "pie",
-          data: {
-            labels: labels,
-            datasets: [{
-              label: "Cantidad comprada",
-              data: data,
-              backgroundColor: [
-                "#007bff", "#28a745", "#ffc107", "#dc3545",
-                "#17a2b8", "#6f42c1", "#fd7e14", "#20c997"
-              ],
-            }],
-          },
-          options: {
-            responsive: true,
-            plugins: {
-              legend: { position: "bottom" },
-              title: {
-                display: true,
-                text: "Distribución de cantidad de Compras por Grupo (%)"
-              }
-            }
-          },
-        });
-
-      } catch (error) {
-        console.error("Error al calcular totales:", error);
-        alert("Ocurrió un error al procesar los datos.");
-      } finally {
-        mensaje.style.display = "none";
-      }
+      return;
     }
+
+    // =====================================
+    // TOTALES GENERALES
+    // =====================================
+    const totalGeneralImporte =
+      totales.reduce(
+        (acc, g) =>
+          acc + Number(g.total),
+        0
+      );
+
+    const totalGeneralCantidad =
+      totales.reduce(
+        (acc, g) =>
+          acc + Number(g.cantidad),
+        0
+      );
+
+    // =====================================
+    // TABLA
+    // =====================================
+    const tbody =
+      document.querySelector(
+        "#tablaTotales tbody"
+      );
+
+    tbody.innerHTML = "";
+
+    const labels = [];
+    const data = [];
+
+    totales.forEach(g => {
+
+      const porcentajeCant = (
+
+        (Number(g.cantidad)
+        / totalGeneralCantidad)
+
+        * 100
+
+      ).toFixed(2);
+
+      labels.push(g.desc_grupo);
+
+      data.push(Number(g.cantidad));
+
+      tbody.innerHTML += `
+
+        <tr>
+
+          <td>${g.desc_grupo}</td>
+
+          <td>${g.cantidad}</td>
+
+          <td>
+            ${formateadorMoneda.format(g.total)}
+          </td>
+
+          <td>${porcentajeCant}%</td>
+
+        </tr>
+      `;
+    });
+
+    // =====================================
+    // TOTAL GENERAL
+    // =====================================
+    tbody.innerHTML += `
+
+      <tr class="total">
+
+        <td>TOTAL GENERAL</td>
+
+        <td>
+          ${totalGeneralCantidad}
+        </td>
+
+        <td>
+          ${formateadorMoneda.format(
+            totalGeneralImporte
+          )}
+        </td>
+
+        <td>100%</td>
+
+      </tr>
+    `;
+
+    // =====================================
+    // GRAFICO
+    // =====================================
+    const ctx =
+      document.getElementById(
+        "graficoTorta"
+      ).getContext("2d");
+
+    if (grafico)
+      grafico.destroy();
+
+    grafico = new Chart(ctx, {
+
+      type: "pie",
+
+      data: {
+
+        labels: labels,
+
+        datasets: [{
+
+          label:
+            "Cantidad comprada",
+
+          data: data,
+
+          backgroundColor: [
+
+            "#007bff",
+            "#28a745",
+            "#ffc107",
+            "#dc3545",
+            "#17a2b8",
+            "#6f42c1",
+            "#fd7e14",
+            "#20c997"
+
+          ]
+        }]
+      },
+
+      options: {
+
+        responsive: true,
+
+        plugins: {
+
+          legend: {
+            position: "bottom"
+          },
+
+          title: {
+
+            display: true,
+
+            text:
+              "Distribución de cantidad de Compras por Grupo (%)"
+          }
+        }
+      }
+    });
+
+  } catch (error) {
+
+    console.error(error);
+
+    alert(
+      "Error obteniendo datos"
+    );
+
+  } finally {
+
+    mensaje.style.display = "none";
+  }
+}
+
   </script>
 
-<script src="js/medidor.js"></script>
 
 </body>
 </html>

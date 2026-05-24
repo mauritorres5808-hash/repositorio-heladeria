@@ -121,7 +121,7 @@ verificarSesion();
 		s1.innerHTML = "<option value=''>Seleccione</option>";
 
 		try {
-			const resp = await fetch('/api/formas-pago');
+			const resp = await fetch('/api/fpago');
 			const data = await resp.json();
 
 			if (!data.ok) {
@@ -135,7 +135,7 @@ verificarSesion();
 
 				const opt = `
 					<option value="${item.id_fpago}">
-						${item.id_fpago} - ${item.descripcion}
+						${item.descripcion}
 					</option>
 				`;
 

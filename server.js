@@ -72,7 +72,7 @@ app.use(session({
         maxAge: 1000 * 60 * 60 * 8
     }
 }));
-app.use(express.static('public'));
+app.use(express.static('PUBLIC'));
 
 
 app.use('/api/productos', productosRoutes);

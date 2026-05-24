@@ -74,6 +74,7 @@ app.use(session({
 }));
 app.use(express.static('public'));
 
+
 app.use('/api/productos', productosRoutes);
 app.use('/api/sabores', saboresRoutes);
 app.use('/api/tipo-sabores', validarSesion, tipoSaboresRoutes);

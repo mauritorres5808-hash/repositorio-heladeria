@@ -13,8 +13,8 @@ router.get('/', async (req, res) => {
             SELECT
                 p.*,
                 g.descripcion AS desc_grupo
-            FROM PRODUCTOS p
-            LEFT JOIN GRUPOS g
+            FROM productos p
+            LEFT JOIN grupos g
                 ON p.id_grupo = g.id_grupo
             WHERE p.deshabilitado = 0
             ORDER BY p.descripcion
@@ -266,7 +266,7 @@ router.get('/grupo/:id_grupo', async (req, res) => {
 
         const [rows] = await db.query(`
             SELECT *
-            FROM PRODUCTOS
+            FROM productos
             WHERE id_grupo = ?
             ORDER BY descripcion
         `, [id_grupo]);

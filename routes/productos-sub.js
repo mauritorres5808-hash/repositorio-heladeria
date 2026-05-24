@@ -16,7 +16,7 @@ router.get('/buscar', async (req, res) => {
             SELECT
                 id_producto,
                 descripcion
-            FROM PRODUCTOS
+            FROM productos
             WHERE LOWER(descripcion) LIKE ?
         `;
 
@@ -56,7 +56,7 @@ router.get('/:id_producto', async (req, res) => {
 
         const [rows] = await db.query(`
             SELECT *
-            FROM RELA_PROD_SUB
+            FROM rela_prod_sub
             WHERE id_producto = ?
         `, [id_producto]);
 
@@ -86,7 +86,7 @@ router.post('/:id_producto', async (req, res) => {
 
         // borrar anteriores
         await db.query(`
-            DELETE FROM RELA_PROD_SUB
+            DELETE FROM rela_prod_sub
             WHERE id_producto = ?
         `, [id_producto]);
 
@@ -94,7 +94,7 @@ router.post('/:id_producto', async (req, res) => {
         for (const idSub of subproductos) {
 
             await db.query(`
-                INSERT INTO RELA_PROD_SUB (
+                INSERT INTO rela_prod_sub (
                     id_producto,
                     id_prod_sub
                 )
@@ -109,7 +109,7 @@ router.post('/:id_producto', async (req, res) => {
         const tieneSub = subproductos.length > 0 ? 1 : 0;
 
         await db.query(`
-            UPDATE PRODUCTOS
+            UPDATE productos
             SET subproductos = ?
             WHERE id_producto = ?
         `, [

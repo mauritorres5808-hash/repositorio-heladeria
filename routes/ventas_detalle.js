@@ -15,8 +15,8 @@ router.get('/:idVenta', async (req, res) => {
       SELECT
         vd.*,
         p.descripcion
-      FROM VENTAS_DET vd
-      LEFT JOIN PRODUCTOS p
+      FROM ventas_det vd
+      LEFT JOIN productos p
         ON p.id_producto = vd.id_producto
       WHERE vd.id_venta = ?
     `, [idVenta]);

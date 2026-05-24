@@ -13,7 +13,7 @@ router.get('/', async (req, res) => {
 
     const [rows] = await db.query(`
       SELECT *
-      FROM EMPRESA
+      FROM empresa
       LIMIT 1
     `);
 

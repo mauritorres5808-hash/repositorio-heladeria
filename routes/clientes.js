@@ -13,7 +13,7 @@ router.get('/', async (req, res) => {
 
     const [rows] = await db.query(`
       SELECT *
-      FROM CLIENTES
+      FROM clientes
       ORDER BY nombre
     `);
 
@@ -47,13 +47,13 @@ router.post('/', async (req, res) => {
 
     const [ultimo] = await db.query(`
       SELECT MAX(id_cliente) AS ultimo
-      FROM CLIENTES
+      FROM clientes
     `);
 
     const nuevoId = (ultimo[0].ultimo || 0) + 1;
 
     await db.query(`
-      INSERT INTO CLIENTES
+      INSERT INTO clientes
       (
         id_cliente,
         nombre,
@@ -105,7 +105,7 @@ router.put('/:id', async (req, res) => {
     } = req.body;
 
     await db.query(`
-      UPDATE CLIENTES
+      UPDATE clientes
       SET nombre = ?,
           domicilio = ?,
           telefono = ?,
@@ -180,7 +180,7 @@ router.get('/:id', async (req, res) => {
 
     const [rows] = await db.query(`
       SELECT *
-      FROM CLIENTES
+      FROM clientes
       WHERE id_cliente = ?
     `, [id]);
 

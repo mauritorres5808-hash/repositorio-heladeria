@@ -15,7 +15,7 @@ router.post('/login', async (req, res) => {
 
     const [rows] = await db.query(`
       SELECT *
-      FROM USUARIOS
+      FROM usuarios
       WHERE email = ?
       AND password = ?
       AND deshabilitado = 0

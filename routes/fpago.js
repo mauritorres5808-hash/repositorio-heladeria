@@ -35,7 +35,7 @@ router.get('/habilitadas', async (req, res) => {
     try {
         const [rows] = await db.query(`
             SELECT *
-            FROM F_PAGO
+            FROM f_pago
             WHERE deshabilitado = 0
             ORDER BY descripcion
         `);

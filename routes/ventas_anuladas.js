@@ -16,7 +16,7 @@ router.get('/', async (req, res) => {
 
     let sql = `
       SELECT *
-      FROM VENTAS_CAB
+      FROM ventas_cab
       WHERE anulada = 1
     `;
 

@@ -13,7 +13,7 @@ router.get('/', async (req, res) => {
 
     const [rows] = await db.query(`
       SELECT *
-      FROM TIPO_SABORES
+      FROM tipo_sabores
       ORDER BY id_tipo_sabor
     `);
 
@@ -41,7 +41,7 @@ router.get('/:id', async (req, res) => {
 
     const [rows] = await db.query(`
       SELECT *
-      FROM TIPO_SABORES
+      FROM tipo_sabores
       WHERE id_tipo_sabor = ?
     `, [id]);
 
@@ -78,7 +78,7 @@ router.post('/', async (req, res) => {
     } = req.body;
 
     const [result] = await db.query(`
-      INSERT INTO TIPO_SABORES
+      INSERT INTO tipo_sabores
       (
         descripcion,
         deshabilitado
@@ -120,7 +120,7 @@ router.put('/:id', async (req, res) => {
     } = req.body;
 
     await db.query(`
-      UPDATE TIPO_SABORES
+      UPDATE tipo_sabores
       SET descripcion = ?,
           deshabilitado = ?
       WHERE id_tipo_sabor = ?

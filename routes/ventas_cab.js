@@ -620,7 +620,7 @@ router.get('/consul_anu/:id', async (req, res) => {
         // CABECERA
         const [cab] = await db.query(`
             SELECT *
-            FROM VENTAS_CAB
+            FROM ventas_cab
             WHERE id_venta = ?
             LIMIT 1
         `, [idVenta]);
@@ -637,8 +637,8 @@ router.get('/consul_anu/:id', async (req, res) => {
             SELECT
                 d.*,
                 p.descripcion
-            FROM VENTAS_DET d
-            LEFT JOIN PRODUCTOS p
+            FROM ventas_det d
+            LEFT JOIN productos p
                 ON p.id_producto = d.id_producto
             WHERE d.id_venta = ?
         `, [idVenta]);
@@ -674,7 +674,7 @@ router.put('/anular/:id', async (req, res) => {
         // VERIFICAR CABECERA
         const [cab] = await conn.query(`
             SELECT *
-            FROM VENTAS_CAB
+            FROM ventas_cab
             WHERE id_venta = ?
             LIMIT 1
         `, [idVenta]);
@@ -705,7 +705,7 @@ router.put('/anular/:id', async (req, res) => {
 		const usuario = req.session.usuario || {};
 
 		await conn.query(`
-			INSERT INTO VENTAS_AUDITORIA
+			INSERT INTO ventas_auditoria
 			(
 				usuario,
 				fecha,
@@ -745,7 +745,7 @@ router.put('/anular/:id', async (req, res) => {
 
         // ANULAR VENTA
         await conn.query(`
-            UPDATE VENTAS_CAB
+            UPDATE ventas_cab
             SET
                 anulada = 1
             WHERE id_venta = ?
@@ -754,7 +754,7 @@ router.put('/anular/:id', async (req, res) => {
         // DETALLE
         const [detalle] = await conn.query(`
             SELECT *
-            FROM VENTAS_DET
+            FROM ventas_det
             WHERE id_venta = ?
         `, [idVenta]);
 
@@ -763,7 +763,7 @@ router.put('/anular/:id', async (req, res) => {
 
             // PRODUCTO PRINCIPAL
             await conn.query(`
-                UPDATE PRODUCTOS
+                UPDATE productos
                 SET stock = stock + ?
                 WHERE id_producto = ?
             `, [
@@ -774,7 +774,7 @@ router.put('/anular/:id', async (req, res) => {
             // VERIFICAR SUBPRODUCTOS
             const [prod] = await conn.query(`
                 SELECT subproductos
-                FROM PRODUCTOS
+                FROM productos
                 WHERE id_producto = ?
             `, [det.id_producto]);
 
@@ -785,14 +785,14 @@ router.put('/anular/:id', async (req, res) => {
 
                 const [subs] = await conn.query(`
                     SELECT id_prod_sub
-                    FROM RELA_PROD_SUB
+                    FROM rela_prod_sub
                     WHERE id_producto = ?
                 `, [det.id_producto]);
 
                 for (const s of subs) {
 
                     await conn.query(`
-                        UPDATE PRODUCTOS
+                        UPDATE productos
                         SET stock = stock + ?
                         WHERE id_producto = ?
                     `, [

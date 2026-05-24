@@ -225,7 +225,7 @@ async function cargarProductos() {
 
     const [rows] = await db.query(`
       SELECT *
-      FROM PRODUCTOS
+      FROM productos
       WHERE deshabilitado = 0
       ORDER BY descripcion
     `);
@@ -253,8 +253,8 @@ async function cargarSabores() {
       SELECT
         s.*,
         ts.descripcion AS desc_tipo_sabor
-      FROM SABORES s
-      LEFT JOIN TIPO_SABORES ts
+      FROM sabores s
+      LEFT JOIN tipo_sabores ts
         ON s.id_tipo_sabor = ts.id_tipo_sabor
       WHERE s.deshabilitado = 0
       ORDER BY s.descripcion
@@ -281,7 +281,7 @@ async function cargarFPago() {
 
     const [rows] = await db.query(`
       SELECT *
-      FROM F_PAGO
+      FROM f_pago
       WHERE deshabilitado = 0
       ORDER BY id_fpago
     `);
@@ -307,7 +307,7 @@ async function cargarGrupos() {
 
     const [rows] = await db.query(`
       SELECT *
-      FROM GRUPOS
+      FROM grupos
       WHERE deshabilitado = 0
       ORDER BY descripcion
     `);
@@ -332,7 +332,7 @@ async function cargarClientes() {
 
     const [rows] = await db.query(`
       SELECT *
-      FROM CLIENTES
+      FROM clientes
       WHERE deshabilitado = 0
       ORDER BY nombre
     `);

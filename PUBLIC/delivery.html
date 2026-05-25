@@ -50,7 +50,7 @@
     .tooltip-text{visibility:hidden;width:120px;background:black;color:#fff;text-align:center;border-radius:6px;padding:5px 0;position:absolute;z-index:1;bottom:125%;left:50%;margin-left:-60px;opacity:0;transition:opacity .3s}
     .tooltip-container:hover .tooltip-text{visibility:visible;opacity:1}
     .radio-group{display:flex;padding:20px;gap:46px;align-items:center;justify-content:center;margin-bottom:12px; font-size:20px; background-color:#42EB83}
-    .cliente-box{border:4px solid #ddd;padding:10px;border-radius:6px;margin:8px 0;background:#fafafa}
+    .cliente-box{display:flex;padding:20px;border:4px solid #ddd;padding:5px;border-radius:6px;margin:8px 0;background:#fafafa}
     .alert-modern{background:#e9f7ef;border-left:6px solid #28a745;padding:10px;border-radius:6px;margin:10px 0}
 	
 	.filaMensajePromo{ display:flex; align-items:center; gap:10px; } 
@@ -84,19 +84,62 @@
       <div class="flex" style="align-items:center">
 		<button onclick="NuevoCliente()">&#11207; ir a Clientes</button>
         <input type="text" id="id_cliente" placeholder="codigo cliente" style="width:140px">
-		        <button id="btnVerificar">&#9989; Verificar</button>
+		
+		<button id="btnVerificar">&#9989; Verificar</button>
 
         <button id="btnBuscarCliente">&#128269; Buscar cliente</button>
 		
-<button onclick="distancia()">&#128663; Ver distancia</button>
+		<button onclick="distancia()">&#128663; Ver distancia</button>
 
       </div>
-        <div style="margin-left:12px;">
-          <div id="datosCliente" class="cliente-box">
-            <div><strong>Nombre &nbsp;   :</strong>&nbsp;&nbsp; <span id="cli_nombre">-</span></div>
-            <div><strong>Domicilio&nbsp;:</strong>&nbsp; <span id="cli_domicilio">-</span></div>
-            <div><strong>Telefono &nbsp; :</strong>&nbsp <span id="cli_telefono">-</span></div>
-          </div>
+        <div style="margin-left:12px;" class="cliente-box">
+			<div id="datosCliente" class="flex" style="align-items:center">
+
+			  <div style="margin-bottom:8px;">
+				<strong>Nombre:</strong><br>
+				<input
+				  type="text"
+				  id="cli_nombre"
+				  style="width:250px;"
+				  onkeydown="if(event.key==='Enter')cli_domicilio.focus()"
+				>
+			  </div>
+
+			  <div style="margin-bottom:8px;">
+				<strong>Domicilio:</strong><br>
+				<input
+				  type="text"
+				  id="cli_domicilio"
+				  style="width:250px;"
+				  onkeydown="if(event.key==='Enter')cli_nota.focus()"
+				>
+			  </div>
+
+			  <div style="margin-bottom:8px;">
+				<strong>Telefono:</strong><br>
+				<input
+				  type="text"
+				  id="cli_telefono"
+				  style="width:250px;"
+				>
+			  </div>
+
+
+			</div>
+
+			  <div style="margin-bottom:8px;">
+				<strong>Nota:</strong><br>
+				<input
+					type="text"
+				  id="cli_nota"
+				  style="width:250px;"
+				  onkeydown="if(event.key==='Enter')cli_telefono.focus()"
+				></input>
+				<br>
+			  <span><button onclick="guardarCliente()" style="background-color:#14BD55">
+				&#x1F4BE; Guardar cliente
+			  </button></span>
+			  </div>
         </div>
     </div>
 
@@ -106,9 +149,8 @@
 
     <hr>
 
-    <!-- <label for="id_producto" style="font-size:15px;">Codigo del producto o Codigo de barras</label><br> -->
 	  <label style="font-weight:bold">Codigo del producto o Codigo de barras</label><br>
-    <input type="text" id="id_producto" placeholder="codigo o cod.barras" style="width:240px">
+    <input type="text" id="id_producto" placeholder="codigo o cod.barras" onkeydown="if(event.key==='Enter')agregarProducto()" style="width:240px">
     <button id="btnAgregar" onclick="agregarProducto()">&#10133; Agregar</button>
     <button id="btnBuscarProd">&#128269; Buscar producto</button>
 
@@ -375,7 +417,7 @@ mostrarMapaDistancia(origen, destino);
         if (resultados.length === 0) { cont.innerHTML = "<p>No se encontraron clientes.</p>"; return; }
         let html = `<table style="width:100%;border-collapse:collapse"><tr><th>ID</th><th>Nombre</th><th>Domicilio</th><th>Tel</th></tr>`;
         resultados.forEach(r => {
-          html += `<tr style="cursor:pointer" onclick="seleccionarCliente('${r._docId}', ${r.id_cliente}, '${(r.nombre||'').replace(/'/g,"\\'")}', '${(r.domicilio||'').replace(/'/g,"\\'")}', '${(r.telefono||'').replace(/'/g,"\\'")}')">
+          html += `<tr style="cursor:pointer" onclick="seleccionarCliente('${r._docId}', ${r.id_cliente}, '${(r.nombre||'').replace(/'/g,"\\'")}', '${(r.domicilio||'').replace(/'/g,"\\'")}', '${(r.telefono||'').replace(/'/g,"\\'")}' , '${(r.nota||'').replace(/'/g,"\\'")}')">
             <td>${r.id_cliente}</td><td style="text-align:left">${r.nombre}</td><td style="text-align:left">${r.domicilio}</td><td>${r.telefono||''}</td></tr>`;
         });
         html += "</table>";
@@ -385,13 +427,14 @@ mostrarMapaDistancia(origen, destino);
       }
     };
 
-    window.seleccionarCliente = function(docId, id_cliente, nombre, domicilio, telefono){
+    window.seleccionarCliente = function(docId, id_cliente, nombre, domicilio, telefono, nota){
       // asignar
-      clienteSeleccionado = { docId, id_cliente, nombre, domicilio, telefono };
+      clienteSeleccionado = { docId, id_cliente, nombre, domicilio, telefono, nota };
       document.getElementById('id_cliente').value = id_cliente;
-      document.getElementById('cli_nombre').textContent = nombre;
-      document.getElementById('cli_domicilio').textContent = domicilio || '-';
-      document.getElementById('cli_telefono').textContent = telefono || '-';
+      document.getElementById('cli_nombre').value = nombre;
+      document.getElementById('cli_domicilio').value = domicilio || '-';
+      document.getElementById('cli_telefono').value = telefono || '-';
+      document.getElementById('cli_nota').value = nota || '-';
       document.getElementById('modalClientes').style.display = 'none';
     };
 
@@ -810,6 +853,14 @@ const totalFinal = subtotal - descuentoPromo - descuento + recargo;
 			return;
 		}
 
+      if ((!fp1 && imp1 > 0) || (!fp2 && imp2 > 0)) { 	
+			alert('Falta seleccionar alguna forma de pago.'); 
+	  return; }
+	  
+      if ((fp1 && imp1 <= 0) || (fp2 && imp2 <= 0)) { 
+			alert('Las formas de pago seleccionadas no pueden tener importe cero.'); 
+	  return; }
+      
 		if (Math.abs((imp1 + imp2) - totalFinal) > 0.01) {
 			alert('Los importes no coinciden');
 			return;
@@ -890,9 +941,10 @@ const totalFinal = subtotal - descuentoPromo - descuento + recargo;
 
       clienteSeleccionado = null;
       document.getElementById('id_cliente').value = '';
-      document.getElementById('cli_nombre').textContent = '-';
-      document.getElementById('cli_domicilio').textContent = '-';
-      document.getElementById('cli_telefono').textContent = '-';
+      document.getElementById('cli_nombre').value = '-';
+      document.getElementById('cli_domicilio').value = '-';
+      document.getElementById('cli_telefono').value = '-';
+      document.getElementById('cli_nota').value = '-';
     }
 /*
     // funcion hora
@@ -928,12 +980,14 @@ const totalFinal = subtotal - descuentoPromo - descuento + recargo;
 				id_cliente: d.id_cliente,
 				nombre: d.nombre,
 				domicilio: d.domicilio,
-				telefono: d.telefono
+				telefono: d.telefono,
+				nota: d.nota
 			};
 
-			document.getElementById('cli_nombre').textContent = d.nombre;
-			document.getElementById('cli_domicilio').textContent = d.domicilio || '-';
-			document.getElementById('cli_telefono').textContent = d.telefono || '-';
+			document.getElementById('cli_nombre').value = d.nombre;
+			document.getElementById('cli_domicilio').value = d.domicilio || '-';
+			document.getElementById('cli_telefono').value = d.telefono || '-';
+			document.getElementById('cli_nota').value = d.nota || '-';
 
 		  } catch (err) {
 			console.error(err);
@@ -1037,7 +1091,7 @@ async function abrirModalPromos(){
                         font-size:13px;
                     "
                 >
-                    <b>Productos:</b><br>
+                    <b>Productos incluidos:</b><br>
                     ${p.productos || ''}
                 </div>
 
@@ -1054,6 +1108,157 @@ async function abrirModalPromos(){
 }
 
 // ======================================================
+
+// ======================================
+// GUARDAR CLIENTE
+// ======================================
+window.guardarCliente = async function () {
+
+    try {
+
+        const nombre =
+            document.getElementById('cli_nombre').value.trim();
+
+        const domicilio =
+            document.getElementById('cli_domicilio').value.trim();
+
+        const telefono =
+            document.getElementById('cli_telefono').value.trim();
+
+        const nota =
+            document.getElementById('cli_nota').value.trim();
+
+        if (!telefono) {
+
+            alert('Debe ingresar telefono');
+            return;
+        }
+
+        if (!nombre) {
+
+            alert('Debe ingresar nombre');
+            return;
+        }
+
+        // =========================================
+        // BUSCAR SI YA EXISTE EL TELEFONO
+        // =========================================
+
+        const respTodos =
+            await fetch('/api/clientes');
+
+        const clientes =
+            await respTodos.json();
+
+        const clienteExistente =
+            clientes.find(c =>
+                String(c.telefono || '').trim() === telefono
+            );
+
+        // =========================================
+        // UPDATE
+        // =========================================
+
+        if (clienteExistente) {
+
+            const resp =
+                await fetch(
+                    `/api/clientes/${clienteExistente.id_cliente}`,
+                    {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            nombre,
+                            domicilio,
+                            telefono,
+                            nota,
+                            deshabilitado: 0
+                        })
+                    }
+                );
+
+            const data = await resp.json();
+
+            if (!data.ok) {
+
+                alert('Error actualizando cliente');
+                return;
+            }
+
+            clienteSeleccionado = {
+                id_cliente: clienteExistente.id_cliente,
+                nombre,
+                domicilio,
+                telefono,
+                nota
+            };
+
+            document.getElementById('id_cliente').value =
+                clienteExistente.id_cliente;
+
+            alert('Cliente actualizado correctamente');
+
+            return;
+        }
+
+        // =========================================
+        // INSERT
+        // =========================================
+
+        const resp =
+            await fetch(
+                '/api/clientes',
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        nombre,
+                        domicilio,
+                        telefono,
+                        nota,
+                        deshabilitado: 0
+                    })
+                }
+            );
+
+        const data = await resp.json();
+
+        if (!data.ok) {
+
+            alert('Error agregando cliente');
+            return;
+        }
+
+        clienteSeleccionado = {
+            id_cliente: data.id_cliente,
+            nombre,
+            domicilio,
+            telefono,
+            nota
+        };
+
+        document.getElementById('id_cliente').value =
+            data.id_cliente;
+
+        alert(
+            'Cliente agregado correctamente\n\nID: ' +
+            data.id_cliente
+        );
+
+    } catch (err) {
+
+        console.error(err);
+
+        alert('Error guardando cliente');
+    }
+};
+
+// ======================================================
+
 
 function cerrarModalPromos(){
     document.getElementById('modalPromos').style.display = 'none';

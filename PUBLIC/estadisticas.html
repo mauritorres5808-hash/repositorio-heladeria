@@ -74,7 +74,7 @@ tr:nth-child(even){
     width: 100%;
 	text-align: center;
     /*height: 100px;*/
-    background-color: #f0f0f0;
+
       font-size: 16px;
 }
 
@@ -88,40 +88,44 @@ tr:nth-child(even){
 
 		<h2>📊 Estadísticas</h2>
 
+<div class="div-centrado">
 		<label>Desde:</label>
 		<input type="date" id="desde">
 
 		<label>Hasta:</label>
 		<input type="date" id="hasta">
+</div>
 
 		<br><br>
-<div class="div-centrado">
-		<label><b>
-		<input type="radio" name="tipo" value="clientes" checked>Clientes con más compras (top 10)
+<div class="div-centrado" style="font-size:18px">
+		<label>
+		<input type="radio" name="tipo" value="clientes" checked><b>Clientes</b> con más compras (top 10)
 		</label>
 
 		<label>
-		<input type="radio" name="tipo" value="productos">Productos con más ventas (top 10)
+		<input type="radio" name="tipo" value="productos"><b>Productos</b> con más ventas (top 10)
 		</label>
 
 		<label>
-		<input type="radio" name="tipo" value="sabores">Sabores con más ventas (top 10)
+		<input type="radio" name="tipo" value="sabores"><b>Sabores</b> con más ventas (top 10)
 		</label>
 
 		<br><br>
 
 		<label>
-		<input type="radio" name="tipo" value="dias">Días con más ventas
+		<input type="radio" name="tipo" value="dias"><b>Días</b> con más ventas
 		</label>
 
 		<label>
-		<input type="radio" name="tipo" value="horarios">Horarios con más ventas
-		</label></b>
+		<input type="radio" name="tipo" value="horarios"><b>Horarios</b> con más ventas
+		</label>
 </div>
 		<br><br>
 
+<div class="div-centrado">
 		<button class="boton" onclick="consultar()">Consultar</button>
 		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button onclick="window.location.href='menu-general.html'">&#8617; Volver</button>
+</div>
 
 		<div id="resultado"></div>
 

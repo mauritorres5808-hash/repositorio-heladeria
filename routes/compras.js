@@ -88,7 +88,8 @@ router.get('/auditoria', async (req, res) => {
     try {
 
         const {
-            fecha,
+            fechadesde,
+			fechahasta,
             id_usuario,
             tipo
         } = req.query;
@@ -105,10 +106,13 @@ router.get('/auditoria', async (req, res) => {
 
         const params = [];
 
-        if (fecha) {
-            sql += ` AND a.fecha = ? `;
-            params.push(fecha);
-        }
+		if (fechadesde && fechahasta) {
+
+		  sql += ` and a.fecha BETWEEN ? AND ?`;
+
+		  params.push(fechadesde);
+		  params.push(fechahasta);
+		}
 
         if (id_usuario) {
             sql += ` AND a.id_usuario = ? `;

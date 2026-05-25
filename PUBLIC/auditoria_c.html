@@ -84,8 +84,12 @@
 
     <div class="filtros">
       <div>
-        <label><b>Fecha:</b></label><br>
+        <label><b>Desde:</b></label><br>
         <input type="date" id="fechaFiltro">
+      </div>
+      <div>
+        <label><b>Hasta:</b></label><br>
+        <input type="date" id="fechaFiltro2">
       </div>
       <div>
         <label><b>Usuario:</b></label><br>
@@ -190,6 +194,7 @@ verificarSesion();
     const dd = String(hoy.getDate()).padStart(2, '0');
     const fechaHoy = `${yyyy}-${mm}-${dd}`;
     document.getElementById("fechaFiltro").value = fechaHoy;
+    document.getElementById("fechaFiltro2").value = fechaHoy;
 	
 	
 		// === BUSCAR AUDITORÍA ===
@@ -201,6 +206,7 @@ verificarSesion();
 			msg.textContent = "🔎 Buscando registros...";
 
 			const fechaFiltro = document.getElementById("fechaFiltro").value;
+			const fechaFiltro2 = document.getElementById("fechaFiltro2").value;
 			const usuarioFiltro = document.getElementById("usuarioFiltro").value;
 			const tipoFiltro = document.getElementById("tipoFiltro").value;
 
@@ -209,7 +215,9 @@ verificarSesion();
 				const params = new URLSearchParams();
 
 				if (fechaFiltro)
-					params.append("fecha", fechaFiltro);
+					params.append("fechadesde", fechaFiltro);
+				if (fechaFiltro2)
+					params.append("fechahasta", fechaFiltro2);
 
 				if (usuarioFiltro)
 					params.append("id_usuario", usuarioFiltro);

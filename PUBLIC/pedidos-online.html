@@ -222,6 +222,10 @@
     font-weight:bold;
   }
 
+    .modal{display:none;position:fixed;z-index:1000;left:0;top:0;width:100%;height:100%;background-color:rgba(0,0,0,0.4)}
+    .modal-contenido{background-color:#fff;margin:6% auto;padding:20px;border-radius:8px;width:420px;max-height:76%;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.2)}
+
+
 </style>
 </head>
 
@@ -242,34 +246,66 @@
     ⏳ Un momento, cargando los productos...
   </div>
 
-  <form id="formPedido"
-        onsubmit="event.preventDefault(); enviarPedido();">
+<form id="formPedido" novalidate>
 
     <h1>
       Hacé tu pedido
     </h1>
 
-    <div class="topBar">
+		<div
+	  class="topBar"
+	  style="
+		display:flex;
+		justify-content:center;
+		align-items:center;
+		gap:40px;
+		margin-bottom:15px;
+		flex-wrap:wrap;
+	  ">
 
-      <label for="cmbGrupo">
-        Grupo de Productos:
-      </label>
+	  <div
+		style="
+		  display:flex;
+		  align-items:center;
+		  gap:10px;
+		">
 
-      <select id="cmbGrupo"
-              onchange="onGrupoChange()">
+		<label for="cmbGrupo"
+			   style="font-weight:bold;">
+		  Productos:
+		</label>
 
-        <option value="">
-          -- Seleccione un grupo --
-        </option>
+		<select id="cmbGrupo"
+				onchange="onGrupoChange()">
 
-      </select>
+		  <option value="">
+			-- Seleccione un grupo --
+		  </option>
 
-    </div>
+		</select>
 
-    <input id="txtBuscar"
+	  </div>
+
+	  <button
+		type="button"
+		id="btnVerPromos"
+		style="
+		  color:white;
+		  font-weight:bold;
+		  padding:10px 18px;
+		  border-radius:8px;
+		  border:none;
+		  cursor:pointer;
+		">
+		&#x2764;&#xFE0F; Ver promos vigentes
+	  </button>
+
+	</div>
+
+    &#x1F50D;<input id="txtBuscar"
            placeholder="Buscar producto ..."
            oninput="renderProductos()"
-           style="flex:1;width:100%;" />
+           style="flex:1;width:30%;" />
 
     <div id="listaProductos"></div>
 
@@ -365,14 +401,41 @@
       para calcular tu vuelto
     </div>
 
-  <!--   <div id="totalBox"> Total: <span id="totalValor">0</span></div>  -->
-
-    <button id="btnEnviar" type="submit">Enviar Pedido</button>
+<button id="btnEnviar" type="button" onclick="enviarPedido()">Enviar Pedido</button>
 
   </form>
 
-  <!-- CARRITO -->
+	<!-- MODAL PROMOS -->
+	<div id="modalPromos" class="modal">
+		<div class="modal-contenido" style="width:700px;">
+			
+			<div style="text-align:center; margin-bottom:15px;">
+			  <button
+				type="button"
+				onclick="cerrarModalPromos()"
+				style="
+				  background:#d9534f;
+				  color:white;
+				  border:none;
+				  border-radius:8px;
+				  padding:10px 25px;
+				  font-size:14px;
+				  font-weight:bold;
+				  cursor:pointer;
+				"
+			  >
+				✖ Cerrar promociones
+			  </button>
+			</div>
 
+			<h2 style="text-align:center">&#11088;  Promociones vigentes &#11088; </h2>
+			<h5 style="text-align:center">* Las promociones se aplican automaticamente</h5>
+			<div id="contenidoPromos"></div>
+		</div>
+	</div>
+
+
+  <!-- CARRITO -->
   <div id="carrito" aria-live="polite">
 
     <h3 style="color:black">
@@ -459,7 +522,120 @@ const API_BASE =
     ? "http://localhost:3000"
     : "https://repositorio-heladeria-production.up.railway.app";
 */
-const API_BASE = window.location.origin;
+//const API_BASE = window.location.origin;
+document.getElementById('btnVerPromos').addEventListener('click',abrirModalPromos);
+async function abrirModalPromos(){
+    const modal =document.getElementById('modalPromos');
+    const contenido =document.getElementById('contenidoPromos');
+
+    contenido.innerHTML ='Cargando promociones...';
+    modal.style.display = 'block';
+
+    try {
+        const resp =
+            await fetch(
+                '/api/promociones-abm/vigentes'
+            );
+
+        const data =await resp.json();
+
+        if (!data.ok) {
+            contenido.innerHTML ='Error al cargar promociones';
+            return;
+        }
+
+        if (data.promociones.length === 0) {
+            contenido.innerHTML = 'No hay promociones vigentes';
+            return;
+        }
+
+        let html = '';
+
+        data.promociones.forEach(p => {
+            
+			let vencimiento = 'Sin vto'; 
+			if (p.fecha_hasta) { 
+				vencimiento = 'Vto: ' + p.fecha_hasta.substring(8,10) + '/' + p.fecha_hasta.substring(5,7) + '/' + p.fecha_hasta.substring(0,4); 
+				}
+			
+			let detalle = '';
+
+            // ==========================
+            // SEGUNDA_UNIDAD
+            // ==========================
+            if (p.tipo === 'SEGUNDA_UNIDAD') {
+				detalle =`2da unidad con ${p.porcentaje_desc}% OFF`+`    (cant.min: ${p.cantidad_min})` + ` - ${vencimiento}`;
+            }
+
+            // ==========================
+            // PRECIO_FIJO
+            // ==========================
+            if (p.tipo === 'PRECIO_FIJO') {
+                detalle = `Precio fijo: $${parseFloat(p.precio_fijo || 0).toFixed(2)}`+`    (cant.min: ${p.cantidad_min})`+ ` - ${vencimiento}`;
+            }
+
+            // ==========================
+            // LLEVA_PAGA
+            // ==========================
+            if (p.tipo === 'LLEVA_PAGA') {
+                detalle =`Lleva ${p.lleva_cant} y paga ${p.paga_cant}`+`    (cant.min: ${p.cantidad_min})`+ ` - ${vencimiento}`;
+			}
+
+            html += `
+            <div
+                style="
+                    border:1px solid #ccc;
+                    border-radius:8px;
+                    padding:10px;
+                    margin-bottom:10px;
+                    background:#f8f8f8;
+                "
+            >
+                <div
+                    style="
+                        font-size:18px;
+                        font-weight:bold;
+                        color:#cc0000;
+                    "
+                >
+                    &#x2764;&#xFE0F; ${p.descripcion}
+                </div>
+
+                <div
+                    style="
+                        margin-top:5px;
+                        font-size:15px;
+                    "
+                >
+                    ${detalle}
+                </div>
+
+                <div
+                    style="
+                        margin-top:8px;
+                        font-size:13px;
+                    "
+                >
+                    <b>Productos incluidos:</b><br>
+                    ${p.productos || ''}
+                </div>
+
+            </div>
+            `;
+        });
+
+        contenido.innerHTML = html;
+
+    } catch(err) {
+        console.error(err);
+        contenido.innerHTML ='Error al cargar promociones';
+    }
+}
+
+function cerrarModalPromos(){
+    document.getElementById('modalPromos').style.display = 'none';
+}
+
 
 </script>
 

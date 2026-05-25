@@ -85,7 +85,7 @@ select {
 </head>
 <body>
   <div class="contenedor">
-		<h2>Pedidos Online 🔔 </h2>
+		<h2 id="titulo">Pedidos Online 🔔 </h2>
 
 		<header>
 		  buscar un cliente &rArr; <input id="searchBox" type="search" placeholder="nombre o teléfono">  en &rArr; 
@@ -118,7 +118,6 @@ verificarSesion();
 let pedidosNotificados = new Set();
 let audioNotif = new Audio("notificacion2.mp3");
 
-
 let sabores = [];
 let formasPago = [];
 
@@ -150,6 +149,8 @@ async function cargarFormasPago(){
 
 cargarFormasPago();
 
+let cantidadTotalPedidos = 0;
+
 // ---------------- Cargar pedidos ----------------
 async function cargar(){
   const estado = document.getElementById("filterEstado").value;
@@ -165,6 +166,7 @@ async function cargar(){
     const res = await fetch(url);
     const items = await res.json();
 
+  
 		// 🔔 detectar nuevos pedidos SOLO en estado "nuevo"
 		if (estado === "nuevo") {
 		  items.forEach(p => {
@@ -175,6 +177,10 @@ async function cargar(){
 		  });
 		}
 
+  // ✅ cantidad total del filtro aplicado
+  const cantidadTotal = items.length;
+  document.getElementById("titulo").textContent = `Pedidos Online 🔔 (${cantidadTotal})`;
+	
     renderList(items);
   } catch(e){
     console.error("Error cargando:", e);
@@ -272,6 +278,10 @@ async function imprimirPedido(idPedido){
       return;
     }
 
+  const SubtP= Number(p.total || 0) + Number(p.descuento_promociones || 0);
+  const DescuP= Number(p.descuento_promociones || 0);
+  const TotalP= Number(p.total || 0);
+  
   
   let contenido = `
     <html>
@@ -296,7 +306,7 @@ async function imprimirPedido(idPedido){
   let total = 0;
 
   (p.pedido_detalle || []).forEach((it, i)=>{
-    total += (it.precio || 0);
+//    total += (it.precio || 0);
     contenido += `${i+1}) ${it.descripcion}<br>`;
     contenido += `$ ${it.precio}<br>`;
 
@@ -311,8 +321,11 @@ async function imprimirPedido(idPedido){
 
   contenido += `
       <hr>
-      <b>TOTAL: $ ${total}</b>
+	  <b>Subtotal: $ ${SubtP}</b>
+	  <br><b>Descuentos: $ ${DescuP}</b>
       <hr>
+	  <b>TOTAL: $ ${TotalP}</b>
+	  <hr>
       <hr>
       Paga con: ${p.paga_con}
       <hr>
@@ -495,13 +508,13 @@ html += `
     </div>
 
     <div style="
-      font-size:28px;
+      font-size:22px;
       color:red;
       font-weight:bold;
     ">
       TOTAL NETO:
       ${formateadorMoneda.format(totalFinal)}
-    <span style="font-size:20px; color:black; margin-top:5px;"> &rArr;&rArr;&rArr;&rArr;&rArr;&rArr;&rArr; 💰 Paga con: ${p.paga_con}</span>
+    <span style="font-size:20px; color:black; margin-top:5px;"> &rArr;&rArr;&rArr;&rArr;&rArr; 💰 Paga con: ${p.paga_con}</span>
     </div>
 
   </div><br>

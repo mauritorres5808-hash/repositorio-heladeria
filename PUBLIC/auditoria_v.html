@@ -85,8 +85,12 @@
 
     <div class="filtros">
       <div>
-        <label><b>Fecha:</b></label><br>
+        <label><b>Desde:</b></label><br>
         <input type="date" id="fechaFiltro">
+      </div>
+      <div>
+        <label><b>Hasta:</b></label><br>
+        <input type="date" id="fechaFiltro2">
       </div>
       <div>
         <label><b>Usuario:</b></label><br>
@@ -143,6 +147,7 @@ verificarSesion();
     const dd = String(hoy.getDate()).padStart(2, '0');
     const fechaHoy = `${yyyy}-${mm}-${dd}`;
     document.getElementById("fechaFiltro").value = fechaHoy;
+    document.getElementById("fechaFiltro2").value = fechaHoy;
 	
 
     // === CARGAR USUARIOS ===
@@ -197,13 +202,17 @@ verificarSesion();
 
 	  try {
 		const fechaFiltro = document.getElementById("fechaFiltro").value;
+		const fechaFiltro2 = document.getElementById("fechaFiltro2").value;
 		const usuarioFiltro = document.getElementById("usuarioFiltro").value;
 		const tipoFiltro = document.getElementById("tipoFiltro").value;
 
 		let url = `/api/auditoria-ventas?`;
 
 		if (fechaFiltro) {
-		  url += `fecha=${fechaFiltro}&`;
+		  url += `fechadesde=${fechaFiltro}&`;
+		}
+		if (fechaFiltro2) {
+		  url += `fechahasta=${fechaFiltro2}&`;
 		}
 
 		if (usuarioFiltro) {
@@ -267,7 +276,7 @@ function formatearValoresAnteriores(d) {
 
   return `
     <div>
-      <b>FP1:</b> ${d.valor_anterior_fpago1 || 0}
+      <b>FP1:</b> ${d.desc_anterior_fpago1 || ''}
     </div>
 
     <div>
@@ -276,7 +285,7 @@ function formatearValoresAnteriores(d) {
     </div>
 
     <div>
-      <b>FP2:</b> ${d.valor_anterior_fpago2 || 0}
+      <b>FP2:</b> ${d.desc_anterior_fpago2 || ''}
     </div>
 
     <div>
@@ -291,7 +300,7 @@ function formatearValoresNuevos(d) {
 
   return `
     <div>
-      <b>FP1:</b> ${d.valor_nuevo_fpago1 || 0}
+      <b>FP1:</b> ${d.desc_nuevo_fpago1 || ''}
     </div>
 
     <div>
@@ -300,7 +309,7 @@ function formatearValoresNuevos(d) {
     </div>
 
     <div>
-      <b>FP2:</b> ${d.valor_nuevo_fpago2 || 0}
+      <b>FP2:</b> ${d.desc_nuevo_fpago2 || ''}
     </div>
 
     <div>

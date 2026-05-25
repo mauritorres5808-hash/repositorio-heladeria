@@ -757,12 +757,12 @@ function actualizarCarritoUI(){
     right.className = "carrito-controls";
 
     right.innerHTML = `
-      <button onclick="agregarUnidad(${p.id_producto})">
-        +
-      </button>
       <button
         onclick="quitarUnidad(${p.id_producto},${Math.max(0,unidades.length-1)})">
         -
+      </button>
+      <button onclick="agregarUnidad(${p.id_producto})">
+        +
       </button>
     `;
 
@@ -822,7 +822,7 @@ function actualizarCarritoUI(){
 			: total;
 
 		document.getElementById("carritoTotal").innerText = formateadorMoneda.format(totalMostrar);
-		document.getElementById("totalValor").innerText = formateadorMoneda.format(total);
+		//document.getElementById("totalValor").innerText = formateadorMoneda.format(total || 0);
 }
 
 // =====================================================

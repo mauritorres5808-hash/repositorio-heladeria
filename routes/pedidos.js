@@ -39,8 +39,8 @@ router.get('/', async (req, res) => {
         if (q) {
             sql += `
                 AND (
-                    nombre LIKE ?
-                    OR telefono LIKE ?
+                    p.nombre LIKE ?
+                    OR p.telefono LIKE ?
                 )
             `;
 

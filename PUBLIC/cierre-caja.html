@@ -266,7 +266,7 @@ document.getElementById("userLabel").textContent = localStorage.getItem("usuario
 		// =======================
         // Ingresos
 		// =======================
-        html += `<div class="subtitulo">Movimientos de INGRESO</div>`;
+        html += `<div class="subtitulo">Movimientos de INGRESO (efectivo)</div>`;
         if (ingresos.length > 0) {
           html += `<table><tr><th>Fecha</th><th>Descripción</th><th>Importe</th></tr>`;
           ingresos.forEach(m => {
@@ -276,7 +276,7 @@ document.getElementById("userLabel").textContent = localStorage.getItem("usuario
         } else html += "<p>No hay movimientos de INGRESO.</p>";
 
         // Egresos
-        html += `<div class="subtitulo">Movimientos de EGRESO</div>`;
+        html += `<div class="subtitulo">Movimientos de EGRESO (efectivo)</div>`;
         if (egresos.length > 0) {
           html += `<table><tr><th>Fecha</th><th>Descripción</th><th>Importe</th></tr>`;
           egresos.forEach(m => {

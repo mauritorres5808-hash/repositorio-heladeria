@@ -226,7 +226,7 @@ async function verDetalle(idCierre) {
   // =========================
   html += `
     <div class="subtitulo">
-      Movimientos de Ingreso
+      Movimientos de Ingreso (efectivo)
     </div>
   `;
 
@@ -265,7 +265,7 @@ async function verDetalle(idCierre) {
   // =========================
   html += `
     <div class="subtitulo">
-      Movimientos de Egreso
+      Movimientos de Egreso (efectivo)
     </div>
   `;
 

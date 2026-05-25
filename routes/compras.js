@@ -361,7 +361,7 @@ router.get('/consultas', async (req, res) => {
         // =====================================
         // SOLO SIN CIERRE
         // =====================================
-        if (sin_cierre === 'S') {
+        if (sin_cierre == 1) {
 
             sql += `
                 AND c.id_cierre = 0
@@ -455,7 +455,7 @@ router.get('/totales-grupo', async (req, res) => {
 
         const params = [desde, hasta];
 
-        if (sin_cierre === 'true') {
+        if (sin_cierre == 'true') {
 
             where += `
                 AND c.id_cierre = 0

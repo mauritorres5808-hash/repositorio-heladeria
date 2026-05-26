@@ -97,7 +97,7 @@ select {
       border: 6px solid ;
       margin-top: 4px;
       font-size: 14px;
-	  border-color:blue;
+	  border-color:#1F8DB2;
 }
 
 
@@ -148,6 +148,18 @@ let formasPago = [];
 
 let idPedidoActual = null;
 let totalPedidoActual = 0;
+
+document.getElementById("filterEstado")
+.addEventListener("change", async () => {
+
+  await cargar();
+
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth"
+  });
+
+});
 
 // ---------------- Cargar sabores ----------------
 async function cargarSabores(){
@@ -749,7 +761,6 @@ function convertirFechaOK(f) {
 }
 
 function notificarPedido(p) {
-
   // sonido
   try {
     audioNotif.currentTime = 0;

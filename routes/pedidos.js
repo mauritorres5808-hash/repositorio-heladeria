@@ -26,14 +26,9 @@ router.get('/', async (req, res) => {
         const params = [];
 
         // estado
-        if (estado === 'nuevo') {
-            sql += ` AND estado = 'P' `;
-        }
-
-        if (estado === 'confirmado') {
-            sql += ` AND estado = 'V' `;
-        }
-		if (estado === 'cancelado') { sql += ` AND estado = 'C' `; }
+        if (estado === 'nuevo') {sql += ` AND estado = 'P' `;}
+        if (estado === 'confirmado') {sql += ` AND estado = 'V' `;}
+		if (estado === 'cancelado') {sql += ` AND estado = 'C' `; }
 
         // búsqueda
         if (q) {
@@ -48,9 +43,9 @@ router.get('/', async (req, res) => {
             params.push(`%${q}%`);
         }
 
-        sql += `
-            ORDER BY id_pedido DESC
-        `;
+		if (estado === 'nuevo') {sql += ` ORDER BY id_pedido `;}
+		if (estado === 'confirmado') {sql += ` ORDER BY id_venta desc `;}
+		if (estado === 'cancelado') {sql += ` ORDER BY fecha_canc desc, hora_canc desc `;}
 
         const [rows] = await db.query(sql, params);
 

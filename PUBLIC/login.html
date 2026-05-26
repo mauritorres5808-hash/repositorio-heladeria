@@ -141,12 +141,14 @@ button:hover {
   <br>
   <h2>Ingreso al Sistema</h2>
 
-  <input style="padding: 10px 40px;" type="email" id="email" placeholder="Email"><br>  
+  <input style="padding: 10px 40px;" type="text" id="email" placeholder="usuario" 
+			onkeydown="if(event.key==='Enter')password.focus()" ><br>
   <br>
-  <input style="padding: 10px 40px;" type="password" id="password" placeholder="Contraseña"><br>
+  <input style="padding: 10px 40px;" type="password" id="password" placeholder="Contraseña"
+			onkeydown="if(event.key==='Enter')entrar.click()" ><br>
   <br>
   <br>
-  <button class="boton-redondeado" style="padding: 10px 40px;" onclick="login()">Ingresar</button>
+  <button class="boton-redondeado" id="entrar" style="padding: 10px 40px;" onclick="login()">Ingresar</button>
 
   <br>
   <br>
@@ -155,6 +157,7 @@ button:hover {
  <script>
 
 localStorage.removeItem("usuarioData");
+email.focus();
 
 function cerrarmodalSistema(){
     document.getElementById('modalSistema').style.display = 'none';

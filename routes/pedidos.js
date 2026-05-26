@@ -30,7 +30,7 @@ router.get('/', async (req, res) => {
             sql += ` AND estado = 'P' `;
         }
 
-        if (estado === 'convertido') {
+        if (estado === 'confirmado') {
             sql += ` AND estado = 'V' `;
         }
 		if (estado === 'cancelado') { sql += ` AND estado = 'C' `; }
@@ -357,7 +357,7 @@ router.post('/:id/convertir', async (req, res) => {
 
             return res.status(400).json({
                 ok: false,
-                error: 'El pedido ya fue convertido'
+                error: 'El pedido ya fue confirmado'
             });
         }
 

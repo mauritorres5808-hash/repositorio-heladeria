@@ -14,24 +14,44 @@
 
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
-  body{font-family:Arial;margin:12px;background:#f7f8fb}
-  header{display:flex;gap:12px;align-items:center;margin-bottom:12px}
+  body{font-family:Arial;margin:12px;background:#8AC0FF;}
+  header{display:flex;gap:12px; align-items:center; margin-bottom:12px; justify-content:center;}
   
-      .contenedor{max-width:980px;margin:auto;background:#fff;padding:20px;border-radius:8px}
+/*      .contenedor{max-width:980px;margin:auto;background:#fff;padding:20px;border-radius:8px }
+      .contenedor2{max-width:980px;margin:auto;background:#fff;padding:20px;border-radius:8px ;position: fixed;}*/
+.contenedor{
+  max-width:980px;
+  margin:auto;
+  background:#fff;
+  padding:0px;
+  border-radius:8px;
+}
+.contenedor2{
+  max-width:965px;
+  background:#9BD9ED; /*#fff;*/
+  position:fixed;
+  top:0.1;
+  width:100%;
+  z-index:999;
+  padding:2px;
+  border-radius:8px;
+  border:8px solid #1F8DB2;
+  text-align: center;
+  /* border-color: #9BD9ED black; #007bff;*/
+}
 
   input[type="search"],select{padding:8px;border-radius:30px;border:5px solid #ccc}
 
-
-  #lista{display:flex;flex-direction:column;gap:10px}
+  #lista{display:flex;flex-direction:column;gap:10px;  margin-top:40px;}
   .pedido{background:#fff;padding:12px;border-radius:8px;
     box-shadow:0 1px 4px rgba(0,0,0,0.08)}
   .meta{font-size:13px;color:#666;margin-bottom:6px}
   .unidad{margin:5px 0 10px 15px;padding:8px;background:#eef2ff;border-radius:6px}
  button{padding:8px 14px;background:#007bff;color:#fff;border:none;border-radius:5px;cursor:pointer} 
 button:hover{background:#0056b3};
-/*  .acciones button{padding:8px 10px;border-radius:6px;border:none;cursor:pointer} */
+
   .acciones button{padding:8px 14px;background:#007bff;color:#fff;border:none;border-radius:5px;cursor:pointer}
-  .convertir{background:#2ecc71;color:#fff}
+  .convertir{background:#188C27;color:#fff}
   .eliminar{background:#e74c3c;color:#fff}
 
   /* Popup */
@@ -85,24 +105,26 @@ select {
 </head>
 <body>
   <div class="contenedor">
-		<h2 id="titulo">Pedidos Online 🔔 </h2>
-
-		<header>
-		  buscar un cliente &rArr; <input id="searchBox" type="search" placeholder="nombre o teléfono">  en &rArr; 
-<!--		  <button onclick="cargar(true)">Buscar</button> -->
-		  <select id="filterEstado" class="custom-select2">
-			<option value="nuevo">Nuevos Pedidos</option>
-			<option value="convertido">confirmados como Venta</option>
-			<option value="cancelado">Pedidos Cancelados</option>
-		  </select>
-		<button class="boton-derecha" onclick="location.href='/menu-ventas.html'">&#8617; Volver</button>
-		</header>
-
-<hr size="3" noshade>
-<hr size="6" noshade>
-
-
-		<div id="lista">Cargando...</div>
+	  <div class="contenedor2">
+			<h2 id="titulo">🔔 Pedidos Online  </h2>
+			<header>
+			  buscar un cliente &rArr; <input id="searchBox" type="search" placeholder="nombre o teléfono">  en &rArr; 
+	<!--		  <button onclick="cargar(true)">Buscar</button> -->
+			  <select id="filterEstado" class="custom-select2">
+				<option value="nuevo">Nuevos Pedidos</option>
+				<option value="confirmado">confirmados como Venta</option>
+				<option value="cancelado">Pedidos Cancelados</option>
+			  </select>
+			<button class="boton-derecha" onclick="location.href='/menu-ventas.html'">&#8617; Volver</button>
+			</header>
+	  </div>
+	  <br>
+	  <br>
+	  <br>
+	  <br>
+	  <br>
+	  <br>
+			<div id="lista">Cargando...</div>
   </div>
 
 <script>
@@ -180,9 +202,9 @@ async function cargar(){
 		  });
 		}
 
-  // ✅ cantidad total del filtro aplicado
-  const cantidadTotal = items.length;
-			document.getElementById("titulo").textContent = `Pedidos Online 🔔 (${cantidadTotal} ${estado}s)`;
+		  // ✅ cantidad total del filtro aplicado
+		  const cantidadTotal = items.length;
+					document.getElementById("titulo").textContent = `🔔 Pedidos Online  (${cantidadTotal} ${estado}s)`;
 	
     renderList(items);
   } catch(e){
@@ -432,7 +454,7 @@ const formateadorMoneda = new Intl.NumberFormat('es-AR', {
   subtotalPedido += subtotal;
 
   html += `<div class="unidad">
-    <b>Unidad ${idx+1}: ${it.descripcion}</b><br>
+    <b>• ${it.descripcion}</b><br>
     Precio: ${formateadorMoneda.format(it.precio)}<br>`;
 
   if (it.sabores && it.sabores.trim() !== '') {
@@ -528,9 +550,9 @@ html += `
     html += `<div class="acciones">`
 	if (p.estado==="P"){
 		html += `    <button onclick="imprimirPedido(${p.id_pedido})">🖨️ Imprimir Pedido</button>`
-		html += `    <button class="convertir" onclick="abrirConversion(${p.id_pedido}, ${totalFinal})">Confirmar Venta</button>`
+		html += `    <button class="convertir" onclick="abrirConversion(${p.id_pedido}, ${totalFinal})">&#128176; Confirmar Venta</button>`
 		html += `    <button onclick="distancia('${p.domicilio}')">&#128663; Ver distancia</button>`
-		html += `	 <button class="eliminar"  onclick="cancelar(${p.id_pedido})">Cancelar Pedido</button>`
+		html += `	 <button class="eliminar"  onclick="cancelar(${p.id_pedido})">🚫 Cancelar Pedido</button>`
     }		
 	if (p.estado==="V"){
 		html += `    <button onclick="imprimirPedido(${p.id_pedido})">🖨️ Imprimir Pedido</button>`
@@ -627,7 +649,7 @@ async function confirmarConversion(){
   }
 
   document.getElementById("resultado").innerHTML = ``;
-  alert("Pedido convertido. Venta #" + j.id_venta);
+  alert("Pedido confirmado. Venta #" + j.id_venta);
   cerrarModalPago();
   cargar();
 }

@@ -113,6 +113,8 @@ th{
     <option value="E">Egresos</option>
 </select>
 </div>
+	  	<label for="chk_cierre">solo sin cierre</label>
+	<input  type="checkbox" checked=true id="chk_cierre">
 
 <div>
 <button onclick="consultar()">🔍 Consultar</button>
@@ -124,10 +126,12 @@ th{
 </button>
 </div>
 
-<div id="mensajeTipo" class="alert-modern">los movimientos en rojo (anulados) no suman en el Total.</div>
-
 
 </div>
+
+<div id="mensajeTipo" class="alert-modern">los movimientos en rojo (anulados) no suman en el Total.</div>
+
+    <div id="resultado"></div>
 
 <table id="tabla">
 
@@ -200,16 +204,18 @@ async function consultar(){
         const fecha_hasta = document.getElementById("fecha_hasta").value;
 
         const tipo = document.getElementById("tipo").value;
+		  const sin_cierre = document.getElementById("chk_cierre").checked ? 1 : 0;
+
 
         const resp = await fetch(
-            `/api/movimientos/listado?fecha_desde=${fecha_desde}&fecha_hasta=${fecha_hasta}&tipo=${tipo}`
+            `/api/movimientos/listado?fecha_desde=${fecha_desde}&fecha_hasta=${fecha_hasta}&tipo=${tipo}&sin_cierre=${sin_cierre}`
         );
 
         const data = await resp.json();
 
         const tbody = document.querySelector("#tabla tbody");
-
         tbody.innerHTML = "";
+
 
         let total = 0;
 

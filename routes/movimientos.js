@@ -12,7 +12,8 @@ router.get('/listado', async (req, res) => {
         const {
             fecha_desde,
             fecha_hasta,
-            tipo
+            tipo,
+			sin_cierre
         } = req.query;
 
         let sql = `
@@ -36,10 +37,13 @@ router.get('/listado', async (req, res) => {
 
         // filtro tipo
         if (tipo && tipo !== 'T') {
-
             sql += ` AND tipo = ? `;
-
             params.push(tipo);
+        }
+       // filtro cierre
+        if (sin_cierre == 1) {
+            sql += ` AND id_cierre = 0 `;
+            params.push(sin_cierre);
         }
 
         sql += `

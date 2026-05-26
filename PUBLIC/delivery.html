@@ -916,7 +916,14 @@ const totalFinal = subtotal - descuentoPromo - descuento + recargo;
 					imp2,
 					data.nombre,
 					tipoVenta,
-					window.promocionesAplicadas || []
+					window.promocionesAplicadas || [],
+					// NUEVOS DATOS CLIENTE
+					{
+						nombre: document.getElementById('cli_nombre').value,
+						domicilio: document.getElementById('cli_domicilio').value,
+						telefono: document.getElementById('cli_telefono').value,
+						nota: document.getElementById('cli_nota').value
+					}
 				);
 			}
 

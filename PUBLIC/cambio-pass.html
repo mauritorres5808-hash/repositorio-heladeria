@@ -64,7 +64,7 @@ button:hover {
   </div>
   <br><br>
   <label>Contraseña Actual</label>
-  <input type="password" id="passActual">
+  <input type="password" id="passActual" onkeydown="if(event.key==='Enter')passNueva.focus()">
 <br><br>
   <label>Nueva Contraseña</label>
   <input type="password" id="passNueva">
@@ -79,9 +79,9 @@ button:hover {
 
 verificarSesion();
 
-document.getElementById("userLabel").textContent =
-    localStorage.getItem("usuarioEmail");
+document.getElementById("userLabel").textContent = localStorage.getItem("usuarioEmail");
 
+passActual.focus()
 
 async function cambiarPass() {
 

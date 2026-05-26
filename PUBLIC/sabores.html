@@ -136,7 +136,7 @@
     <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
       <div>
         <label for="descripcion">Descripcion</label>
-        <input type="text" id="descripcion" />
+        <input type="text" id="descripcion" onkeydown="if(event.key==='Enter')contenido.focus()" />
       </div>
       <div>
         <label for="contenido">Contenido</label>

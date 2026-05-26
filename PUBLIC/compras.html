@@ -55,7 +55,7 @@
     <hr>
 
     <label style="font-weight:bold">Codigo del producto o Codigo de barras</label><br>
-    <input type="text" id="id_producto" placeholder="codigo o cod.barras" style="width:240px">
+    <input type="text" id="id_producto" placeholder="codigo o cod.barras" onkeydown="if(event.key==='Enter')agregarProducto()" style="width:240px">
     <button id="btnAgregar" onclick="agregarProducto()">&#10133; Agregar</button>
     <button id="btnBuscarProd">&#128269; Buscar producto</button>
 

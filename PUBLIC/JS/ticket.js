@@ -1,7 +1,7 @@
 async function generarComprobanteTermicoPDF(
   idVenta, cabecera, productos,
   fp1, fp2, imp1, imp2,
-  pempresa, tipoVenta, promocionesAplicadas = []
+  pempresa, tipoVenta, promocionesAplicadas = [], datosCliente = null
 	) 
 {
 		// =====================================
@@ -20,7 +20,6 @@ async function generarComprobanteTermicoPDF(
 				console.error('Error obteniendo promociones:',err);
 			}
 		}
-
 
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: "mm", format: [58, 200] });
@@ -64,6 +63,53 @@ async function generarComprobanteTermicoPDF(
 
   y += 4;
   doc.text("=============================", 0, y);
+
+	// =====================================
+	// DATOS CLIENTE
+	// =====================================
+	if (tipoVenta === 1 && datosCliente) {
+
+	  y += 4;
+	  doc.setFontSize(6);
+	  doc.text("CLIENTE:", 0, y);
+
+	  y += 3;
+	  doc.setFontSize(5);
+	  doc.text(
+		String(datosCliente.nombre || '').substring(0, 35),
+		0,
+		y
+	  );
+
+	  y += 3;
+	  doc.text(
+		String(datosCliente.domicilio || '').substring(0, 35),
+		0,
+		y
+	  );
+
+	  y += 3;
+	  doc.text(
+		"Tel: " + String(datosCliente.telefono || '').substring(0, 25),
+		0,
+		y
+	  );
+
+	  // NOTA
+	  if (datosCliente.nota && datosCliente.nota !== '-') {
+
+		y += 3;
+
+		doc.text(
+		  "Nota: " + String(datosCliente.nota).substring(0, 35),
+		  0,
+		  y
+		);
+	  }
+
+	  y += 4;
+	  doc.text("=============================", 0, y);
+	}
 
   y += 4;
   doc.setFontSize(5);

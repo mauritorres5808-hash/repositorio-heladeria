@@ -104,7 +104,7 @@ input[type="number"] {
       </select>
 
       <span label>&nbsp;&nbsp;&nbsp;&nbsp;Importe:
-      <input type="number" id="importe" step="0.01">
+      <input type="number" id="importe" step="0.01" onkeydown="if(event.key==='Enter')descripcion.focus()" >
       <span label>&nbsp;&nbsp;&nbsp;&nbsp;Descripción:
       <input type="text" id="descripcion" size="40" >
 	  </label>

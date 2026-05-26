@@ -51,18 +51,6 @@ document.addEventListener('DOMContentLoaded', () => {
 	<td style="${d.deshabilitado == 1 ? 'background-color:#FF6467;color:white;' : ''}">
 		${d.deshabilitado == 1 ? 'S' : 'N'}
 	</td>
-            <td class="actions">
-              <button onclick="editarUsuario(
-                  ${d.id_usuario},
-                  '${d.nombre}',
-                  '${d.email}',
-				  ${d.deshabilitado},
-                  ${d.nivel}
-              )">
-                  ✏️ Editar
-              </button>
-
-            </td>
           `;
 
           tbody.appendChild(tr);

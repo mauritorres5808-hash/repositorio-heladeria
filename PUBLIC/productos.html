@@ -191,7 +191,7 @@ button:hover {
     <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
 		<div>
 			<label for="descripcion">Descripcion</label>
-			<input size="30" type="text" id="descripcion" />
+			<input size="30" type="text" id="descripcion" onkeydown="if(event.key==='Enter')cod_barra.focus()" />
 		</div>
 		<div>
 			<label for="grupo">Grupo</label>
@@ -199,22 +199,22 @@ button:hover {
 		</div>
 		<div>
 			<label for="cod_barra">Codigo de Barras</label>
-			<input size="40" type="text" id="cod_barra" />
+			<input size="40" type="text" id="cod_barra" onkeydown="if(event.key==='Enter')precio.focus()" />
 		</div>
 	</div>
 
     <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
 		<div>
 			<label for="precio">Precio Venta</label>
-			<input class="input-pequeno" type="number" id="precio" step="0.01" />
+			<input class="input-pequeno" type="number" id="precio" step="0.01" onkeydown="if(event.key==='Enter')stock.focus()" />
 		</div>
 		<div>
 			<label for="stock">Stock</label>
-			<input class="input-pequeno" type="number" id="stock"/>
+			<input class="input-pequeno" type="number" id="stock" onkeydown="if(event.key==='Enter')stock_minimo.focus()" />
 		</div>
 		<div>
 			<label for="stock_minimo">Stock Minimo</label>
-			<input class="input-pequeno" type="number" id="stock_minimo"/>
+			<input class="input-pequeno" type="number" id="stock_minimo" onkeydown="if(event.key==='Enter')contenido.focus()" />
 		</div>
 		<div>
 			<label for="publica" style="font-size: 14px">Publica Producto?

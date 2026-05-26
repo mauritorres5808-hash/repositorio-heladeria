@@ -545,8 +545,18 @@ router.get('/reimpresion/:id', async (req, res) => {
         // CABECERA
         // =========================
         const [cabRows] = await db.query(`
-            SELECT *
-            FROM ventas_cab
+              SELECT
+                vc.*,
+                c.nombre AS cli_nombre,
+                c.domicilio AS cli_domicilio,
+                c.telefono AS cli_telefono,
+                c.nota AS cli_nota
+
+            FROM ventas_cab vc
+
+            LEFT JOIN clientes c
+                ON c.id_cliente = vc.id_cliente
+
             WHERE id_venta = ?
             LIMIT 1
         `, [idVenta]);

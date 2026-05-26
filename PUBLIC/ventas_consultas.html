@@ -22,7 +22,7 @@
     }
 
     .contenedor {
-      max-width: 1050px;
+      max-width: 75%;
       margin: auto;
       background: #fff;
       padding: 20px;
@@ -480,6 +480,11 @@ async function consultarVentas() {
 
             for (const v of agrupadas[fecha]) {
 
+    // =========================
+    // datos del CLIENTE
+    // =========================
+    const cliente = mapaClientes[v.id_cliente] || {};
+	
                 let TipoVenta = "--";
 
                 if (v.tipo_venta === 1)
@@ -512,22 +517,40 @@ async function consultarVentas() {
                         <td>${formasPago[v.f_pago1] || ''}</td>
                         <td>${formateadorMoneda.format(v.importe_fp1 || 0)}</td>
                         <td>${formasPago[v.f_pago2] || ''}</td>
-                        <td>${formateadorMoneda.format(v.importe_fp2 || 0)}</td>
+                        <td>${formateadorMoneda.format(v.importe_fp2 || 0)}</td>				
 						<td> 
 						${ v.tipo_venta == 5 ? 
 						`<button onclick="verPedido(${v.id_venta})"> Ver Pedido </button>` 
 						: `<button onclick="verDetalle(${v.id_venta})"> Ver </button>` } 
 						</td>
-
                         <td>
-                            <button onclick="reimprimirTicket(${v.id_venta})">
-                                🖨️
-                            </button>
-                        </td>
-
+						${v.anulada == 0 ?
+                            `<button onclick="reimprimirTicket(${v.id_venta})">🖨️</button>`
+							: `-` }
+						
+						</td>
                         <td>${v.id_cierre || "-"}</td>
                     </tr>
                     `;
+					    if (v.tipo_venta === 1) {
+						html += `
+						<tr>
+						<th></th>
+						<th>Nombre</th>
+						<th>Domicilio</th>
+						<th>Telefono</th>
+						<th>Nota</th>
+						</tr>
+
+						<tr>
+						<th></th>
+						<td>${cliente.nombre || '-'}</td>
+						<td>${cliente.domicilio || '-'}</td>
+						<td>${cliente.telefono || '-'}</td>
+						<td>${cliente.nota || '-'}</td>
+						</tr>
+						`;}
+
                 }
 
                 if (!v.anulada) {
@@ -807,7 +830,17 @@ async function reimprimirTicket(idVenta) {
             cab.importe_fp1,
             cab.importe_fp2,
             data.empresa,
-            cab.tipo_venta
+            cab.tipo_venta,
+			    // promocionesAplicadas
+				[],
+
+				// datosCliente
+				{
+					nombre: cab.cli_nombre || '',
+					domicilio: cab.cli_domicilio || '',
+					telefono: cab.cli_telefono || '',
+					nota: cab.cli_nota || ''
+				}
         );
 
     } catch (err) {

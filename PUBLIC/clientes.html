@@ -157,7 +157,7 @@
     <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
       <div>
         <label for="nombre">Nombre</label>
-        <input type="text" id="nombre" />
+        <input type="text" id="nombre" onkeydown="if(event.key==='Enter')domicilio.focus()" />
       </div>
       <div>
 <!--         <label for="domicilio" style="font-size:14px">Domicilio (escriba domicilio , CABA o Buenos Aires)</label> -->
@@ -165,7 +165,7 @@
  
 <label for="domicilio" style="font-size:14px">Domicilio (SOLO calle+nro+"Bs As" o "Caba") --> Ejm:Junin 523 Bs As</label>
 <div style="display:flex; gap:8px; align-items:center;">
-    <input type="text" id="domicilio" placeholder="domicilio, provincia validas" style="flex:1;"/>
+    <input type="text" id="domicilio" placeholder="domicilio, provincia validas" style="flex:1;" onkeydown="if(event.key==='Enter')telefono.focus()"/>
     <button id="btnValidarDom" class="btn-validar">validar domicilio</button>
 	<button onclick="distancia()">&#128663; Ver distancia</button>
 
@@ -176,7 +176,7 @@
 
 	<div>
         <label for="telefono">Telefono</label>
-        <input type="text" id="telefono" />
+        <input type="text" id="telefono" onkeydown="if(event.key==='Enter')nota.focus()" />
       </div>
 		<div>
 			<label for="deshabili">Deshabilitado?</label>

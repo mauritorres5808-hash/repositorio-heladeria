@@ -93,6 +93,23 @@
       border-radius: 5px;
       border: 1px solid #999;
     }
+
+.boton-redondeado {
+  padding: 8px 16px;
+  margin: 5px;
+  cursor: pointer;
+  border: none;
+  background-color: #007bff;
+  color: white;
+  border-radius: 5px;
+}
+
+.boton-redondeado:disabled {
+  background-color: #cccccc !important;
+  color: #666666 !important;
+  cursor: not-allowed !important;
+}
+
 </style>
 
 </head>
@@ -102,16 +119,29 @@
   <h2>👤 Mantenimiento de Usuarios</h2>
 
   <div class="card">
-    <label>ID Usuario </label>
-    <input  type="number" style="width: 50px;" id="id_usuario" placeholder="Ej: 1">
-&nbsp;&nbsp;&nbsp;
+    <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+	  <div>
+		<label>ID Usuario</label>
+		<input
+		  class="input-pequeno"
+		  type="number"
+		  id="id_usuario"
+		  placeholder="Código">
+		<button id="btnVerificar">&#9989; Verificar</button>
+
+		<button id="btnLimpiar">&#9851; Limpiar</button>
+	  </div>
+	</div>
+
+	<br>
+
     <label>Nombre </label>
-    <input size="30" type="text" id="nombre" placeholder="Nombre completo">
+    <input size="30" type="text" id="nombre" placeholder="Nombre completo" onkeydown="if(event.key==='Enter')email.focus()" >
 
     <br>
     <br>
-    <label>Usuario </label>
-    <input size="30" type="email" id="email" placeholder="nombre para ingresar">
+    <label>Usuario para ingresar al sistema</label>
+    <input size="10" type="text" id="email" placeholder="sin espacios">
 &nbsp;&nbsp;&nbsp;
     <label>Nivel </label>
     <select id="nivel">
@@ -124,9 +154,10 @@
 		<input class="input-pequeno" type="checkbox" id="deshabili">
 
     <br>
+	
     <br>
-    <button id="btnGuardar">💾 Guardar</button>
-    <button id="btnLimpiar">&#9851; Limpiar</button>
+	<button class="boton-redondeado" id="btnAlta">&#10133; Alta</button>
+	<button class="boton-redondeado" id="btnModificar">&#9999;&#65039; Modificar</button>
 	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -143,7 +174,6 @@
           <th>Usuario</th>
           <th>Nivel</th>
           <th>Deshabilitado</th>
-          <th>Acciones</th>
         </tr>
       </thead>
       <tbody id="tablaUsuarios"></tbody>
@@ -154,9 +184,280 @@
 
 <script>
 verificarSesion();
+    cargarUsuarios();
+	id_usuario.focus();
+//verificar usuario
+document.getElementById("btnVerificar").onclick = async () => {
+
+const codigo = parseInt(document.getElementById("id_usuario").value);
+if (codigo < 2) 
+{
+  alert("El ID de usuario debe ser mayor a 1.");
+  return;
+}
+
+    const id = parseInt(
+        document.getElementById("id_usuario").value
+    );
+
+    if (!id)
+        return alert("Ingrese un codigo valido.");
+
+    const resp = await fetch(`/api/usuarios/${id}`);
+
+    const data = await resp.json();
+
+    if (data.error) {
+
+        alert("Usuario no encontrado");
+
+        limpiarCampos();
+
+        return;
+    }
+
+    document.getElementById("id_usuario").value =
+        data.id_usuario;
+
+    document.getElementById("nombre").value =
+        data.nombre || '';
+
+    document.getElementById("email").value =
+        data.email || '';
+
+    document.getElementById("nivel").value =
+        data.nivel || 1;
+
+    document.getElementById("deshabili").checked =
+        data.deshabilitado == 1;
+};
+
+//alta usuario
+document.getElementById("btnAlta").onclick = async () => {
+
+    if (document.getElementById("id_usuario").value)
+        return alert("Para dar de alta NO debe ingresar ID ya que se genera automaticamente.");
+
+const codigo = parseInt(document.getElementById("id_usuario").value);
+if (codigo < 2) 
+{
+  alert("El ID de usuario debe ser mayor a 1.");
+  return;
+}
+
+    const nombre =document.getElementById("nombre").value.trim();
+    const email =document.getElementById("email").value.trim();
+    const nivel =document.getElementById("nivel").value;
+
+    if (!nombre)
+        return alert("Ingrese nombre.");
+
+    if (!email)
+        return alert("Ingrese usuario.");
+
+    const resp = await fetch('/api/usuarios', {
+
+        method: 'POST',
+
+        headers: {
+            'Content-Type': 'application/json'
+        },
+
+        body: JSON.stringify({
+
+            nombre,
+            email,
+            nivel,
+
+            deshabilitado:
+                document.getElementById("deshabili")
+                    .checked ? 1 : 0
+        })
+    });
+
+    const data = await resp.json();
+
+    if (!data.ok) {
+
+        alert("Error guardando usuario");
+        return;
+    }
+
+    alert(`Usuario agregado con ID ${data.id}`);
+
+    limpiarCampos();
+
+    cargarUsuarios();
+};
+
+//modif Usuario
+document.getElementById("btnModificar").onclick = async () => {
+
+const codigo = parseInt(document.getElementById("id_usuario").value);
+if (codigo < 2) 
+{
+  alert("El ID de usuario debe ser mayor a 1.");
+  return;
+}
+
+    const id = parseInt(document.getElementById("id_usuario").value);
+
+    if (!id)
+        return alert("Ingrese un ID valido.");
+
+    const nombre =
+        document.getElementById("nombre").value.trim();
+
+    const email =
+        document.getElementById("email").value.trim();
+
+    const nivel =
+        document.getElementById("nivel").value;
+
+    const resp = await fetch(`/api/usuarios/${id}`, {
+
+        method: 'PUT',
+
+        headers: {
+            'Content-Type': 'application/json'
+        },
+
+        body: JSON.stringify({
+
+            nombre,
+            email,
+            nivel,
+
+            deshabilitado:
+                document.getElementById("deshabili")
+                    .checked ? 1 : 0
+        })
+    });
+
+    const data = await resp.json();
+
+    if (!data.ok) {
+
+        alert("Error actualizando usuario");
+        return;
+    }
+
+    alert("Usuario actualizado correctamente.");
+
+    limpiarCampos();
+
+    cargarUsuarios();
+};
+
+//Limpiar
+function limpiarCampos() {
+
+    document.getElementById("id_usuario").value = '';
+    document.getElementById("nombre").value = '';
+    document.getElementById("email").value = '';
+    document.getElementById("nivel").value = '1';
+    document.getElementById("deshabili").checked = false;
+}
+
+document.getElementById("btnLimpiar").onclick = limpiarCampos;
+
+
+// ========================================
+// CARGAR USUARIOS EN TABLA
+// ========================================
+async function cargarUsuarios() {
+
+  try {
+
+    const resp = await fetch('/api/usuarios');
+
+    const data = await resp.json();
+
+    const tbody =
+      document.getElementById("tablaUsuarios");
+
+    tbody.innerHTML = "";
+
+    if (!data.ok || !data.usuarios) {
+
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="5">
+            Error cargando usuarios
+          </td>
+        </tr>
+      `;
+
+      return;
+    }
+
+    let cantidad = 0;
+
+    data.usuarios.forEach(u => {
+
+      let nivelDesc = "";
+
+      if (u.nivel == 1)
+        nivelDesc = "1 - Vendedor";
+
+      if (u.nivel == 2)
+        nivelDesc = "2 - Supervisor";
+
+      tbody.innerHTML += `
+        <tr>
+          <td>${u.id_usuario}</td>
+
+          <td>${u.nombre || ""}</td>
+
+          <td>${u.email || ""}</td>
+
+          <td>${nivelDesc}</td>
+
+          <td
+            style="
+              ${u.deshabilitado == 1
+                ? 'background-color:#FF6467;color:white;'
+                : ''}
+            "
+          >
+            ${u.deshabilitado == 1 ? 'S' : 'N'}
+          </td>
+        </tr>
+      `;
+
+      cantidad++;
+
+    });
+
+    tbody.innerHTML += `
+      <tr
+        style="
+          font-weight:bold;
+          background:#f2f2f2;
+        "
+      >
+        <td>CANTIDAD</td>
+
+        <td>${cantidad}</td>
+
+        <td></td>
+        <td></td>
+        <td></td>
+      </tr>
+    `;
+
+  } catch (error) {
+
+    console.error(error);
+
+    alert("Error cargando usuarios");
+  }
+}
+
+
 </script>
 
-  <script src="./JS/usuarios.js"></script>
+<!--  <script src="./JS/usuarios.js"></script> -->
 
 </body>
 </html>

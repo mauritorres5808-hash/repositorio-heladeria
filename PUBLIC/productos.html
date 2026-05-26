@@ -155,8 +155,8 @@ button:hover {
   gap: 5px; /* espacio entre texto e input */
 }
 
-    .alert-modern{background:#e9f7ef;border-left:6px solid red;padding:10px;border-radius:6px;margin:10px 0}
-    .alert-modern2{background:#e9f7ef;border-left:6px solid red;padding:10px;border-radius:6px;margin:10px 0}
+    .alert-modern{background:#e9f7ef;border-left:6px solid red;padding:10px;border-radius:6px;margin:10px 0; font-style: italic;}
+    .alert-modern2{background:#e9f7ef;border-left:6px solid red;padding:10px;border-radius:6px;margin:10px 0; font-style: italic;}
 
 
   </style>
@@ -170,7 +170,8 @@ button:hover {
     <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
 		<div>
 			<label for="id_producto">Codigo de producto</label>
-			<input class="input-pequeno" width="5px" type="number" id="id_producto" placeholder="Ingrese codigo" />
+			<input class="input-pequeno" width="5px" type="number" id="id_producto" placeholder="Ingrese codigo" 
+				onkeydown="if(event.key==='Enter')btnVerificar.click()"/>
 			<button id="btnVerificar">&#9989; Verificar</button>
 			<button id="btnBuscar">&#128269; Buscar</button>
 			<button id="btnVaciar" onclick="limpiar_datos()">&#9851; Limpiar</button>
@@ -185,7 +186,7 @@ button:hover {
 	</div>
 
 <label><span>Foto del Producto</label>
-	<div id="mensajeTipo" style="font-size: 12px" class="alert-modern2"> &#128073; para agregar o modificar la imagen debe contactarse con el administrador del sistema &#9888;</div>
+	<div id="mensajeTipo" style="font-size: 14px" class="alert-modern2"> &#128073; para agregar o modificar la imagen debe contactarse con el administrador del sistema &#9888;</div>
 <img id="previewImg" src="img/no-image.jpg" style="width:120px; border:1px solid #ccc; border-radius:6px;">
 
     <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
@@ -287,6 +288,7 @@ button:hover {
   <script>
 
 verificarSesion();
+id_producto.focus();
 
 // BLOQUEA TODOS LOS BOTONES AL CARGAR LA PÁGINA (menos boton Volver)
 document.addEventListener("DOMContentLoaded", async () => {

@@ -29,10 +29,8 @@
       border-radius: 8px;
     }
 	
-    label {
-      margin: 15px 0;
-      display: inline-block;
-    }
+ 	label { font-weight: bold; margin-right: 10px; }
+ 
     table {
       width: 100%;
       border-collapse: collapse;
@@ -145,7 +143,7 @@
       <label>Hasta: <input type="date" id="fechaHasta"></label>
 	<label for="chk_cierre">solo Ventas sin cierre</label>
 	<input  type="checkbox" checked=true id="chk_cierre">
-	
+	<br><br>
 	  <div class="contenedor-botones2">
 			<button class="boton-redondeado" onclick="calcularTotales()">&#128269; Buscar</button>
 			<button  onclick="window.location.href='menu-compras.html'">&#8617; Volver</button>

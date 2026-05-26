@@ -51,6 +51,9 @@
 button:hover {
   background: red;
 }
+    .alert-modern{background:#e9f7ef;border-left:6px solid #28a745;padding:10px;border-radius:6px;margin:10px 0; font-style: italic;}
+ 	label { font-weight: bold; margin-right: 10px; }
+ 
 </style>
 
 </head>
@@ -68,7 +71,12 @@ button:hover {
 <br><br>
   <label>Nueva Contraseña</label>
   <input type="password" id="passNueva">
-<br><br><br>
+<br><br>
+      <div id="mensajeTipo" class="alert-modern">
+        El cambio será aplicará en su proximo ingreso al sistema
+      </div>
+
+<br>
   <button onclick="cambiarPass()">💾 Cambiar Contraseña</button>
 
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button onclick="location.href='menu-general.html'">&#8617; Volver</button>

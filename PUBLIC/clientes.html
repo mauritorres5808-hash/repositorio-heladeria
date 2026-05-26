@@ -147,7 +147,8 @@
     <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
       <div>
         <label for="id_cliente">Codigo de Cliente</label>
-        <input class="input-pequeno" type="number" id="id_cliente" placeholder="Ingrese codigo" />
+        <input class="input-pequeno" type="number" id="id_cliente" placeholder="Ingrese codigo" 
+				onkeydown="if(event.key==='Enter')btnVerificar.click()"/>
         <button id="btnVerificar">&#9989; Verificar</button>
         <button id="btnBuscar">&#128269; Buscar</button>
 			<button id="btnVaciar" onclick="limpiarCampos()">&#9851; Limpiar</button>
@@ -219,6 +220,8 @@
   <script>
 
 verificarSesion();
+id_cliente.focus();
+
 // BLOQUEA TODOS LOS BOTONES AL CARGAR LA PÁGINA (menos boton Volver)
 document.addEventListener("DOMContentLoaded", async () => {
 

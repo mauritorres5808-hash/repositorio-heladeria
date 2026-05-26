@@ -128,7 +128,7 @@
 		text-decoration: line-through;
 	}
 
-    .alert-modern{background:#e9f7ef;border-left:6px solid red;padding:10px;border-radius:6px;margin:10px 0}
+    .alert-modern{background:#e9f7ef;border-left:6px solid red;padding:10px;border-radius:6px;margin:10px 0; font-style: italic;}
 
 	input, select {
       padding: 6px;
@@ -137,7 +137,8 @@
       margin-top: 4px;
       font-size: 14px;
     }
-
+label { font-weight: bold; margin-right: 10px; }
+ 
   </style>
 </head>
 <body>
@@ -359,7 +360,7 @@ verificarSesion();
 
 			html += `
 			  <div class="alert-modern">
-				las compras en ROJO son anuladas y no suman en el Total.
+				las compras en ROJO son anuladas y no suman en el Total ni en el grafico.
 			  </div>
 			`;
 

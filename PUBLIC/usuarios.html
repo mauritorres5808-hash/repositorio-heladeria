@@ -109,7 +109,8 @@
   color: #666666 !important;
   cursor: not-allowed !important;
 }
-
+ 	label { font-weight: bold; margin-right: 10px; }
+ 
 </style>
 
 </head>
@@ -126,7 +127,8 @@
 		  class="input-pequeno"
 		  type="number"
 		  id="id_usuario"
-		  placeholder="Código">
+		  placeholder="Código"
+		  onkeydown="if(event.key==='Enter')btnVerificar.click()">
 		<button id="btnVerificar">&#9989; Verificar</button>
 
 		<button id="btnLimpiar">&#9851; Limpiar</button>

@@ -459,110 +459,35 @@ const formateadorMoneda = new Intl.NumberFormat('es-AR', {
   maximumFractionDigits: 2
 });
 
-//muestro el detalle del pedido
-// ======================================
-// AGRUPAR PRODUCTOS SIN SABORES
-// ======================================
-const agrupados = {};
-const individuales = [];
-
-(p.pedido_detalle || []).forEach(it => {
-
-  const tieneSabores =
-    it.sabores &&
-    it.sabores.trim() !== '';
-
-  // Si tiene sabores NO agrupar
-  if (tieneSabores) {
-
-    individuales.push(it);
-
-    return;
-  }
-
-  // Agrupar solo por descripcion + precio
-  const key =
-    `${it.descripcion}|${it.precio}`;
-
-  if (!agrupados[key]) {
-
-    agrupados[key] = {
-      descripcion: it.descripcion,
-      precio: Number(it.precio || 0),
-      cantidad: 0
-    };
-  }
-
-  agrupados[key].cantidad++;
-});
-
-// ======================================
-// MOSTRAR AGRUPADOS
-// ======================================
-Object.values(agrupados).forEach(item => {
-
-  const subtotal =
-    item.precio * item.cantidad;
-
-  subtotalPedido += subtotal;
-
-  html += `
-    <div class="unidad">
-
-      <b>
-        • ${item.cantidad} x ${item.descripcion}
-      </b><br>
-
-      Precio Unitario:
-      ${formateadorMoneda.format(item.precio)}
-      <br>
-
-      Subtotal:
-      ${formateadorMoneda.format(subtotal)}
-      <br>
-
-    </div>
-  `;
-});
-
-// ======================================
-// MOSTRAR INDIVIDUALES
-// (productos con sabores)
-// ======================================
-individuales.forEach(it => {
+(p.pedido_detalle || []).forEach((it, idx) => {
 
   const subtotal = Number(it.precio || 0);
 
   subtotalPedido += subtotal;
 
-  html += `
-    <div class="unidad">
+  html += `<div class="unidad">
+    <b>• ${it.descripcion}</b><br>
+    Precio: ${formateadorMoneda.format(it.precio)}<br>`;
 
-      <b>• ${it.descripcion}</b><br>
+  if (it.sabores && it.sabores.trim() !== '') {
 
-      Precio:
-      ${formateadorMoneda.format(it.precio)}
-      <br>
-  `;
+    const listaSabores = it.sabores
+      .split(',')
+      .map(x => x.trim())
+      .filter(x => x !== '');
 
-  const listaSabores = it.sabores
-    .split(',')
-    .map(x => x.trim())
-    .filter(x => x !== '');
+    html += `<u>Sabores:</u><ul>`;
 
-  html += `<u>Sabores:</u><ul>`;
+    listaSabores.forEach(idSabor => {
+      const descripcion = saborDesc(idSabor);
+      html += `<li>${descripcion}</li>`;
+    });
 
-  listaSabores.forEach(idSabor => {
+    html += `</ul>`;
+  }
 
-    html += `
-      <li>${saborDesc(idSabor)}</li>
-    `;
-  });
-
-  html += `</ul></div>`;
+  html += `</div>`;
 });
-
-
 
 // ======================================
 // PROMOCIONES

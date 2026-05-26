@@ -17,7 +17,7 @@
   body{font-family:Arial;margin:12px;background:#f7f8fb}
   header{display:flex;gap:12px;align-items:center;margin-bottom:12px}
   
-      .contenedor{max-width:920px;margin:auto;background:#fff;padding:20px;border-radius:8px}
+      .contenedor{max-width:980px;margin:auto;background:#fff;padding:20px;border-radius:8px}
 
   input[type="search"],select{padding:8px;border-radius:30px;border:5px solid #ccc}
 
@@ -378,7 +378,7 @@ html += `
   <div style="display:flex;justify-content:space-between; font-size:20px">
     <div>
         <span style="color:red"><b>Pedido # ${p.id_pedido}</b></span>
-      — ${p.nombre} • ${p.telefono}
+      
       ${p.estado === "V"
         ? ` <br><span style="color:blue"><b>✅ Venta # ${p.id_venta}</b></span>`
         : ""
@@ -386,8 +386,8 @@ html += `
       ${p.estado === "C"
         ? ` <br>⚠️<span style="color:red; background:yellow"><b>CANCELADO</b></span>
         <div style="font-size:16px; color:red">
-          <br><b>&#10140; Fecha/Hora de la cancelacion:</b>
-          <span style="color:black">${convertirFechaOK(p.fecha_canc)} ${p.hora_canc} usuario: ${p.usuario_canc_nombre || 'No informado'}</span>
+          <br><b>&#10140; Fecha/Hora/usuario de la cancelacion:</b>
+          <span style="color:black">${convertirFechaOK(p.fecha_canc)} ${p.hora_canc}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;usuario: ${p.usuario_canc_nombre || 'No informado'}</span>
         </div>`
         : ""
       }
@@ -401,15 +401,17 @@ html += `
     </div>
 
     <div style="font-size:18px; color:red">
-      <b>Fecha/Hora del Pedido:</b>
+      <b>Fecha/Hora del Pedido</b>
       <br><span style="color:black">${convertirFechaOK(p.fecha)} ${p.hora}</span>
     </div>
 
   </div>
 
-  <div><b>Domicilio:</b> ${p.domicilio}</div>
-
-  <div><b>Nota:</b> ${p.nota || "—"}</div>
+  <br>
+  <div style="font-size:20px;"><b>Nombre:</b> ${p.nombre}</div>
+  <div style="font-size:20px;"><b>Telefono:</b> ${p.telefono}</div>
+  <div style="font-size:20px;"><b>Domicilio:</b> ${p.domicilio}</div>
+  <div style="font-size:20px;"><b>Nota:</b> ${p.nota || "—"}</div>
 
   <br>
 

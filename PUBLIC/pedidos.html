@@ -96,8 +96,11 @@ select {
 			<option value="cancelado">Pedidos Cancelados</option>
 		  </select>
 		<button class="boton-derecha" onclick="location.href='/menu-ventas.html'">&#8617; Volver</button>
-
 		</header>
+
+<hr size="3" noshade>
+<hr size="6" noshade>
+
 
 		<div id="lista">Cargando...</div>
   </div>
@@ -179,7 +182,7 @@ async function cargar(){
 
   // ✅ cantidad total del filtro aplicado
   const cantidadTotal = items.length;
-  document.getElementById("titulo").textContent = `Pedidos Online 🔔 (${cantidadTotal})`;
+			document.getElementById("titulo").textContent = `Pedidos Online 🔔 (${cantidadTotal} ${estado}s)`;
 	
     renderList(items);
   } catch(e){

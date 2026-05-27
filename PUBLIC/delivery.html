@@ -125,8 +125,6 @@
 				  style="width:250px;"
 				>
 			  </div>
-
-
 			</div>
 
 			  <div style="margin-bottom:8px;">
@@ -250,13 +248,12 @@
     <button class="boton-derecha" id="btnSalir" onclick="SalirVenta()">&#8617; Salir</button>
     </div>
 
-
   </div>
 
   <script>
 
 verificarSesion();
-
+id_cliente.focus();
 
 async function NuevoCliente() {
 localStorage.setItem("paginaAnterior", window.location.href);
@@ -366,11 +363,13 @@ mostrarMapaDistancia(origen, destino);
         mensajeTipo.textContent = "Delivery propio seleccionado. Debe seleccionar el cliente.";
         mensajeTipo.style.display = "block";
 		imgDelivery.style.display = "none";		
+		id_cliente.focus();
       } else 
 	  {
         bloqueCliente.style.display = "none";
         mensajeTipo.textContent = tipo === "2" ? "No requiere datos de cliente." : "No requiere datos de cliente.";
         mensajeTipo.style.display = "block";
+		id_producto.focus();
 			if (tipo === "2") 
 			{
 				imgDelivery.src = "rappi.png";
@@ -485,7 +484,9 @@ mostrarMapaDistancia(origen, destino);
 			const idProd = document.getElementById('id_producto').value.trim();
 
 			if (!idProd) {
-				alert('Ingrese un codigo de producto');
+				//alert('Ingrese un codigo de producto');
+				await mostrarAlerta({mensaje: "Ingrese un codigo de producto"});
+				id_producto.focus();
 				return;
 			}
 
@@ -496,14 +497,18 @@ mostrarMapaDistancia(origen, destino);
 				const producto = await resp.json();
 
 				if (!producto) {
-					alert('Producto no encontrado');
+					//alert('Producto no encontrado');
+					await mostrarAlerta({mensaje: "Producto no encontrado"});
+					id_producto.focus();
 					return;
 				}
 
 				const p = producto;
 
 				if (p.deshabilitado) {
-					alert('Producto deshabilitado');
+					//alert('Producto deshabilitado');
+					await mostrarAlerta({mensaje: "Producto deshabilitado"});
+					id_producto.focus();
 					return;
 				}
 
@@ -814,8 +819,8 @@ window.recalcularImportes = async function(modificado = 0) {
 	window.finalizarVenta = async function(){
 
 		if (window.productosVenta.length === 0) {
-
-			alert('No hay productos en la venta');
+				//alert('No hay productos en la venta');
+				await mostrarAlerta({mensaje: "No hay productos en la venta"});
 			return;
 		}
 
@@ -824,8 +829,9 @@ window.recalcularImportes = async function(modificado = 0) {
 		);
 
 		if (tipoVenta === 1 && !clienteSeleccionado) {
-
-			alert('Debe seleccionar un cliente');
+			//alert('Debe seleccionar un cliente');
+			await mostrarAlerta({mensaje: "Debe seleccionar un cliente"});
+			id_cliente.focus();
 			return;
 		}
 
@@ -847,25 +853,30 @@ const totalFinal = subtotal - descuentoPromo - descuento + recargo;
 		// VALIDACIONES
 
 		if (!fp1 && !fp2) {
-			alert('Debe seleccionar forma de pago');
+			//alert('Debe seleccionar forma de pago');
+			await mostrarAlerta({mensaje: "Debe seleccionar forma de pago"});
 			return;
 		}
 
 		if (fp1 && fp2 && fp1 === fp2) {
-			alert('Las formas de pago no pueden ser iguales');
+			//alert('Las formas de pago no pueden ser iguales');
+			await mostrarAlerta({mensaje: "Las formas de pago no pueden ser iguales"});
 			return;
 		}
 
       if ((!fp1 && imp1 > 0) || (!fp2 && imp2 > 0)) { 	
-			alert('Falta seleccionar alguna forma de pago.'); 
+			//alert('Falta seleccionar alguna forma de pago.'); 
+			await mostrarAlerta({mensaje: "Falta seleccionar alguna forma de pago"});
 	  return; }
 	  
       if ((fp1 && imp1 <= 0) || (fp2 && imp2 <= 0)) { 
-			alert('Las formas de pago seleccionadas no pueden tener importe cero.'); 
+			//alert('Las formas de pago seleccionadas no pueden tener importe cero.'); 
+			await mostrarAlerta({mensaje: "Las formas de pago seleccionadas no pueden tener importe cero"});
 	  return; }
       
 		if (Math.abs((imp1 + imp2) - totalFinal) > 0.01) {
-			alert('Los importes no coinciden');
+			//alert('Los importes no coinciden');
+			await mostrarAlerta({mensaje: "Los importes no coinciden"});
 			return;
 		}
 
@@ -973,7 +984,9 @@ const totalFinal = subtotal - descuentoPromo - descuento + recargo;
 			const data = await resp.json();
 //console.log(data);
 			if (data.error) {
-				alert('Cliente no encontrado');
+				//alert('Cliente no encontrado');
+				await mostrarAlerta({mensaje: "Cliente no encontrado"});
+				id_cliente.focus();
 				await LimpiarPantalla();
 				return;
 			}
@@ -981,7 +994,9 @@ const totalFinal = subtotal - descuentoPromo - descuento + recargo;
 			const d = data;
 
 			if (d.deshabilitado) {
-				alert('Cliente deshabilitado');
+				//alert('Cliente deshabilitado');
+				await mostrarAlerta({mensaje: "Cliente deshabilitado"});
+				id_cliente.focus();
 				await LimpiarPantalla();
 				return;
 			}
@@ -1139,14 +1154,16 @@ window.guardarCliente = async function () {
             document.getElementById('cli_nota').value.trim();
 
         if (!telefono) {
-
-            alert('Debe ingresar telefono');
-            return;
+            //alert('Debe ingresar el telefono');
+			await mostrarAlerta({mensaje: "Debe ingresar el telefono"});
+			cli_telefono.focus();
+			return;
         }
 
         if (!nombre) {
-
-            alert('Debe ingresar nombre');
+            //alert('Debe ingresar nombre');
+			await mostrarAlerta({mensaje: "Debe ingresar el nombre del cliente"});
+			cli_nombre.focus();
             return;
         }
 
@@ -1192,7 +1209,6 @@ window.guardarCliente = async function () {
             const data = await resp.json();
 
             if (!data.ok) {
-
                 alert('Error actualizando cliente');
                 return;
             }
@@ -1208,7 +1224,8 @@ window.guardarCliente = async function () {
             document.getElementById('id_cliente').value =
                 clienteExistente.id_cliente;
 
-            alert('Cliente actualizado correctamente');
+            //alert('Cliente actualizado correctamente');
+			await mostrarAlerta({mensaje: "Cliente actualizado correctamente",icono:"&#10004;"});
 
             return;
         }
@@ -1238,7 +1255,6 @@ window.guardarCliente = async function () {
         const data = await resp.json();
 
         if (!data.ok) {
-
             alert('Error agregando cliente');
             return;
         }
@@ -1254,15 +1270,11 @@ window.guardarCliente = async function () {
         document.getElementById('id_cliente').value =
             data.id_cliente;
 
-        alert(
-            'Cliente agregado correctamente\n\nID: ' +
-            data.id_cliente
-        );
+        //alert('Cliente agregado correctamente\n\nID: ' + data.id_cliente);
+		await mostrarAlerta({mensaje: "Cliente agregado correctamente\n\nID:" + data.id_cliente});
 
     } catch (err) {
-
         console.error(err);
-
         alert('Error guardando cliente');
     }
 };
@@ -1278,7 +1290,8 @@ function cerrarModalPromos(){
     // Salir
     window.SalirVenta = async function(){
       if (window.productosVenta.length > 0) {
-        const deseaSalir = confirm('⚠️ Hay productos en la venta.\n\n¿Desea salir y perder lo ingresado?');
+        //const deseaSalir = confirm('⚠️ Hay productos en la venta.\n\n¿Desea salir y perder lo ingresado?');
+		const deseaSalir = await mostrarConfirm({mensaje: "Hay productos en la venta.\n\n¿Desea salir y perder lo ingresado?"});
         if (deseaSalir) { await LimpiarPantalla(); return; }
         else return;
       }
@@ -1299,6 +1312,7 @@ function cerrarModalPromos(){
 </script>
 
 <script src="JS/mapa-distancia.js"></script>
+<script src="JS/modal.js"></script>
 
 
 </body>

@@ -720,28 +720,18 @@ async function verDetalle(idVenta) {
         const data = await resp.json();
 
         if (!data.ok) {
-
             alert(data.error || 'Error obteniendo detalle');
             return;
         }
 
-        const cont =
-            document.getElementById("detalleContenido");
+        const cont = document.getElementById("detalleContenido");
+        const encabezado = document.getElementById("encabezado_detalle");
 
-        const encabezado =
-            document.getElementById("encabezado_detalle");
-
-        encabezado.innerHTML =
-            "Detalle de Productos - Venta Nro. " + idVenta;
+        encabezado.innerHTML = "Detalle de Productos - Venta Nro. " + idVenta;
 
         if (data.detalle.length === 0) {
-
-            cont.innerHTML =
-                "<p>No se encontraron productos.</p>";
-
-            document.getElementById("detalleModal")
-                .style.display = "flex";
-
+            cont.innerHTML = "<p>No se encontraron productos.</p>";
+            document.getElementById("detalleModal").style.display = "flex";
             return;
         }
 

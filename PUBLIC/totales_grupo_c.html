@@ -225,23 +225,13 @@ async function calcularTotales() {
     // =====================================
     // API
     // =====================================
-    const resp = await fetch(
+    const resp = await fetch(`/api/compras/totales-grupo?desde=${fechaDesde}&hasta=${fechaHasta}&sin_cierre=${sin_cierre}`);
 
-      `/api/compras/totales-grupo?desde=${fechaDesde}&hasta=${fechaHasta}&sin_cierre=${sin_cierre}`
-
-    );
-
-    const totales =
-      await resp.json();
+    const totales = await resp.json();
 
     if (!totales.length) {
-
       mensaje.style.display = "none";
-
-      alert(
-        "No se encontraron compras en ese rango."
-      );
-
+	  await mostrarAlerta({mensaje: `No se encontraron compras en ese rango`});
       return;
     }
 
@@ -395,21 +385,16 @@ async function calcularTotales() {
     });
 
   } catch (error) {
-
     console.error(error);
-
-    alert(
-      "Error obteniendo datos"
-    );
+    alert("Error obteniendo datos");
 
   } finally {
-
     mensaje.style.display = "none";
   }
 }
 
   </script>
-
+<script src="JS/modal.js"></script>
 
 </body>
 </html>

@@ -223,18 +223,15 @@ window.aplicarPermisos = function() {
 	  const codigo = parseInt(idTipo.value);
 
 	  if (!codigo)
-		return alert("Ingrese un código válido.");
+		return await mostrarAlerta({mensaje: `Ingrese un codigo valido`});
 
 	  const resp = await fetch(`/api/tipo-sabores/${codigo}`);
 
 	  const data = await resp.json();
 
 	  if (data.error) {
-
-		alert("Tipo de Sabor no encontrado.");
-
+		await mostrarAlerta({mensaje: `Tipo de Sabor no encontrado`});
 		limpiarCampos();
-
 		return;
 	  }
 
@@ -248,11 +245,15 @@ window.aplicarPermisos = function() {
     // --- Alta ---
 	document.getElementById("btnAlta").onclick = async () => {
 
-	  if (idTipo.value)
-		return alert(
-		  "Para dar de alta NO debe ingresar un codigo.\n" +
-		    "Este se genera automaticamente.\nBorrar el codigo y volver a intentar."
-		);
+    if (idTipo.value) {
+
+		return await mostrarAlerta({mensaje: `Para dar de alta NO debe ingresar el codigo.\n
+				Este se genera automaticamente.\n
+				Borrar el codigo, cargar los demas campos y volver a presionar ALTA
+		`});
+		return;
+    }
+
 
 	  if (!await validarCampos())
 		return;
@@ -260,34 +261,26 @@ window.aplicarPermisos = function() {
 	  const resp = await fetch('/api/tipo-sabores', {
 
 		method: 'POST',
-
 		headers: {
 		  'Content-Type': 'application/json'
 		},
 
 		body: JSON.stringify({
-
-		  descripcion:
-			descripcion.value.trim(),
-
-		  deshabilitado:
-			document.getElementById("deshabili").checked ? 1 : 0
+		  descripcion: descripcion.value.trim(),
+		  deshabilitado: document.getElementById("deshabili").checked ? 1 : 0
 		})
 	  });
 
 	  const data = await resp.json();
 
 	  if (!data.ok) {
-
 		alert("Error guardando tipo sabor");
-
 		return;
 	  }
 
-	  alert(`Tipo de Sabor agregado con código ${data.id}`);
-
+	  await mostrarAlerta({mensaje: `Tipo de Sabor agregado con código ${data.id}`,icono:`&#10004;`});
+	  
 	  limpiarCampos();
-
 	  ArmarTabla();
 	};
 
@@ -297,7 +290,7 @@ window.aplicarPermisos = function() {
 	  const codigo = parseInt(idTipo.value);
 
 	  if (!codigo)
-		return alert("Ingrese un código válido.");
+		return await mostrarAlerta({mensaje: `Ingrese un código valido`});
 
 	  if (!await validarCampos())
 		return;
@@ -323,21 +316,22 @@ window.aplicarPermisos = function() {
 	  const data = await resp.json();
 
 	  if (!data.ok) {
-
 		alert("Error actualizando tipo sabor");
-
 		return;
 	  }
 
-	  alert("Tipo de Sabor actualizado correctamente.");
+	  await mostrarAlerta({mensaje: `Tipo de Sabor actualizado correctamente`,icono:`&#10004;`});
 
 	  limpiarCampos();
-
 	  ArmarTabla();
 	};
 
     async function validarCampos() {
-      if (!descripcion.value.trim()) { alert("Ingrese la descripcion."); return false; }
+      
+	  if (!descripcion.value.trim()) {
+		await mostrarAlerta({mensaje: `Ingrese la descripcion`});
+		return false; 
+		}
       return true;
     }
 
@@ -361,7 +355,7 @@ window.aplicarPermisos = function() {
 		  .toLowerCase();
 
 	  if (!texto)
-		return alert("Ingrese texto a buscar.");
+		return await mostrarAlerta({mensaje: `Ingrese texto a buscar`});
 
 	  const tablaBody =
 		document.querySelector("#tablaResultados tbody");
@@ -480,6 +474,8 @@ window.aplicarPermisos = function() {
 	}
 
   </script>
+
+<script src="JS/modal.js"></script>
 
 </body>
 </html>

@@ -105,7 +105,7 @@ verificarSesion();
 	  const tipo = document.getElementById("tipo").value;
 
 	  if (!fecha) {
-		alert("Seleccione una fecha.");
+		await mostrarAlerta({mensaje: `Seleccione una fecha`});
 		return;
 	  }
 
@@ -155,11 +155,8 @@ verificarSesion();
 		mensaje.style.display = "none";
 
 	  } catch (error) {
-
 		console.error(error);
-
 		mensaje.style.display = "none";
-
 		alert("Error buscando movimientos");
 	  }
 	}
@@ -167,9 +164,15 @@ verificarSesion();
 	// anulo el movimiento
 	async function anularMovimiento(id) {
 
-	  if (!confirm("¿Confirma que desea anular este movimiento?")) {
-		return;
-	  }
+		const confirmar = await mostrarConfirm({
+		  mensaje: "¿Está seguro que desea anular este movimiento ?",
+		  textoAceptar: "Sí, anular",
+		  textoCancelar: "Cancelar"
+		});
+		if (!confirmar) {
+		  return;
+		}		
+
 
 	  try {
 		const response = await fetch(`/api/movimientos/anular/${id}`, {
@@ -183,7 +186,7 @@ verificarSesion();
 		  return;
 		}
 
-		alert("Movimiento anulado correctamente.");
+		await mostrarAlerta({mensaje: `Movimiento anulado correctamente`,icono:`&#10004;`});
 
 		buscarMovimientos();
 
@@ -195,6 +198,7 @@ verificarSesion();
 
   </script>
 
+<script src="JS/modal.js"></script>
 
 </body>
 </html>

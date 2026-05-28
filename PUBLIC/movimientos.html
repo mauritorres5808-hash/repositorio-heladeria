@@ -60,18 +60,7 @@ input[type="number"] {
       cursor: pointer;
     }
     button:hover { background-color: red; }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 25px;
-    }
-    th, td {
-      border: 1px solid #000;
-      padding: 5px;
-      text-align: center;
-    }
-    th { background-color: #f2f2f2; }
-	
+
 	.alert-modern{background:#e9f7ef;border-left:6px solid red;padding:10px;border-radius:6px;margin:10px 0; font-style: italic;}
 
 .custom-select2 {
@@ -93,10 +82,10 @@ input[type="number"] {
     <div id="formMovimiento">
       <label>Fecha:</label>
       <input type="date" id="fecha" disabled>       
-	  &nbsp;&nbsp;&nbsp;&nbsp;<button onclick="cargarMovimientos()">🔍 Buscar</button>
       <button onclick="window.location.href='menu-caja.html'">&#8617; Volver</button>
 
-<br><br>
+		<br><br>
+		
       <label>Tipo:
       <select id="tipo" class="custom-select2">
         <option value="I">Ingreso</option>
@@ -112,40 +101,19 @@ input[type="number"] {
 
 	  </label>
 
-
     </div>
-<div class="contenedor-botones2">
-      <button style="text-align=center" onclick="guardarMovimiento()">💾 Guardar Movimiento</button>
-</div>
+	<div class="contenedor-botones2">
+		  <button style="text-align=center" onclick="guardarMovimiento()">&#x1F4BE; Guardar Movimiento</button>
+	</div>
     <hr>
 
-    <h3>📋 Movimientos de efectivo de HOY (sin cierre)</h3>
-	<div id="mensajeTipo" class="alert-modern">los movimientos anulados no suman en el Total y no pueden ser editados.</div>
-    <table id="tablaMovimientos">
-      <thead>
-        <tr>
-          <th>Fecha</th>
-          <th>Hora</th>
-          <th>Tipo</th>
-          <th>Descripcion</th>
-          <th>Importe</th>
-          <th>Estado</th>
-          <th>Acción</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-
-    <div style="text-align:center; margin-top:20px;">
-      <button onclick="window.location.href='menu-caja.html'">&#8617; Volver</button>
-    </div>
-  </div>
+</div>
 
  <script>
 
 verificarSesion();
 
-// 🔹 Formatear moneda
+// Formatear moneda
 const formateador = new Intl.NumberFormat("es-AR", {
   style: "currency",
   currency: "ARS"
@@ -164,7 +132,6 @@ document.getElementById("fecha").value = fechaHoy;
 // ======================================================
 // GUARDAR MOVIMIENTO
 // ======================================================
-
 async function guardarMovimiento() {
 
   const fecha = document.getElementById("fecha").value;
@@ -185,7 +152,7 @@ const horaActual =
   const tipo = document.getElementById("tipo").value;
 
   if (!fecha || !importe || !descripcion) {
-    alert("Complete todos los campos.");
+	await mostrarAlerta({mensaje: `Complete todos los campos`});
     return;
   }
 
@@ -214,17 +181,13 @@ const horaActual =
       return;
     }
 
-    alert("Movimiento guardado correctamente.");
+	await mostrarAlerta({mensaje: `Movimiento guardado correctamente`,icono:`&#10004;`});
 
     document.getElementById("descripcion").value = "";
     document.getElementById("importe").value = "";
 
-    cargarMovimientos();
-
   } catch (error) {
-
     console.error(error);
-
     alert("Error guardando movimiento");
   }
 }
@@ -233,7 +196,6 @@ const horaActual =
 // NORMALIZAR FECHA
 // yyyy-mm-dd -> dd/mm/yyyy
 // ======================================================
-
 function normalizarFecha(fechaStr) {
 
   if (!fechaStr)
@@ -251,231 +213,6 @@ function normalizarFecha(fechaStr) {
   return fechaStr;
 }
 
-// ======================================================
-// CARGAR MOVIMIENTOS
-// ======================================================
-
-async function cargarMovimientos() {
-
-  const fecha = document.getElementById("fecha").value;
-
-  const tbody = document.querySelector("#tablaMovimientos tbody");
-
-  tbody.innerHTML = "";
-
-	let totalDia = 0;
-	let totalIngresos = 0;
-	let totalEgresos = 0;
-
-  try {
-
-    const response = await fetch(`/api/movimientos?fecha=${fecha}&sin_cierre=1`);
-    const movimientos = await response.json();
-
-    movimientos.forEach(m => {
-
-      const fila = document.createElement("tr");
-
-      let importeMostrar = Number(m.importe || 0);
-
-      if (m.anulado !== 1) {
-        if (m.tipo === 'E') {
-			totalEgresos += importeMostrar;
-          totalDia += importeMostrar * -1;
-          importeMostrar = importeMostrar * -1;
-        } else {
-			totalIngresos += importeMostrar;
-          totalDia += importeMostrar;
-        }
-      }
-
-      const fecha_normal = normalizarFecha(m.fecha);
-
-      fila.innerHTML = `<td>${fecha_normal}</td>`;
-      fila.innerHTML += `<td>${m.hora}</td>`;
-
-
-      // Tipo
-      if (m.tipo === 'E') {
-          //importeMostrar = importeMostrar * -1;
-
-        fila.innerHTML += `
-          <td style="color:red;font-weight:bold;">
-            Egreso
-          </td>
-        `;
-
-      } else {
-
-        fila.innerHTML += `
-          <td>
-            ${m.tipo === 'E' ? 'Egreso' : 'Ingreso'}
-          </td>
-        `;
-      }
-
-      // Descripción
-      fila.innerHTML += `<td>${m.descripcion}</td>`;
-
-      // Importe
-      if (m.tipo === 'E') {
-
-        fila.innerHTML += `
-          <td style="color:red;font-weight:bold;">
-            ${formateador.format(importeMostrar)}
-          </td>
-        `;
-
-      } else {
-
-        fila.innerHTML += `
-          <td>
-            ${formateador.format(importeMostrar)}
-          </td>
-        `;
-      }
-
-      // Estado
-      fila.innerHTML += `
-			<td style="${m.anulado == 1 ? 'background-color:#FF6467;color:white;' : ''}">
-				${m.anulado == 1 ? 'Anulado' : 'Activo'}
-			</td>
-      `;
-
-      // Acción
-      fila.innerHTML += `
-        <td>
-          ${
-            m.anulado === 0 || m.tipo === 'S'
-              ? `
-                <button
-                  onclick="editarMovimiento(
-                    ${m.id_movimiento},
-                    ${Math.abs(Number(m.importe || 0))},
-                    '${(m.descripcion || '').replace(/'/g, "\\'")}',
-                    '${m.tipo}'
-                  )"
-                >
-                  ✏️ Editar
-                </button>
-              `
-              : ''
-          }
-        </td>
-      `;
-
-      tbody.appendChild(fila);
-
-    });
-
-		tbody.innerHTML += `
-		  <tr>
-			<td colspan="7">
-			  <h2 style="text-align:center;">
-				Total de movimientos de efectivo del dia:
-				${formateador.format(totalDia)}
-			  </h2>
-
-			  <div style="
-				display:flex;
-				justify-content:center;
-				gap:50px;
-				margin-top:15px;
-				font-size:18px;
-				font-weight:bold;
-			  ">
-
-				<span style="color:green;">
-				  Total Ingresos:
-				  ${formateador.format(totalIngresos)}
-				</span>
-
-				<span style="color:red;">
-				  Total Egresos:
-				  ${formateador.format(totalEgresos)}
-				</span>
-
-			  </div>
-			</td>
-		  </tr>
-		`;
-
-  } catch (error) {
-
-    console.error(error);
-
-    alert("Error cargando movimientos");
-  }
-}
-
-// ======================================================
-// EDITAR MOVIMIENTO
-// ======================================================
-
-async function editarMovimiento(id, importe, descripcion, tipo) {
-
-  const nuevoImporte = prompt(
-    "Nuevo importe:",
-    importe
-  );
-
-  let nuevaDescripcion = "";
-
-  if (tipo === 'S') {
-
-    nuevaDescripcion = descripcion;
-
-  } else {
-
-    nuevaDescripcion = prompt(
-      "Nueva descripción:",
-      descripcion
-    );
-  }
-
-  if (!nuevoImporte || !nuevaDescripcion)
-    return;
-
-  try {
-
-    const response = await fetch(
-      `/api/movimientos/${id}`,
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          importe: parseFloat(Math.abs(nuevoImporte)),
-          descripcion: nuevaDescripcion
-        })
-      }
-    );
-
-    const data = await response.json();
-
-    if (!data.ok) {
-
-      alert(data.mensaje || "Error actualizando movimiento");
-
-      return;
-    }
-
-    alert("Movimiento actualizado correctamente.");
-
-    cargarMovimientos();
-
-  } catch (error) {
-
-    console.error(error);
-
-    alert("Error actualizando movimiento");
-  }
-}
-
-// ======================================================
-
-cargarMovimientos();
 
 </script>
 
@@ -483,6 +220,8 @@ cargarMovimientos();
 <script>
   verificarAperturaActiva("menu-caja.html");
 </script>
+
+<script src="JS/modal.js"></script>
 
 </body>
 </html>

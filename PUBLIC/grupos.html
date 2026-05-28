@@ -242,15 +242,14 @@ document.getElementById("btnVerificar").onclick = async () => {
     const codigo = parseInt(idGrupo.value);
 
     if (!codigo)
-        return alert("Ingrese un codigo valido.");
+		return mostrarAlerta({mensaje: "Ingrese un codigo valido"});
 
     try {
 
         const resp = await fetch(`/api/grupos/${codigo}`);
 
         if (!resp.ok) {
-
-            alert("Grupo no encontrado.");
+			await mostrarAlerta({mensaje: "Grupo no encontrado"});
             limpiarCampos();
             return;
         }
@@ -266,9 +265,7 @@ document.getElementById("btnVerificar").onclick = async () => {
             (data.publica == 1);
 
     } catch (error) {
-
         console.error(error);
-
         alert("Error consultando grupo");
     }
 };
@@ -281,11 +278,11 @@ document.getElementById("btnAlta").onclick = async () => {
 
     if (idGrupo.value) {
 
-        return alert(
-            "Para dar de alta NO debe ingresar un codigo.\n" +
-            "Este se genera automaticamente.\n" +
-            "Borrar el codigo, cargar los demas campos y volver a presionar ALTA"
-        );
+		return await mostrarAlerta({mensaje: `Para dar de alta NO debe ingresar el codigo.\n
+				Este se genera automaticamente.\n
+				Borrar el codigo, cargar los demas campos y volver a presionar ALTA
+		`});
+		return;
     }
 
     if (!validarCampos())
@@ -294,43 +291,34 @@ document.getElementById("btnAlta").onclick = async () => {
     try {
 
         const resp = await fetch('/api/grupos', {
-
             method: 'POST',
-
             headers: {
                 'Content-Type': 'application/json'
             },
 
             body: JSON.stringify({
-
                 descripcion: descripcion.value.trim(),
-
-                deshabilitado:
-                    document.getElementById("deshabili").checked ? 1 : 0,
-
-                publica:
-                    document.getElementById("publica").checked ? 1 : 0
+                deshabilitado: document.getElementById("deshabili").checked ? 1 : 0,
+                publica: document.getElementById("publica").checked ? 1 : 0
             })
         });
 
         const data = await resp.json();
 
         if (!data.ok) {
-
             alert(data.mensaje || "Error al grabar");
             return;
         }
 
-        alert(`Grupo agregado con codigo ${data.id_grupo}`);
-
+        //alert(`Grupo agregado con codigo ${data.id_grupo}`);
+		await mostrarAlerta({mensaje: `Grupo agregado con codigo ${data.id_grupo}`,icono:`&#10004;`});
+		
         limpiarCampos();
 
         ArmarTabla();
 
     } catch (error) {
-
         console.error(error);
-
         alert("Error grabando grupo");
     }
 };
@@ -344,7 +332,7 @@ document.getElementById("btnModificar").onclick = async () => {
     const codigo = parseInt(idGrupo.value);
 
     if (!codigo)
-        return alert("Ingrese un codigo valido.");
+        return await mostrarAlerta({mensaje: `Ingrese un codigo valido`});
 
     if (!validarCampos())
         return;
@@ -352,19 +340,14 @@ document.getElementById("btnModificar").onclick = async () => {
     try {
 
         const resp = await fetch(`/api/grupos/${codigo}`, {
-
             method: 'PUT',
-
             headers: {
                 'Content-Type': 'application/json'
             },
 
             body: JSON.stringify({
-
                 descripcion: descripcion.value.trim(),
-
                 deshabilitado: document.getElementById("deshabili").checked ? 1 : 0,
-
                 publica: document.getElementById("publica").checked ? 1 : 0
             })
         });
@@ -376,7 +359,7 @@ document.getElementById("btnModificar").onclick = async () => {
             return;
         }
 
-        alert("Grupo actualizado correctamente.");
+		await mostrarAlerta({mensaje: `Grupo actualizado correctamente`,icono:`&#10004;`});
         limpiarCampos();
         ArmarTabla();
 
@@ -393,7 +376,7 @@ document.getElementById("btnModificar").onclick = async () => {
 function validarCampos() {
 
     if (!descripcion.value.trim()) {
-        alert("Ingrese la descripcion.");
+		mostrarAlerta({mensaje: `Ingrese la descripcion`});
         return false;
     }
 
@@ -438,23 +421,17 @@ document.getElementById("btnBuscarGrupo").onclick = async () => {
         .trim();
 
     if (!texto)
-        return alert("Ingrese texto a buscar.");
+        return await mostrarAlerta({mensaje: `Ingrese texto a buscar`});
 
     try {
-
         const resp = await fetch(`/api/grupos/buscar/${texto}`);
-
         const data = await resp.json();
-
-        const tablaBody =
-            document.querySelector("#tablaResultados tbody");
+        const tablaBody = document.querySelector("#tablaResultados tbody");
 
         tablaBody.innerHTML = "";
 
         data.forEach(grupo => {
-
             const fila = document.createElement("tr");
-
             fila.innerHTML = `
                 <td>${grupo.id_grupo}</td>
                 <td>${grupo.descripcion}</td>
@@ -479,9 +456,7 @@ document.getElementById("btnBuscarGrupo").onclick = async () => {
         });
 
     } catch (error) {
-
         console.error(error);
-
         alert("Error buscando grupos");
     }
 };
@@ -545,14 +520,14 @@ async function ArmarTabla() {
         document.getElementById("listado").innerHTML = html;
 
     } catch (error) {
-
         console.error(error);
-
         alert("Error armando tabla");
     }
 }
 
 </script>
+  
+  <script src="JS/modal.js"></script>
   
 </body>
 </html>

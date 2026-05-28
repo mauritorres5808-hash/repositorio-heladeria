@@ -592,14 +592,8 @@ async function verDetalle(idCompra) {
 			"flex";
 
 	} catch (error) {
-
 		console.error(error);
-
-		alert(
-			"Error obteniendo detalle: "
-			+
-			error.message
-		);
+		alert("Error obteniendo detalle: " + error.message);
 	}
 }
 

@@ -201,14 +201,28 @@ router.post("/generar", async (req, res) => {
             WHERE id_cierre = 0
         `, [idCierre]);
 
-        // ======================================================
-        // CERRAR APERTURA
-        // ======================================================
-        await connection.query(`
-            UPDATE aperturas
-            SET estado = 'CERRADA'
-            WHERE id_apertura = ?
-        `, [idCierre]);
+
+			// ======================================================
+			// BUSCAR APERTURA ABIERTA
+			// ======================================================
+			const [aperturasAbiertas] = await connection.query(`
+				SELECT id_apertura
+				FROM aperturas
+				WHERE estado = 'ABIERTA'
+				LIMIT 1
+			`);
+
+			if (aperturasAbiertas.length > 0) {
+				const idApertura = aperturasAbiertas[0].id_apertura;
+				// ======================================================
+				// CERRAR APERTURA
+				// ======================================================
+				await connection.query(`
+					UPDATE aperturas
+					SET estado = 'CERRADA'
+					WHERE id_apertura = ?
+				`, [idApertura]);
+			}
 
         // ======================================================
         // COMMIT

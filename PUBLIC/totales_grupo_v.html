@@ -144,6 +144,7 @@
       <label>Hasta: <input type="date" id="fechaHasta"></label>
 	<label for="chk_cierre">solo Ventas sin cierre</label>
 	<input  type="checkbox" checked=true id="chk_cierre">
+	<br><br>
 	  <div class="contenedor-botones2">
 			<button class="boton-redondeado" onclick="calcularTotales()">&#128269; Buscar</button>
 			<button  onclick="window.location.href='menu-ventas.html'">&#8617; Volver</button>
@@ -223,7 +224,8 @@ async function calcularTotales() {
 
     if (totales.length === 0) {
       mensaje.style.display = "none";
-      alert("No se encontraron ventas en ese rango.");
+      //alert("No se encontraron ventas en ese rango.");
+	  await mostrarAlerta({mensaje: "No se encontraron ventas en ese rango"});
       return;
     }
 
@@ -335,6 +337,7 @@ async function calcularTotales() {
 
   </script>
 
+<script src="JS/modal.js"></script>
 
 </body>
 </html>

@@ -235,15 +235,14 @@ document.getElementById("btnVerificar").onclick = async () => {
     const codigo = parseInt(idFpago.value);
 
     if (!codigo)
-        return alert("Ingrese un código válido.");
+ 		return await mostrarAlerta({mensaje: `Ingrese un codigo valido`});
 
     try {
 
         const resp = await fetch(`/api/fpago/${codigo}`);
 
         if (!resp.ok) {
-
-            alert("Forma de Pago no encontrada.");
+			await mostrarAlerta({mensaje: `Forma de Pago no encontrada`});			
             limpiarCampos();
             return;
         }
@@ -255,9 +254,7 @@ document.getElementById("btnVerificar").onclick = async () => {
         document.getElementById("deshabili").checked = (data.deshabilitado === 1);
 
     } catch (error) {
-
         console.error(error);
-
         alert("Error consultando Forma de Pago");
     }
 };
@@ -270,11 +267,11 @@ document.getElementById("btnAlta").onclick = async () => {
 
     if (idFpago.value) {
 
-        return alert(
-            "Para dar de alta NO debe ingresar un codigo.\n" +
-            "Este se genera automaticamente.\n" +
-            "Borrar el codigo, cargar los demas campos y volver a presionar ALTA"
-        );
+		return await mostrarAlerta({mensaje: `Para dar de alta NO debe ingresar el codigo.\n
+				Este se genera automaticamente.\n
+				Borrar el codigo, cargar los demas campos y volver a presionar ALTA
+		`});
+		return;
     }
 
     if (!validarCampos())
@@ -300,21 +297,18 @@ document.getElementById("btnAlta").onclick = async () => {
         const data = await resp.json();
 
         if (!data.ok) {
-
             alert(data.mensaje || "Error al grabar");
             return;
         }
 
-        alert(`Forma de Pago agregada con código ${data.id_fpago}`);
+		await mostrarAlerta({mensaje: `Forma de Pago agregada con código ${data.id_fpago}`,icono:`&#10004;`});
 
         limpiarCampos();
 
         ArmarTabla();
 
     } catch (error) {
-
         console.error(error);
-
         alert("Error grabando Forma de Pago");
     }
 };
@@ -328,7 +322,7 @@ document.getElementById("btnModificar").onclick = async () => {
     const codigo = parseInt(idFpago.value);
 
     if (!codigo)
-        return alert("Ingrese un código válido.");
+		return await mostrarAlerta({mensaje: `Ingrese un codigo valido`});
 
     if (!validarCampos())
         return;
@@ -353,21 +347,17 @@ document.getElementById("btnModificar").onclick = async () => {
         const data = await resp.json();
 
         if (!data.ok) {
-
             alert(data.mensaje || "Error al modificar");
             return;
         }
 
-        alert("Forma de Pago actualizada correctamente.");
+		await mostrarAlerta({mensaje: `Forma de Pago actualizada correctamente`,icono:`&#10004;`});
 
         limpiarCampos();
-
         ArmarTabla();
 
     } catch (error) {
-
         console.error(error);
-
         alert("Error modificando Forma de Pago");
     }
 };
@@ -379,7 +369,7 @@ document.getElementById("btnModificar").onclick = async () => {
 function validarCampos() {
 
     if (!descripcion.value.trim()) {
-        alert("Ingrese la descripcion.");
+		mostrarAlerta({mensaje: `Ingrese la descripcion`});
         return false;
     }
     return true;
@@ -423,7 +413,7 @@ document.getElementById("btnBuscarFPago").onclick = async () => {
         .trim();
 
     if (!texto)
-        return alert("Ingrese texto a buscar.");
+		return await mostrarAlerta({mensaje: `Ingrese texto a buscar`});
 
     try {
 
@@ -458,9 +448,7 @@ document.getElementById("btnBuscarFPago").onclick = async () => {
         });
 
     } catch (error) {
-
         console.error(error);
-
         alert("Error buscando formas de pago");
     }
 };
@@ -529,14 +517,14 @@ async function ArmarTabla() {
         document.getElementById("listado").innerHTML = html;
 
     } catch (error) {
-
         console.error(error);
-
         alert("Error armando tabla");
     }
 }
 
 </script>
+
+<script src="JS/modal.js"></script>
 
 </body>
 </html>

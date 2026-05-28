@@ -53,7 +53,7 @@ function crearModalBase() {
     #modalSistemaBox{
       background:white;
       width:50%;
-      max-width:250px;
+      max-width:320px;
       border-radius:14px;
       padding:25px;
       text-align:center;
@@ -187,9 +187,6 @@ function mostrarConfirm({
     `;
 
     modal.style.display = "flex";
-
-	// 👇 foco automático en boton Aceptar
-    document.getElementById("modalBtnAceptar").focus();
 
     document.getElementById("modalBtnAceptar").onclick = () => {
       modal.style.display = "none";

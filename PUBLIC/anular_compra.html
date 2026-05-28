@@ -317,8 +317,14 @@ verificarSesion();
 				return;
 			}
 
-			if (!confirm("Esta seguro que desea anular esta compra?"))
-				return;
+			const confirmar = await mostrarConfirm({
+			  mensaje: "¿Está seguro que desea anular esta compra?",
+			  textoAceptar: "Sí, anular",
+			  textoCancelar: "Cancelar"
+			});
+			if (!confirmar) {
+			  return;
+			}
 
 			try {
 
@@ -444,7 +450,7 @@ return fechaStr.substring(0,10);
 
 
   </script>
-
+<script src="JS/modal.js"></script>
 
 </body>
 </html>

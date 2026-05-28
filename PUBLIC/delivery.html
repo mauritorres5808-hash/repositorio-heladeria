@@ -85,7 +85,7 @@
       <label style="font-weight:bold">Cliente (solo para delivery propio)</label>
       <div class="flex" style="align-items:center">
 		<button onclick="NuevoCliente()">&#11207; ir a Clientes</button>
-        <input type="text" id="id_cliente" placeholder="codigo cliente" style="width:140px">
+        <input type="text" id="id_cliente" placeholder="codigo cliente" style="width:140px" onkeydown="if(event.key==='Enter')btnVerificar.click()">
 		
 		<button id="btnVerificar">&#9989; Verificar</button>
 
@@ -841,14 +841,14 @@ window.recalcularImportes = async function(modificado = 0) {
 		const imp1 = parseFloat(document.getElementById('importe1').value) || 0;
 		const imp2 = parseFloat(document.getElementById('importe2').value) || 0;
 
-const promoData = await calcularPromociones(window.productosVenta);
-const subtotal = promoData.subtotalOriginal;
-const descuentoPromo = promoData.descuentoPromos || 0;
+		const promoData = await calcularPromociones(window.productosVenta);
+		const subtotal = promoData.subtotalOriginal;
+		const descuentoPromo = promoData.descuentoPromos || 0;
 	
 		const descuento = parseFloat(document.getElementById('descuento').value) || 0;
 		const recargo = parseFloat(document.getElementById('recargo').value) || 0;
 
-const totalFinal = subtotal - descuentoPromo - descuento + recargo;
+		const totalFinal = subtotal - descuentoPromo - descuento + recargo;
 
 		// VALIDACIONES
 
@@ -916,8 +916,9 @@ const totalFinal = subtotal - descuentoPromo - descuento + recargo;
 				return;
 			}
 
-			const deseaImprimir =
-				confirm(`Venta Nro ${data.id_venta} grabada correctamente.\n\n�Desea imprimir el ticket?`);
+			document.getElementById('recargo').focus();
+			//const deseaImprimir = confirm(`Venta Nro ${data.id_venta} grabada correctamente.\n\n�Desea imprimir el ticket?`);
+			const deseaImprimir = await mostrarConfirm({mensaje: `Venta Nro ${data.id_venta}\n grabada correctamente.\n\n Desea imprimir el ticket ?` });
 
 			if (deseaImprimir) {
 				generarComprobanteTermicoPDF(
@@ -962,10 +963,10 @@ const totalFinal = subtotal - descuentoPromo - descuento + recargo;
 
       clienteSeleccionado = null;
       document.getElementById('id_cliente').value = '';
-      document.getElementById('cli_nombre').value = '-';
-      document.getElementById('cli_domicilio').value = '-';
-      document.getElementById('cli_telefono').value = '-';
-      document.getElementById('cli_nota').value = '-';
+      document.getElementById('cli_nombre').value = '';
+      document.getElementById('cli_domicilio').value = '';
+      document.getElementById('cli_telefono').value = '';
+      document.getElementById('cli_nota').value = '';
     }
 /*
     // funcion hora
@@ -1141,17 +1142,10 @@ window.guardarCliente = async function () {
 
     try {
 
-        const nombre =
-            document.getElementById('cli_nombre').value.trim();
-
-        const domicilio =
-            document.getElementById('cli_domicilio').value.trim();
-
-        const telefono =
-            document.getElementById('cli_telefono').value.trim();
-
-        const nota =
-            document.getElementById('cli_nota').value.trim();
+        const nombre = document.getElementById('cli_nombre').value.trim();
+        const domicilio = document.getElementById('cli_domicilio').value.trim();
+        const telefono = document.getElementById('cli_telefono').value.trim();
+        const nota = document.getElementById('cli_nota').value.trim();
 
         if (!telefono) {
             //alert('Debe ingresar el telefono');
@@ -1271,7 +1265,7 @@ window.guardarCliente = async function () {
             data.id_cliente;
 
         //alert('Cliente agregado correctamente\n\nID: ' + data.id_cliente);
-		await mostrarAlerta({mensaje: "Cliente agregado correctamente\n\nID:" + data.id_cliente});
+		await mostrarAlerta({mensaje: "Cliente agregado correctamente\n\nID:" + data.id_cliente ,icono:"&#10004;"});
 
     } catch (err) {
         console.error(err);
@@ -1290,8 +1284,7 @@ function cerrarModalPromos(){
     // Salir
     window.SalirVenta = async function(){
       if (window.productosVenta.length > 0) {
-        //const deseaSalir = confirm('⚠️ Hay productos en la venta.\n\n¿Desea salir y perder lo ingresado?');
-		const deseaSalir = await mostrarConfirm({mensaje: "Hay productos en la venta.\n\n¿Desea salir y perder lo ingresado?"});
+		const deseaSalir = await mostrarConfirm({mensaje: "Hay productos en la venta.\n\n Desea salir y perder lo ingresado?"});
         if (deseaSalir) { await LimpiarPantalla(); return; }
         else return;
       }
@@ -1313,7 +1306,6 @@ function cerrarModalPromos(){
 
 <script src="JS/mapa-distancia.js"></script>
 <script src="JS/modal.js"></script>
-
 
 </body>
 

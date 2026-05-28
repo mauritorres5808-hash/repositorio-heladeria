@@ -231,21 +231,21 @@ ArmarTabla();
     const contenido = document.getElementById("contenido");
 
     // --- Verificar existencia ---
-document.getElementById("btnVerificar").onclick = async () => {
+	document.getElementById("btnVerificar").onclick = async () => {
 
-  const codigo = parseInt(idSabor.value);
+	const codigo = parseInt(idSabor.value);
 
-  if (!codigo)
-    return alert("Ingrese un codigo valido.");
+	if (!codigo)
+		return await mostrarAlerta({mensaje: `Ingrese un codigo valido`});
 
-  const resp = await fetch(`/api/sabores/${codigo}`);
-  const data = await resp.json();
+	const resp = await fetch(`/api/sabores/${codigo}`);
+	const data = await resp.json();
 
-  if (data.error) {
-    alert("Sabor no encontrado.");
-    limpiarCampos();
-    return;
-  }
+	if (data.error) {
+		await mostrarAlerta({mensaje: `Sabor no encontrado`});
+		limpiarCampos();
+		return;
+	}
 
   descripcion.value = data.descripcion || "";
   contenido.value = data.contenido || "";
@@ -260,12 +260,14 @@ document.getElementById("btnVerificar").onclick = async () => {
     // --- Alta ---
 document.getElementById("btnAlta").onclick = async () => {
 
-  if (idSabor.value)
-    return alert(
-      "Para dar de alta NO debe ingresar un codigo.\n" +
-        "Este se genera automaticamente.\nBorrar el codigo y volver a intentar."
-    );
-
+  if (idSabor.value) {
+		return await mostrarAlerta({mensaje: `Para dar de alta NO debe ingresar el codigo.\n
+				Este se genera automaticamente.\n
+				Borrar el codigo, cargar los demas campos y volver a presionar ALTA
+		`});
+		return;
+	}
+		
   if (!await validarCampos())
     return;
 
@@ -293,10 +295,9 @@ document.getElementById("btnAlta").onclick = async () => {
     return;
   }
 
-  alert(`Sabor agregado con codigo ${data.id}`);
+  await mostrarAlerta({mensaje: `Sabor agregado con codigo ${data.id}`,icono:`&#10004;`});
 
   limpiarCampos();
-
   ArmarTabla();
 };
 
@@ -307,21 +308,18 @@ document.getElementById("btnModificar").onclick = async () => {
   const codigo = parseInt(idSabor.value);
 
   if (!codigo)
-    return alert("Ingrese un codigo valido.");
+    return await mostrarAlerta({mensaje: `Ingrese un codigo valido`});
 
   if (!await validarCampos())
     return;
 
   const resp = await fetch(`/api/sabores/${codigo}`, {
-
     method: 'PUT',
-
     headers: {
       'Content-Type': 'application/json'
     },
 
     body: JSON.stringify({
-
       id_tipo_sabor: parseInt(
         document.getElementById("tipo_sabor").value
       ),
@@ -342,21 +340,20 @@ document.getElementById("btnModificar").onclick = async () => {
     return;
   }
 
-  alert("Sabor actualizado correctamente.");
+  await mostrarAlerta({mensaje: `Sabor actualizado correctamente`,icono:`&#10004;`});
 
   limpiarCampos();
-
   ArmarTabla();
 };
 
 
     async function validarCampos() {
       if (!descripcion.value.trim()) { 
-		alert("Ingrese la descripcion."); 
+		await mostrarAlerta({mensaje: `Ingrese la descripcion`});
 		return false; 
 		}
 	 if (!document.getElementById("tipo_sabor").value) {
-		alert("Seleccione el tipo de sabor.");
+		await mostrarAlerta({mensaje: `Seleccione el tipo de sabor`});
 		return false;
 	  }
       return true;
@@ -384,7 +381,7 @@ document.getElementById("btnModificar").onclick = async () => {
 		  .toLowerCase();
 
 	  if (!texto)
-		return alert("Ingrese texto a buscar.");
+		return 	await mostrarAlerta({mensaje: `Ingrese texto a buscar`});
 
 	  const tablaBody =
 		document.querySelector("#tablaResultados tbody");
@@ -528,6 +525,7 @@ async function cargarTiposSabores() {
 
   </script>
 
+<script src="JS/modal.js"></script>
 
 </body>
 </html>

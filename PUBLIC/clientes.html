@@ -300,13 +300,13 @@ const idCliente = document.getElementById("id_cliente");
 	  const codigo = parseInt(idCliente.value);
 
 	  if (!codigo) {
-		return alert("Ingrese un código válido.");
+		return await mostrarAlerta({mensaje: `Ingrese un codigo valido`});
 	  }
 
 	  const resp = await fetch(`/api/clientes/${codigo}`);
 
 	  if (!resp.ok) {
-		alert("Cliente no encontrado.");
+		await mostrarAlerta({mensaje: `Cliente no encontrado`});
 		limpiarCampos();
 		return;
 	  }
@@ -327,16 +327,16 @@ const idCliente = document.getElementById("id_cliente");
 	document.getElementById("btnAlta").onclick = async () => {
 
 	  if (idCliente.value) {
-		return alert(
-		  "Para dar de alta NO debe ingresar un codigo.\n" +
-		  "Este se genera automaticamente.\nBorrar el codigo y volver a intentar."
-		);
-	  }
-
+		return await mostrarAlerta({mensaje: `Para dar de alta NO debe ingresar el codigo.\n
+				Este se genera automaticamente.\n
+				Borrar el codigo, cargar los demas campos y volver a presionar ALTA
+		`});
+		return;
+    }
 	  if (!await validarCampos()) return;
 
 	  if (!validarFormatoDomicilio(domicilio.value)) {
-		alert("El domicilio debe terminar en 'Bs As' o 'CABA'.");
+		await mostrarAlerta({mensaje: `El domicilio debe terminar en 'Bs As' o 'CABA'`});
 		return;
 	  }
 
@@ -368,7 +368,7 @@ const idCliente = document.getElementById("id_cliente");
 
 	  const data = await resp.json();
 
-	  alert(`Cliente agregado con código ${data.id_cliente}`);
+	  await mostrarAlerta({mensaje: `Cliente agregado con código ${data.id_cliente}`,icono:`&#10004;`});
 
 	  limpiarCampos();
 	};    
@@ -379,13 +379,13 @@ const idCliente = document.getElementById("id_cliente");
 	  const codigo = parseInt(idCliente.value);
 
 	  if (!codigo) {
-		return alert("Ingrese un código válido.");
+		return await mostrarAlerta({mensaje: `Ingrese un codigo valido`});
 	  }
 
 	  if (!await validarCampos()) return;
 
 	  if (!validarFormatoDomicilio(domicilio.value)) {
-		alert("El domicilio debe terminar en 'Bs As' o 'CABA'.");
+		await mostrarAlerta({mensaje: `El domicilio debe terminar en 'Bs As' o 'CABA'`});
 		return;
 	  }
 
@@ -419,15 +419,25 @@ const idCliente = document.getElementById("id_cliente");
 		return;
 	  }
 
-	  alert("Cliente actualizado correctamente.");
+	  await mostrarAlerta({mensaje: `Cliente actualizado correctamente`,icono:`&#10004;`});
 
 	  limpiarCampos();
 	};    
 
     async function validarCampos() {
-      if (!nombre.value.trim()) { alert("Ingrese el nombre."); return false; }
-      if (!domicilio.value.trim()) { alert("Ingrese el domicilio."); return false; }
-      if (!telefono.value.trim()) { alert("Ingrese el teléfono."); return false; }
+      if (!nombre.value.trim()) { 
+		  await mostrarAlerta({mensaje: `Ingrese el nombre`});
+		  return false; 
+	  }
+      if (!domicilio.value.trim()) { 
+			await mostrarAlerta({mensaje: `Ingrese el domicilio`});
+			return false; 
+	  }
+      if (!telefono.value.trim()) { 
+		await mostrarAlerta({mensaje: `Ingrese el telefono`});
+
+		return false; 
+	  }
       return true;
     }
 
@@ -545,7 +555,7 @@ async function obtenerDatosEmpresa() {
 		  .toLowerCase();
 
 	  if (!texto) {
-		return alert("Ingrese texto a buscar.");
+		return await mostrarAlerta({mensaje: `Ingrese texto a buscar`});
 	  }
 
 	  const tablaBody =
@@ -592,6 +602,7 @@ async function obtenerDatosEmpresa() {
   </script>
 
 <script src="JS/mapa-distancia.js"></script>
+<script src="JS/modal.js"></script>
 
 </body>
 </html>

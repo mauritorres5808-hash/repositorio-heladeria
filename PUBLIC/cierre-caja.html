@@ -333,8 +333,17 @@ document.getElementById("userLabel").textContent = localStorage.getItem("usuario
     // Confirmar cierre
 	async function confirmarCierre() {
 
+		const confirmar = await mostrarConfirm({
+		  mensaje: "¿Está seguro que desea Cerrar la Caja ?",
+		  textoAceptar: "Sí, cerrar",
+		  textoCancelar: "Cancelar"
+		});
+		if (!confirmar) {
+		  return;
+		}		
+		
 		if (!datosCierre)
-			return alert("Primero calcule el cierre.");
+			return await mostrarAlerta({mensaje: `Primero calcule el cierre`});
 		try {
 			const usuario = localStorage.getItem("usuarioEmail") || "";
 			const response = await fetch("/api/cierres/generar", {
@@ -371,6 +380,8 @@ document.getElementById("userLabel").textContent = localStorage.getItem("usuario
 <script>
   verificarCajaParaCierre("menu-caja.html");
 </script>
+
+<script src="JS/modal.js"></script>
 
 </body>
 </html>

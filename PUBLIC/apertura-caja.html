@@ -24,6 +24,9 @@
       border: 1px solid #999;
     }	
 
+    th,td{border:1px solid #ccc;padding:8px;text-align:center}
+    th{background:#eee}
+
 	    button { padding:8px 16px;background:#007bff;color:white;border:none;border-radius:6px;cursor:pointer }
     button:hover { background:red;color:white; }
 
@@ -101,7 +104,6 @@ document.getElementById("btnApertura").onclick = async () => {
         // ======================================================
         // INSERTAR APERTURA
         // ======================================================
-
         const responseApertura = await fetch("/api/aperturas", {
             method: "POST",
             headers: {
@@ -120,14 +122,12 @@ document.getElementById("btnApertura").onclick = async () => {
         const dataApertura = await responseApertura.json();
 
         if (!dataApertura.ok) {
-
             throw new Error(dataApertura.mensaje);
         }
 
         // ======================================================
         // INSERTAR MOVIMIENTO
         // ======================================================
-
         await fetch("/api/movimientos", {
             method: "POST",
             headers: {
@@ -146,15 +146,12 @@ document.getElementById("btnApertura").onclick = async () => {
 
         mensajeDiv.style.display = "block";
 
-        mensajeDiv.innerHTML =
-            `✅ Apertura creada (ID ${dataApertura.id_apertura}) por ${usuario}.`;
+        mensajeDiv.innerHTML = `✅ Apertura creada (ID ${dataApertura.id_apertura}) por ${usuario}.`;
 
         cargarAperturas();
 
     } catch (e) {
-
         console.error(e);
-
         alert("Error al crear apertura: " + e.message);
     }
 };
@@ -163,13 +160,10 @@ document.getElementById("btnApertura").onclick = async () => {
 // ======================================================
 // CARGAR APERTURAS
 // ======================================================
-
 async function cargarAperturas() {
 
     try {
-
         const response = await fetch("/api/aperturas");
-
         const aperturas = await response.json();
 
         let html = `
@@ -193,9 +187,12 @@ async function cargarAperturas() {
                     <td style="text-align: center;">${d.hora || ""}</td>
                     <td style="text-align: center;">${d.usuario || ""}</td>
                     <td style="text-align: center;">${parseFloat(d.importe_inicial || 0).toFixed(2)}</td>
-                    <td style="text-align: center;">${d.estado || ""}</td>
-                </tr>
-            `;
+					${d.estado == 'ABIERTA' ? 
+						`<td style="text-align: center; background:yellow; color:red;font-weight:bold;">${d.estado || ""}</td>`
+					: 
+						`<td style="text-align: center;">${d.estado || ""}</td>`
+					}
+                </tr>`;
         });
 
         html += "</table>";
@@ -203,9 +200,7 @@ async function cargarAperturas() {
         document.getElementById("listaAperturas").innerHTML = html;
 
     } catch (error) {
-
         console.error(error);
-
         alert("Error cargando aperturas");
     }
 }

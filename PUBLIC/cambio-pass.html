@@ -100,14 +100,12 @@ async function cambiarPass() {
         document.getElementById("passNueva").value.trim();
 
     if (!passActual || !passNueva) {
-
-        alert("Debe completar las dos contraseñas.");
+		await mostrarAlerta({mensaje: `Debe completar las dos contraseñas`});
         return;
     }
 
     if (passNueva.length < 6) {
-
-        alert("La nueva contraseña debe tener al menos 6 caracteres.");
+		await mostrarAlerta({mensaje: `La nueva contraseña debe tener al menos 6 caracteres`});
         return;
     }
 
@@ -132,30 +130,27 @@ async function cambiarPass() {
                 })
             });
 
-        const data =
-            await resp.json();
+        const data = await resp.json();
 
         if (!data.ok) {
-
-            alert(data.mensaje || 'Error');
+            //alert(data.mensaje || 'Error');
+			await mostrarAlerta({mensaje: data.mensaje});
             return;
         }
 
-        alert("✅ Contraseña cambiada correctamente.");
+		await mostrarAlerta({mensaje: `Contraseña cambiada correctamente`,icono:`&#10004;`});
 
         document.getElementById("passActual").value = "";
         document.getElementById("passNueva").value = "";
 
     } catch (error) {
-
         console.error(error);
-
         alert("Error cambiando contraseña.");
     }
 }
 
 </script>
-
+<script src="JS/modal.js"></script>
 
 </body>
 </html>

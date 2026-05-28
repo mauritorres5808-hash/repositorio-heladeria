@@ -284,8 +284,13 @@ verificarSesion();
 			return;
 		}
 
-		if (!confirm("Esta seguro que desea anular esta venta?")) {
-			return;
+		const confirmar = await mostrarConfirm({
+		  mensaje: "¿Está seguro que desea anular esta venta?",
+		  textoAceptar: "Sí, anular",
+		  textoCancelar: "Cancelar"
+		});
+		if (!confirmar) {
+		  return;
 		}
 
 		try {
@@ -310,6 +315,7 @@ verificarSesion();
 
   </script>
 
+<script src="JS/modal.js"></script>
 
 </body>
 </html>

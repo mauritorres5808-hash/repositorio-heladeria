@@ -85,7 +85,9 @@
         <div class="fila"><div class="label">Fecha:</div><div id="m_fecha"></div></div>
         <div class="fila"><div class="label">Total:</div><div id="m_total"></div></div>
 </div>
-        <hr>
+        <hr size="1" color="green" noshade>
+        <hr size="5" color="green" noshade>
+        <br>
 
         <div class="fila">
           <div class="label">Forma Pago 1 actual:</div>
@@ -195,7 +197,9 @@ document.getElementById("usuario").innerHTML = `Usuario: <b>${usuario}</b>`;
 	  const resultado = document.getElementById("resultado");
 
 	  if (!fechaInput) {
-		alert("Seleccione una fecha.");
+		//alert("Seleccione una fecha.");
+		await mostrarAlerta({mensaje: "Seleccione una fecha"});
+
 		return;
 	  }
 
@@ -366,9 +370,7 @@ document.getElementById("usuario").innerHTML = `Usuario: <b>${usuario}</b>`;
 		document.getElementById("modalModificar").style.display = "flex";
 
 	  } catch (e) {
-
 		console.error(e);
-
 		alert("Error al cargar la venta");
 	  }
 	}
@@ -459,7 +461,8 @@ document.getElementById("usuario").innerHTML = `Usuario: <b>${usuario}</b>`;
   // confirmar cambio -> validaciones y escribir en Firestore
   async function confirmarCambio() {
     if (!ventaEditando) return alert("No hay venta seleccionada.");
-    const sel1 = document.getElementById("m_fpago1_nuevo").value;
+
+	const sel1 = document.getElementById("m_fpago1_nuevo").value;
     const sel2 = document.getElementById("m_fpago2_nuevo").value;
     const imp1 = parseFloat(document.getElementById("m_imp1_nuevo").value) || 0;
     const imp2 = parseFloat(document.getElementById("m_imp2_nuevo").value) || 0;
@@ -651,6 +654,7 @@ function convertirFecha(fechaStr) {
 
 </script>
 
+<script src="JS/modal.js"></script>
 
 </body>
 </html>

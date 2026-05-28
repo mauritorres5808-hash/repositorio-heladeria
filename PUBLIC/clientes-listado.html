@@ -140,8 +140,6 @@ function mostrarPagina() {
       tr.classList.add("deshabilitado");
     }
 
-    tr.style.cursor = "pointer";
-
     tr.innerHTML = `
       <td>${c.id_cliente}</td>
       <td>${c.nombre}</td>
@@ -155,12 +153,6 @@ function mostrarPagina() {
         </button>
       </td>
     `;
-
-    tr.addEventListener("click", () => {
-
-      window.location.href =
-        `clientes.html?id=${c.id_cliente}`;
-    });
 
     tbody.appendChild(tr);
   });

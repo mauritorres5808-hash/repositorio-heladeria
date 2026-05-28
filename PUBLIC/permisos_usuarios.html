@@ -39,7 +39,7 @@
         <select id="usuarioSelect"></select>
       </label>
 
-      <label>M√≥dulo:
+      <label>Modulo:
         <select id="moduloSelect"></select>
       </label>
 
@@ -47,12 +47,12 @@
         <button id="btnCargar" class="boton-redondeado">Cargar</button>
       </div>
     </div>
-  <div id="mensajeTipo" class="alert-modern">&#9888;&#65039; los usuarios nivel 'Supervisor' tienen todas las funciones habilitadas.</div>
+  <div id="mensajeTipo" class="alert-modern">&#9888;&#65039; los usuarios nivel 'Supervisor' tienen TODAS las funciones habilitadas.</div>
   <div id="mensajeTipo2" class="alert-modern">&#9888;&#65039; Para aplicar los nuevos permisos el usuario debe salir y volver a conectarse al sistema.</div>
 
     <div id="contenedorFunciones">
       <table id="tablaFunciones" align="center">
-        <thead><tr><th style="width:50px">OK</th><th>ID</th><th>Funci√≥n</th></tr></thead>
+        <thead><tr><th style="width:50px">OK</th><th>ID</th><th>Funcion</th></tr></thead>
         <tbody></tbody>
       </table>
     </div>
@@ -148,11 +148,11 @@ verificarSesion();
 		  const idModulo = moduloSelect.value;
 
 		  if (!idUsuario) {
-			return alert('Seleccione un usuario.');
+			return await mostrarAlerta({mensaje: `Seleccione un usuario`});
 		  }
 
 		  if (!idModulo) {
-			return alert('Seleccione un m®Ædulo.');
+			return await mostrarAlerta({mensaje: `Seleccione un Modulo`});
 		  }
 
 		  tbody.innerHTML = '<tr><td colspan="3">Cargando funciones...</td></tr>';
@@ -213,7 +213,7 @@ verificarSesion();
 		  const idModulo = moduloSelect.value;
 
 		  if (!idUsuario || !idModulo) {
-			return alert('Seleccione usuario y m®Ædulo.');
+			return await mostrarAlerta({mensaje: `Seleccione usuario y Modulo`});
 		  }
 
 		  const checks = Array.from(tbody.querySelectorAll('input[type="checkbox"]'));
@@ -244,7 +244,7 @@ verificarSesion();
 			  return;
 			}
 
-			alert('Permisos actualizados.');
+			await mostrarAlerta({mensaje: `Permisos actualizados`,icono:`&#10004;`});
 
 			await cargarFuncionesDelModulo();
 
@@ -255,7 +255,7 @@ verificarSesion();
 		}
 
   </script>
-
+<script src="JS/modal.js"></script>
 
 </body>
 </html>

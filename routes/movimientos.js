@@ -47,7 +47,7 @@ router.get('/listado', async (req, res) => {
         }
 
         sql += `
-            ORDER BY fecha, hora, id_movimiento
+            ORDER BY fecha desc, hora desc, id_movimiento
         `;
 
         const [rows] = await db.query(sql, params);

@@ -375,9 +375,7 @@ function mostrarImagen(pRuta) {
 				});
 			})
 			.catch(error => {
-
 				console.error(error);
-
 				alert("Error cargando grupos");
 			});
 	}
@@ -385,7 +383,7 @@ function mostrarImagen(pRuta) {
     cargarGrupos();
 
 	document.getElementById("btnVerificar").onclick = () => {
-	  if (!idProd.value.trim()) return alert("Ingrese un código válido.");
+	  if (!idProd.value.trim()) return  mostrarAlerta({mensaje: `Ingrese un codigo valido`});
 	  verificarProducto();
 	};
 	document.getElementById("id_producto").addEventListener("blur", () => {
@@ -400,17 +398,12 @@ function mostrarImagen(pRuta) {
 		if (!codigo) return;
 
 		try {
-
 			const resp = await fetch(`/api/productos/${codigo}`);
-
 			const data = await resp.json();
 
 			if (!data) {
-
-				alert("Producto no encontrado.");
-
+				await mostrarAlerta({mensaje: `Producto no encontrado`});
 				limpiar_datos();
-
 				return;
 			}
 
@@ -441,9 +434,7 @@ function mostrarImagen(pRuta) {
 			mostrarImagen(data.imagen);
 
 		} catch (error) {
-
 			console.error(error);
-
 			alert("Error verificando producto");
 		}
 	}
@@ -453,11 +444,12 @@ function mostrarImagen(pRuta) {
 
 		const codigo = parseInt(idProd.value) || 0;
 
-		if (codigo !== 0) {
-
-			return alert(
-				"Para dar de alta NO debe ingresar un codigo."
-			);
+		if (codigo !== 0) {		
+			return await mostrarAlerta({mensaje: `Para dar de alta NO debe ingresar el codigo.\n
+					Este se genera automaticamente.\n
+					Borrar el codigo, cargar los demas campos y volver a presionar ALTA
+			`});
+			return;
 		}
 
 		if (!(await valida_campos())) return;
@@ -465,15 +457,12 @@ function mostrarImagen(pRuta) {
 		try {
 
 			const resp = await fetch('/api/productos', {
-
 				method: 'POST',
-
 				headers: {
 					'Content-Type': 'application/json'
 				},
 
 				body: JSON.stringify({
-
 					descripcion: desc.value.trim(),
 					contenido: conteni.value.trim(),
 					id_grupo: parseInt(grupo.value),
@@ -510,22 +499,15 @@ function mostrarImagen(pRuta) {
 			const data = await resp.json();
 
 			if (!data.ok) {
-
 				alert("Error grabando producto");
-
 				return;
 			}
 
-			alert(
-				`Producto agregado con codigo ${data.id_producto}`
-			);
-
+			await mostrarAlerta({mensaje: `Producto agregado con codigo ${data.id_producto}`,icono:`&#10004;`});
 			limpiar_datos();
 
 		} catch (error) {
-
 			console.error(error);
-
 			alert("Error grabando producto");
 		}
 	};
@@ -536,24 +518,19 @@ function mostrarImagen(pRuta) {
 		const codigo = parseInt(idProd.value);
 
 		if (!codigo) {
-
-			return alert("Ingrese un codigo.");
+			return await mostrarAlerta({mensaje: `Ingrese el codigo`});
 		}
 
 		if (!(await valida_campos())) return;
 
 		try {
-
 			const resp = await fetch(`/api/productos/${codigo}`, {
-
 				method: 'PUT',
-
 				headers: {
 					'Content-Type': 'application/json'
 				},
 
 				body: JSON.stringify({
-
 					descripcion: desc.value.trim(),
 					contenido: conteni.value.trim(),
 					id_grupo: parseInt(grupo.value),
@@ -588,20 +565,15 @@ function mostrarImagen(pRuta) {
 			const data = await resp.json();
 
 			if (!data.ok) {
-
 				alert("Error modificando producto");
-
 				return;
 			}
 
-			alert("Producto actualizado correctamente.");
-
+			await mostrarAlerta({mensaje: `Producto actualizado correctamente`,icono:`&#10004;`});
 			limpiar_datos();
 
 		} catch (error) {
-
 			console.error(error);
-
 			alert("Error modificando producto");
 		}
 	};
@@ -612,28 +584,28 @@ async function valida_campos() {
 	  const grupoSel = parseInt(grupo.value);
 	  
       if (desc.value === null || desc.value === 'undefined' || desc.value.trim() === '') {
-		alert("Ingrese la descripcion");
+		await mostrarAlerta({mensaje: `Ingrese la descripcion`});
 	  return false;
 	  };
       if (!grupoSel) {
-		alert("Seleccione un grupo");
+		await mostrarAlerta({mensaje: `Seleccione un grupo`});
 	  return false;
 	  };
       if (precio.value == 0 || typeof precio.value === 'undefined' || precio.value === null) {
-		alert("Ingrese el precio de Venta");
+		await mostrarAlerta({mensaje: `Ingrese el precio de Venta`});
 	  return false;
 	  };
       if (stock.value == 0 || typeof stock.value === 'undefined' || stock.value === null) {
-		alert("Ingrese el stock");
+		await mostrarAlerta({mensaje: `Ingrese el stock`});
 	  return false;
 	  };
       if (stock_minimo.value == 0 || typeof stock_minimo.value === 'undefined' || stock_minimo.value === null) {
-		alert("Ingrese el stock minimo");
+		await mostrarAlerta({mensaje: `Ingrese el stock minimo`});
 	  return false;
 	  };
 
       if (requiere_sab.checked && cant_sabores.value == 0 || typeof cant_sabores.value === 'undefined' || cant_sabores.value === null) {
-		alert("Ingrese la cantidad de Sabores");
+		await mostrarAlerta({mensaje: `Ingrese la cantidad de Sabores`});
 	  return false;
 	  };
 
@@ -672,20 +644,16 @@ async function limpiar_datos() {
 				.trim();
 
 		if (!texto) {
-
-			return alert("Ingrese texto a buscar.");
+			return await mostrarAlerta({mensaje: `Ingrese texto a buscar`});
 		}
 
 		try {
-
 			const resp = await fetch(
 				`/api/productos/buscar/${texto}`
 			);
 
 			const data = await resp.json();
-
-			const tablaBody =
-				document.querySelector("#tablaResultados tbody");
+			const tablaBody = document.querySelector("#tablaResultados tbody");
 
 			tablaBody.innerHTML = "";
 
@@ -711,15 +679,13 @@ async function limpiar_datos() {
 			});
 
 		} catch (error) {
-
 			console.error(error);
-
 			alert("Error buscando productos");
 		}
 	};
 
 document.getElementById("btnSubproductos").onclick = () => {
-  if (!id_producto.value) return alert("Primero elige un producto.");
+  if (!id_producto.value) return mostrarAlerta({mensaje: `Primero elija un producto`});
   abrirSubproductos(parseInt(id_producto.value), descripcion.value);
 };
 
@@ -778,6 +744,7 @@ document.getElementById("btnSubproductos").onclick = () => {
 </div>
 
 <script src="/JS/productos-sub.js"></script>
+<script src="JS/modal.js"></script>
 
 </body>
 </html>

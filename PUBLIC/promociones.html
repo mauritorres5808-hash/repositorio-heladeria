@@ -144,7 +144,7 @@ th{
 
 <div>
 <label>Nombre de la promo (breve)</label>
-<input style="color:red" type="text" id="descripcion" placeholder="ejm 2x1 helado 1kg">
+<input style="color:blue" type="text" id="descripcion" placeholder="ejm 2x1 helado 1kg">
 </div>
 
 <div>
@@ -159,27 +159,27 @@ th{
 
 <div>
 <label>Cantidad mínima</label>
-<input type="number" id="cantidad_min" value="1">
+<input type="number" id="cantidad_min" value="0">
 </div>
 
 <div id="bloque_lleva_cant" class="hidden">
 <label>Lleva cantidad</label>
-<input type="number" id="lleva_cant">
+<input type="number" id="lleva_cant" value="0">
 </div>
 
 <div id="bloque_paga_cant" class="hidden">
 <label>Paga cantidad</label>
-<input type="number" id="paga_cant">
+<input type="number" id="paga_cant" value="0">
 </div>
 
 <div id="bloque_precio_fijo" class="hidden">
 <label>Precio fijo</label>
-<input type="number" id="precio_fijo">
+<input type="number" id="precio_fijo"  value="0">
 </div>
 
 <div id="bloque_porcentaje" class="hidden">
 <label>% descuento</label>
-<input type="number"  id="porcentaje_desc">
+<input type="number"  id="porcentaje_desc"  value="0">
 </div>
 
 <div>
@@ -417,15 +417,55 @@ function filtrarProductos(){
 
 async function guardarPromocion(){
 
+    const xtipo = document.getElementById('tipo').value;
+	  if (!xtipo) {
+		await mostrarAlerta({mensaje: `Seleccione un Tipo de Promocion`});
+	  return false;
+	  };
+	  
     try {
-
         if (productosSeleccionados.length === 0) {
-            alert('Debe seleccionar productos');
+			await mostrarAlerta({mensaje: `Debe seleccionar productos`});
             return;
         }
 
-        const body = {
+	//validaciones de campos segun la promocion
+    let xdescripcion = document.getElementById("descripcion").value.trim();
+    let xcantidad_min = parseFloat(document.getElementById("cantidad_min").value);
+    let xporcentaje_desc = parseFloat(document.getElementById("porcentaje_desc").value);
+    let xprecio_fijo = parseFloat(document.getElementById("precio_fijo").value);
+    let xlleva_cant = parseFloat(document.getElementById("lleva_cant").value);
+    let xpaga_cant = parseFloat(document.getElementById("paga_cant").value);
 
+
+    if (xtipo === 'LLEVA_PAGA') {
+	  if (xdescripcion === null || xdescripcion === 'undefined' || xdescripcion.trim() === '') 
+				return await mostrarAlerta({mensaje: `Ingrese el Nombre de la Promo`});
+      if (xcantidad_min == 0 || typeof xcantidad_min === 'undefined' || xcantidad_min === null) 
+				return await mostrarAlerta({mensaje: `Ingrese la Cantidad Minima`});
+      if (xlleva_cant == 0 || typeof xlleva_cant === 'undefined' || xlleva_cant === null || xlleva_cant === '') 
+				return await mostrarAlerta({mensaje: `Ingrese el campo Lleva Cantidad`});
+      if (xpaga_cant == 0 || typeof xpaga_cant === 'undefined' || xpaga_cant === null) 
+				return await mostrarAlerta({mensaje: `Ingrese el campo Paga Cantidad`});
+	}
+    if (xtipo === 'SEGUNDA_UNIDAD') {
+	  if (xdescripcion === null || xdescripcion === 'undefined' || xdescripcion.trim() === '') 
+				return await mostrarAlerta({mensaje: `Ingrese el Nombre de la Promo`});
+      if (xcantidad_min == 0 || typeof xcantidad_min === 'undefined' || xcantidad_min === null) 
+				return await mostrarAlerta({mensaje: `Ingrese la Cantidad Minima`});
+      if (xporcentaje_desc == 0 || typeof xporcentaje_desc === 'undefined' || xporcentaje_desc === null) 
+				return await mostrarAlerta({mensaje: `Ingrese el % de Descuento`});
+	}
+    if (xtipo === 'PRECIO_FIJO') {
+	  if (xdescripcion === null || xdescripcion === 'undefined' || xdescripcion.trim() === '') 
+				return await mostrarAlerta({mensaje: `Ingrese el Nombre de la Promo`});
+      if (xcantidad_min == 0 || typeof xcantidad_min === 'undefined' || xcantidad_min === null) 
+				return await mostrarAlerta({mensaje: `Ingrese la Cantidad Minima`});
+      if (xprecio_fijo == 0 || typeof xprecio_fijo === 'undefined' || xprecio_fijo === null) 
+				return await mostrarAlerta({mensaje: `Ingrese el Precio Fijo`});
+	}
+
+        const body = {
             descripcion: document.getElementById('descripcion').value,
             tipo: document.getElementById('tipo').value,
             fecha_desde: document.getElementById('fecha_desde').value,
@@ -459,11 +499,12 @@ async function guardarPromocion(){
 		const data = await resp.json();
 
 		if (!resp.ok || !data.ok) {
-			alert(data.error || 'Error al guardar promoción');
+			//alert(data.error || 'Error al guardar promoción');
+			await mostrarAlerta({mensaje: data.error});
 			return;
 		}
 
-        alert('Promoción guardada');
+		await mostrarAlerta({mensaje: `Promoción guardada correctamente`,icono:`&#10004;`});
 
         limpiarFormulario();
 
@@ -488,11 +529,11 @@ function limpiarFormulario(){
     document.getElementById('tipo').value = '';
     document.getElementById('fecha_desde').value = '';
     document.getElementById('fecha_hasta').value = '';
-    document.getElementById('cantidad_min').value = '1';
-    document.getElementById('porcentaje_desc').value = '';
-    document.getElementById('precio_fijo').value = '';
-    document.getElementById('lleva_cant').value = '';
-    document.getElementById('paga_cant').value = '';
+    document.getElementById('cantidad_min').value = '0';
+    document.getElementById('porcentaje_desc').value = '0';
+    document.getElementById('precio_fijo').value = '0';
+    document.getElementById('lleva_cant').value = '0';
+    document.getElementById('paga_cant').value = '0';
 
     ocultarBloques();
 
@@ -553,9 +594,14 @@ document.getElementById('fecha_hasta').value = p.fecha_hasta ? p.fecha_hasta.sub
 
 async function eliminarPromo(id){
 
-    if (!confirm('¿Eliminar promoción?')) {
-        return;
-    }
+		const confirmar = await mostrarConfirm({
+		  mensaje: "¿Está seguro que Eliminar la promoción ?",
+		  textoAceptar: "Sí, eliminar",
+		  textoCancelar: "Cancelar"
+		});
+		if (!confirmar) {
+		  return;
+		}	
 
     const resp =
         await fetch(
@@ -597,6 +643,8 @@ window.onload = async () => {
 };
 
 </script>
+
+<script src="JS/modal.js"></script>
 
 </body>
 </html>

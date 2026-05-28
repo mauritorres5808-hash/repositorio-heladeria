@@ -75,7 +75,7 @@ th{
 }
 
 .total{
-    font-size:22px;
+    font-size:18px;
     font-weight:bold;
     text-align:right;
     margin-top:15px;
@@ -218,6 +218,8 @@ async function consultar(){
 
 
         let total = 0;
+        let totalEgresos = 0;
+        let totalIngresos = 0;
 
         data.forEach(m => {
 
@@ -225,7 +227,12 @@ async function consultar(){
 
             if (m.tipo === 'E') {
                 importe = importe * -1;
-            }
+                totalEgresos += importe;
+            } else {
+					if (m.anulado == 0) {
+						totalIngresos += importe;
+					}
+				}
 
             if (m.anulado == 0) {
                 total += importe;
@@ -269,13 +276,12 @@ async function consultar(){
 
         });
 
-        document.getElementById("totalGeneral").innerHTML =
-            `TOTAL: ${formateador.format(total)}`;
+        document.getElementById("totalGeneral").innerHTML =`Total General: ${formateador.format(total)}`;
+        document.getElementById("totalGeneral").innerHTML +=`<br>       Total INGRESOS: ${formateador.format(totalIngresos)}`;
+        document.getElementById("totalGeneral").innerHTML +=`<br>       Total EGRESOS: ${formateador.format(totalEgresos)}`;
 
     } catch(error){
-
         console.error(error);
-
         alert("Error obteniendo movimientos");
     }
 }

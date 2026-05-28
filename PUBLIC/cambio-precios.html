@@ -200,9 +200,7 @@ async function cargarGrupos() {
     });
 
   } catch (error) {
-
     console.error(error);
-
     alert('Error cargando grupos');
   }
 }
@@ -217,7 +215,7 @@ async function previsualizar() {
   const valor = parseFloat(document.getElementById("valorCambio").value);
 
   if (!valor && valor !== 0) {
-    alert("Ingrese un valor válido");
+	await mostrarAlerta({mensaje: `Ingrese un valor válido`});
     return;
   }
 
@@ -324,11 +322,18 @@ async function confirmarCambio() {
 
   // VALIDAR QUE HAYA PRODUCTOS
   if (!productosGrupo || productosGrupo.length === 0) {
-    alert("No hay productos para modificar.");
+	await mostrarAlerta({mensaje: `No hay productos para modificar`});
     return;
   }
 
-  if (!confirm("¿Aplicar cambios?")) return;
+  		const confirmar = await mostrarConfirm({
+		  mensaje: "Confirma aplicar los cambios ?",
+		  textoAceptar: "Sí",
+		  textoCancelar: "Cancelar"
+		});
+		if (!confirmar) {
+		  return;
+		}	
 
   try {
 
@@ -419,20 +424,16 @@ async function confirmarCambio() {
     const data = await resp.json();
 
     if (!data.ok) {
-
       alert(data.mensaje || 'Error aplicando cambios');
-
       return;
     }
 
-    alert("Cambios aplicados correctamente");
+	await mostrarAlerta({mensaje: `Cambios aplicados correctamente`,icono:`&#10004;`});
 
     location.reload();
 
   } catch (error) {
-
     console.error(error);
-
     alert("Error aplicando cambios");
   }
 }
@@ -441,6 +442,6 @@ async function confirmarCambio() {
 function cancelar(){ location.reload(); }
 </script>
 
-
+<script src="JS/modal.js"></script>
 </body>
 </html>

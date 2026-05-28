@@ -85,6 +85,7 @@ router.get('/', async (req, res) => {
                 deshabilitado,
                 nivel
             FROM usuarios
+			WHERE id_usuario>1
             ORDER BY id_usuario
         `);
 

@@ -20,6 +20,7 @@ router.get('/', async (req, res) => {
 				estado
 			FROM aperturas
 			ORDER BY id_apertura DESC
+			LIMIT 10
         `);
 
         res.json(rows);

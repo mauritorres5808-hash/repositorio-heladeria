@@ -51,7 +51,7 @@
   <div class="contenedor">
     <h2>Compras - Ingreso de Mercaderia</h2>
 
-    <hr>
+    <br>
 
     <label style="font-weight:bold">Codigo del producto o Codigo de barras</label><br>
     <input type="text" id="id_producto" placeholder="codigo o cod.barras" onkeydown="if(event.key==='Enter')agregarProducto()" style="width:240px">
@@ -68,6 +68,9 @@
         <div id="resultProd" style="margin-top:10px"></div>
       </div>
     </div>
+
+    <br>
+    <br>
 
     <table id="tabla">
       <thead>
@@ -98,7 +101,7 @@
   
   
 verificarSesion();
-
+id_producto.focus();
 
     // Mostrar fecha en encabezado (solo visual)
     const hoy = new Date();
@@ -235,9 +238,7 @@ verificarSesion();
 				.trim();
 
 			  if (!idProd) {
-
-				alert('Ingrese un codigo de producto');
-
+				await mostrarAlerta({mensaje: `Ingrese un codigo de producto`});
 				return;
 			  }
 
@@ -273,16 +274,12 @@ verificarSesion();
 				}
 
 				if (!producto) {
-
-				  alert('Producto no encontrado');
-
+				  await mostrarAlerta({mensaje: `Producto no encontrado`});
 				  return;
 				}
 
 				if (producto.deshabilitado == 1) {
-
-				  alert('Producto no habilitado');
-
+				  await mostrarAlerta({mensaje: `Producto no habilitado`});
 				  return;
 				}
 
@@ -383,9 +380,7 @@ verificarSesion();
 		window.finalizarCompra = async function(){
 
 		  if (window.productosCompra.length === 0) {
-
-			alert('No hay productos en la compra');
-
+			await mostrarAlerta({mensaje: `No hay productos en la compra`});
 			return;
 		  }
 
@@ -393,9 +388,7 @@ verificarSesion();
 			document.getElementById('fpago1').value;
 
 		  if (!fp1) {
-
-			alert('Debe seleccionar forma de pago');
-
+			await mostrarAlerta({mensaje: `Debe seleccionar forma de pago`});
 			return;
 		  }
 
@@ -457,20 +450,16 @@ verificarSesion();
 			  await resp.json();
 
 			if (!data.ok) {
-
 			  alert(data.mensaje || 'Error grabando compra');
-
 			  return;
 			}
 
 			await LimpiarPantalla();
 
-			alert('Compra grabada correctamente');
+			await mostrarAlerta({mensaje: `Compra grabada correctamente`,icono:`&#10004;`});
 
 		  } catch(err){
-
 			console.error(err);
-
 			alert('Error al grabar compra');
 		  }
 		};
@@ -491,15 +480,18 @@ verificarSesion();
 	}
 
     // Salir
-    window.SalirCompra = function(){
+    window.SalirCompra = async function(){
       if (window.productosCompra.length > 0) {
-        const deseaSalir = confirm('⚠️ Hay productos en la compra.\n\n¿Desea salir y perder lo ingresado?');
-        if (deseaSalir) { LimpiarPantalla(); return; }
+		const deseaSalir = await mostrarConfirm({mensaje: "Hay productos en la Compra.\n\n Desea salir y perder lo ingresado?"});
+        if (deseaSalir) { 
+			await LimpiarPantalla(); 
+			return; 
+			}
         else return;
       }
       window.location.href = 'menu-compras.html';
     };
-
+	
     // Cerrar modales con click fuera
     window.onclick = function(event){
       const mp = document.getElementById('modalProductos'), mc = document.getElementById('modalClientes');
@@ -513,6 +505,7 @@ verificarSesion();
   verificarAperturaActiva("menu-compras.html");
 </script>
 
+<script src="JS/modal.js"></script>
 
 </body>
 

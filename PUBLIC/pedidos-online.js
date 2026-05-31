@@ -1253,6 +1253,8 @@ function onGrupoChange(){
 
 }
 
+
+/*
 document.getElementById("btnValidarDom").onclick =
 async () => {
 
@@ -1298,6 +1300,7 @@ async () => {
   }
 
 };
+*/
 
 // =====================================================
 // INICIO

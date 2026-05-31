@@ -180,10 +180,27 @@
 	<!-- MODAL PROMOS -->
 	<div id="modalPromos" class="modal">
 		<div class="modal-contenido" style="width:700px;">
-			<span class="cerrar" onclick="cerrarModalPromos()">
-				&times;
-			</span>
-			<h3>Promociones vigentes</h3>
+			<div style="text-align:center; margin-bottom:15px;">
+			  <button
+				type="button"
+				onclick="cerrarModalPromos()"
+				style="
+				  background:#d9534f;
+				  color:white;
+				  border:none;
+				  border-radius:8px;
+				  padding:10px 25px;
+				  font-size:14px;
+				  font-weight:bold;
+				  cursor:pointer;
+				"
+			  >
+				X Cerrar promociones
+			  </button>
+			</div>
+			
+			<h2 style="text-align:center">&#11088;  Promociones vigentes &#11088; </h2>
+			<h5 style="text-align:center">* Las promociones se aplican automaticamente</h5>
 			<div id="contenidoPromos"></div>
 		</div>
 	</div>

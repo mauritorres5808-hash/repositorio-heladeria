@@ -416,18 +416,22 @@ router.delete('/:id', async (req, res) => {
 // ======================================================
 router.get('/vigentes', async (req, res) => {
 
+const mostrarCodigo = req.query.mostrarCodigo || "S";
+	
     try {
 
         const [rows] = await db.query(`
             SELECT
                 p.*,
-
                 GROUP_CONCAT(
                     CONCAT(
-                        pr.id_producto,
-                        ' - ',
-                        pr.descripcion
-                    )
+							${
+								mostrarCodigo === "S"
+								? "pr.id_producto, ' - ',"
+								: ""
+							}
+							pr.descripcion
+						)
                     SEPARATOR ' | '
                 ) AS productos
 

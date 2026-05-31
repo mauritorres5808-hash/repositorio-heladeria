@@ -333,7 +333,7 @@
     <br><br>
 
     <label for="domicilio" class="lbl">
-      Domicilio (SOLO calle+nro+"Bs As" o "Caba")
+      Domicilio (SOLO calle+nro+"Bs As" o "CABA")
       --> Ejm: Junin 523 Bs As
     </label>
 
@@ -344,13 +344,6 @@
              placeholder="Escriba la dirección completa"
              style="width:40%;">
 
-      <button id="btnValidarDom"
-              type="button"
-              class="btn-validar-dom">
-
-        Validar domicilio
-
-      </button>
 
     </div>
 
@@ -408,7 +401,7 @@
     <input id="paga_con"
            name="paga_con"
            style="width:50%;"
-           placeholder="Ej: Efectivo con $5000 / Transferencia / Tarjeta" />
+           placeholder="Ej: Efectivo con $5000" />
 
     <div class="meta">
       Si es en efectivo indicar con cuánto pagarás
@@ -438,7 +431,7 @@
 				  cursor:pointer;
 				"
 			  >
-				✖ Cerrar promociones
+				X Cerrar promociones
 			  </button>
 			</div>
 
@@ -548,7 +541,7 @@ async function abrirModalPromos(){
     try {
         const resp =
             await fetch(
-                '/api/promociones-abm/vigentes'
+                '/api/promociones-abm/vigentes?mostrarCodigo="N"'
             );
 
         const data =await resp.json();
@@ -566,7 +559,7 @@ async function abrirModalPromos(){
         let html = '';
 
         data.promociones.forEach(p => {
-            
+
 			let vencimiento = 'Sin vto'; 
 			if (p.fecha_hasta) { 
 				vencimiento = 'Vto: ' + p.fecha_hasta.substring(8,10) + '/' + p.fecha_hasta.substring(5,7) + '/' + p.fecha_hasta.substring(0,4); 

@@ -468,6 +468,7 @@ async function consultarVentas() {
                     <th>Descuento</th>
                     <th>Recargo</th>
                     <th>Dtos Promos</th>
+                    <th>Costo Envio</th>
                     <th>TOTAL</th>
                     <th>Forma Pago 1</th>
                     <th>Importe 1</th>
@@ -515,6 +516,7 @@ async function consultarVentas() {
                         <td>${formateadorMoneda.format(v.descuento || 0)}</td>
                         <td>${formateadorMoneda.format(v.recargo || 0)}</td>
                         <td>${formateadorMoneda.format(v.descuento_promociones || 0)}</td>
+                        <td>${formateadorMoneda.format(v.costo_envio)}</td>
                         <td>${formateadorMoneda.format(v.total)}</td>
                         <td>${formasPago[v.f_pago1] || ''}</td>
                         <td>${formateadorMoneda.format(v.importe_fp1 || 0)}</td>
@@ -545,7 +547,7 @@ async function consultarVentas() {
 						</tr>
 
 						<tr>
-						<th></th>
+						<th>&#8921;</th>
 						<td>${cliente.nombre || '-'}</td>
 						<td>${cliente.domicilio || '-'}</td>
 						<td>${cliente.telefono || '-'}</td>
@@ -581,15 +583,13 @@ async function consultarVentas() {
 
                 html += `
                 <tr class="total">
-                    <td colspan="7">
-                        Total del día
+                    <td colspan="8">
+                        Total del dia
                     </td>
 
                     <td>
                         ${formateadorMoneda.format(totalDia)}
                     </td>
-
-                    <td colspan="4"></td>
                 </tr>
                 </table>
                 `;

@@ -340,6 +340,7 @@ document.addEventListener("DOMContentLoaded", () => {
 			  <th>Subtotal</th>
 			  <th>Descuento</th>
 			  <th>Recargo</th>
+			  <th>Costo envio</th>
 			  <th>Total</th>
 			  <th>Forma Pago 1</th>
 			  <th>Importe 1</th>
@@ -386,6 +387,7 @@ document.addEventListener("DOMContentLoaded", () => {
 			  <td>${formateadorMoneda.format(Number(v.subtotal || 0))}</td>
 			  <td>${formateadorMoneda.format(Number(v.descuento || 0))}</td>
 			  <td>${formateadorMoneda.format(Number(v.recargo || 0))}</td>
+			  <td>${formateadorMoneda.format(Number(v.costo_envio || 0))}</td>
 			  <td>${formateadorMoneda.format(Number(v.total || 0))}</td>
 
 			  <td>${formasPago[v.f_pago1] || ""}</td>
@@ -405,9 +407,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
 		  html += `
 		  <tr class="total">
-			<td colspan="6">Total del día</td>
+			<td colspan="7">Total del día</td>
 			<td>${formateadorMoneda.format(totalDia)}</td>
-			<td colspan="5"></td>
 		  </tr>
 		  `;
 

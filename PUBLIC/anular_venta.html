@@ -198,6 +198,7 @@ verificarSesion();
 						<th>Subtotal</th>
 						<th>Descuento</th>
 						<th>Recargo</th>
+						<th>Costo envio</th>
 						<th>Total</th>
 						<th>Forma Pago 1</th>
 						<th>Importe 1</th>
@@ -212,6 +213,7 @@ verificarSesion();
 						<td>${formateadorMoneda.format(Number(venta.subtotal || 0))}</td>
 						<td>${formateadorMoneda.format(Number(venta.descuento || 0))}</td>
 						<td>${formateadorMoneda.format(Number(venta.recargo || 0))}</td>
+						<td>${formateadorMoneda.format(Number(venta.costo_envio || 0))}</td>
 						<td>${formateadorMoneda.format(Number(venta.total || 0))}</td>
 
 			  <td>${formasPago[venta.f_pago1] || ""}</td>

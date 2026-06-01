@@ -39,6 +39,7 @@
     button{padding:8px 14px;background:#007bff;color:#fff;border:none;border-radius:5px;cursor:pointer}
     button:hover{background:#0056b3}
     .input-pequeno{width:90px;height:22px}
+    .input-pequeno2{width:60px;height:22px}
     h2{text-align:center;background-color:#8AC0FF;padding:10px;border-radius:8px}
     .flex{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
     .right{float:right}
@@ -214,21 +215,35 @@
     </table>
 
     <div style="margin-top:20px;">
-       <div style="display: none;" class="total" id="subtotal">Subtotal: $ 0.00</div> 
 
-<div id="detallePromociones"
-     style="
-        margin-top:8px;
-        color:#0b7d32;
-        font-size:14px;
-        font-weight:bold;
-     ">
-</div>
-      <label>Descuento: </label>
-      <input class="input-pequeno" type="number" id="descuento" value="0" step="0.01" onchange="aplicarDescuentoRecargo()">
-      <label>Recargo: </label>
-      <input class="input-pequeno" type="number" id="recargo" value="0" step="0.01" onchange="aplicarDescuentoRecargo()">
-      <span style="margin-left:190px;" class="total"  id="totalGeneral">Total general: $ 0.00</span>
+		<div class="total" id="subtotal">
+			Subtotal productos: $ 0.00
+		</div>
+
+		<div id="detallePromociones"
+			 style="
+				margin-top:8px;
+				color:#0b7d32;
+				font-size:14px;
+				font-weight:bold;
+			 ">
+		</div>
+
+		<div class="total" id="totalPromos" style="font-size:16px;color:#0b7d32">
+			Descuento promociones: $ 0.00
+		</div>
+
+		<div class="total" id="subtotalNeto">
+			Subtotal neto: $ 0.00
+		</div>
+
+		<label>Descuento: </label>
+		<input class="input-pequeno2" type="number" id="descuento" value="0" step="0.10" onchange="aplicarDescuentoRecargo()">
+		<label>Recargo: </label>
+		<input class="input-pequeno2" type="number" id="recargo" value="0" step="0.10" onchange="aplicarDescuentoRecargo()">
+		<label>Costo de Envio: </label>
+		<input class="input-pequeno" type="number" id="cenvio" value="0" step="0.10" onchange="aplicarDescuentoRecargo()">
+		<span style="margin-left:10px;" class="total"  id="totalGeneral">TOTAL GENERAL: $ 0.00</span>
     </div>
 
 <hr>
@@ -272,10 +287,40 @@
 verificarSesion();
 id_cliente.focus();
 
+// ==========================================
+// CONFIGURACION DEL DELIVERY
+// ==========================================
+let configuracion = {
+  costo_envio: 0,
+  total_pedido: 0,
+  distancia_maxima: 0
+};
+
 async function NuevoCliente() {
 localStorage.setItem("paginaAnterior", window.location.href);
 window.location.href = "clientes.html";
 }
+
+// =====================================================
+// calculo el costo de envio
+// =====================================================
+function calcularCostoEnvio(subtotal) {
+
+  const tipoVenta = document.querySelector(
+    'input[name="tipoDelivery"]:checked'
+  ).value;
+
+  // Solo Delivery Propio
+  if (tipoVenta !== "1") {
+    return 0;
+  }
+  
+  if (subtotal >= configuracion.total_pedido) {
+    return 0;
+  }
+  return parseFloat( configuracion.costo_envio || 0 );
+}
+
 
 async function obtenerDatosEmpresa() {
 
@@ -299,6 +344,20 @@ async function obtenerDatosEmpresa() {
         console.error("Error obteniendo EMPRESA:", err);
         return null;
     }
+}
+
+// ==========================================
+// cargar la CONFIGURACION DEL DELIVERY
+// ==========================================
+async function cargarConfiguracion() {
+
+  try {
+    const resp = await fetch('/api/configuraciones');
+    configuracion = await resp.json();
+	document.getElementById('cenvio').value = parseFloat(configuracion.costo_envio || 0).toFixed(2);
+  } catch (error) {
+    console.error("Error cargando configuración:",error);
+  }
 }
   
 async function distancia() {
@@ -365,7 +424,13 @@ mostrarMapaDistancia(origen, destino);
 		}
 	}
 
-    window.onload = cargarFormasPago;
+	window.onload = async function () 
+	{
+    await cargarFormasPago();
+    await cargarConfiguracion();
+	updateDeliveryUI();
+	document.getElementById('cenvio').addEventListener('input', () => {document.getElementById('cenvio').dataset.manual = '1';});
+	};
 
     // ====== Delivery radio handling ======
     const radios = document.querySelectorAll('input[name="tipoDelivery"]');
@@ -379,13 +444,17 @@ mostrarMapaDistancia(origen, destino);
         bloqueCliente.style.display = "block";
         mensajeTipo.textContent = "Delivery propio seleccionado. Debe seleccionar el cliente.";
         mensajeTipo.style.display = "block";
-		imgDelivery.style.display = "none";		
+		imgDelivery.style.display = "none";	
+		cenvio.value = calcularCostoEnvio(document.getElementById("subtotalGeneral"));
 		id_cliente.focus();
       } else 
 	  {
         bloqueCliente.style.display = "none";
         mensajeTipo.textContent = tipo === "2" ? "No requiere datos de cliente." : "No requiere datos de cliente.";
         mensajeTipo.style.display = "block";
+		// Rappi / PedidosYa / Mostrador
+		cenvio.value = "0";
+
 		id_producto.focus();
 			if (tipo === "2") 
 			{
@@ -597,58 +666,52 @@ async function calcularPromociones(productosVenta) {
 
 async function aplicarDescuentoRecargo() {
 
-    const promoData =
-        await calcularPromociones(
-            window.productosVenta
-        );
+    const promoData = await calcularPromociones(window.productosVenta);
+    const subtotal = promoData.subtotalOriginal || 0;
+	const subtotalGeneral = promoData.subtotalOriginal || 0;
+	
+	const cenvioInput = document.getElementById('cenvio');
 
-    const subtotal =
-        promoData.subtotalOriginal || 0;
+	// sólo recalculo si el usuario todavía no modificó el valor
+	if (!cenvioInput.dataset.manual) {
+		cenvioInput.value = calcularCostoEnvio(subtotalGeneral).toFixed(2);
+	}
+
+	document.getElementById('subtotal').textContent = 'Subtotal: $ ' + subtotalGeneral.toFixed(2);
 
     // IMPORTANTE:
     // usar SIEMPRE descuentoPromos
-    const descuentoPromo =
-        promoData.descuentoPromos || 0;
-
-    const descuentoManual =
-        parseFloat(
-            document.getElementById(
-                'descuento'
-            ).value
-        ) || 0;
-
-    const recargo =
-        parseFloat(
-            document.getElementById(
-                'recargo'
-            ).value
-        ) || 0;
+    const descuentoPromo = promoData.descuentoPromos || 0;
+	
+	const subtotalNeto = subtotal - descuentoPromo;
+	document.getElementById('subtotal').textContent = 'Subtotal productos: $ ' + subtotal.toFixed(2);
+	document.getElementById('totalPromos').textContent = 'Descuento promociones: -$ ' + descuentoPromo.toFixed(2);
+	document.getElementById('subtotalNeto').textContent = 'Subtotal neto: $ ' + subtotalNeto.toFixed(2);
+	const envioCalculado = calcularCostoEnvio(subtotal);
+	if (!document.getElementById('cenvio').dataset.manual) {
+		document.getElementById('cenvio').value = envioCalculado.toFixed(2);
+	}
+	
+    const descuentoManual = parseFloat(document.getElementById('descuento').value) || 0;
+    const recargo = parseFloat(document.getElementById('recargo').value) || 0;
+    const CostoEnv = parseFloat(document.getElementById('cenvio').value) || 0;
 
     let total =
-        subtotal
+        subtotalGeneral
         - descuentoPromo
         - descuentoManual
-        + recargo;
+        + recargo
+        + CostoEnv;
 
     if (total < 0) {
         total = 0;
     }
 
-    document.getElementById(
-        'subtotal'
-    ).textContent =
-        'Subtotal: $ ' +
-        subtotal.toFixed(2);
-
-    document.getElementById(
-        'totalGeneral'
-    ).textContent =
-        'Total general: $ ' +
-        total.toFixed(2);
+    document.getElementById('subtotal').textContent = 'Subtotal: $ ' + subtotal.toFixed(2);
+    document.getElementById('totalGeneral').textContent = 'TOTAL GENERAL: $ ' + total.toFixed(2);
 
     recalcularImportes();
 }
-
 
 
 
@@ -658,38 +721,36 @@ async function aplicarDescuentoRecargo() {
       tbody.innerHTML = '';
       
 	  const promoData = await calcularPromociones(window.productosVenta); 
-//console.log("PROMODATA:", promoData);
+	  const subtotal = promoData.subtotalOriginal || 0;
+	
+		// calculo el costo de envio Solo Delivery Propio
+		const tipoVenta = document.querySelector('input[name="tipoDelivery"]:checked')?.value;
+		if (tipoVenta === "1") {
+		  document.getElementById('cenvio').value = calcularCostoEnvio(subtotal).toFixed(2);
+		}
+		
 	  let totalGeneral = promoData.totalFinal; 
 	  window.promocionesAplicadas = promoData.promocionesAplicadas;
 
-const divPromos =
-    document.getElementById(
-        'detallePromociones'
-    );
+	const divPromos = document.getElementById('detallePromociones');
 
-if (
-    promoData.promocionesAplicadas &&
-    promoData.promocionesAplicadas.length > 0
-) {
-
-    let html = '';
-
-    promoData.promocionesAplicadas.forEach(pr => {
-
-        html += `
-            <div>
-                * ${pr.descripcion}
-                (-$ ${Number(pr.descuento).toFixed(2)})
-            </div>
-        `;
-    });
-
-    divPromos.innerHTML = html;
-
-} else {
-
-    divPromos.innerHTML = '';
-}
+	if (
+		promoData.promocionesAplicadas &&
+		promoData.promocionesAplicadas.length > 0
+		){
+		let html = '';
+		promoData.promocionesAplicadas.forEach(pr => {
+			html += `
+				<div>
+					* ${pr.descripcion}
+					(-$ ${Number(pr.descuento).toFixed(2)})
+				</div>
+			`;
+		});
+		divPromos.innerHTML = html;
+	} else {
+		divPromos.innerHTML = '';
+		}
 
 	  
       window.productosVenta.forEach((p,i) => {
@@ -709,7 +770,7 @@ if (
         `;
         tbody.appendChild(tr);
       });
-      document.getElementById('totalGeneral').textContent = 'Total general: $ ' + totalGeneral.toFixed(2);
+      document.getElementById('totalGeneral').textContent = 'TOTAL GENERAL: $ ' + totalGeneral.toFixed(2);
       await aplicarDescuentoRecargo();
     };
 
@@ -732,104 +793,57 @@ if (
       await renderTabla();
     };
 
-window.recalcularImportes = async function(modificado = 0) {
+	window.recalcularImportes = async function(modificado = 0) {
 
-    // PROMOCIONES
-    const promoData =
-        await calcularPromociones(
-            window.productosVenta
-        );
-    const subtotal =
-        promoData.subtotalOriginal || 0;
+		// PROMOCIONES
+		const promoData = await calcularPromociones(window.productosVenta);
+		
+		const subtotal = promoData.subtotalOriginal || 0;
+		const descuentoPromo = promoData.descuentoPromos || 0;
+		const descuentoManual = parseFloat(document.getElementById('descuento').value) || 0;
+		const recargo = parseFloat(document.getElementById('recargo').value) || 0;
+		const CostoEnv = parseFloat(document.getElementById('cenvio').value) || 0;
 
-    const descuentoPromo = promoData.descuentoPromos || 0;
+		// TOTAL FINAL REAL
+		let totalGeneral = Number(subtotal || 0) - Number(descuentoPromo || 0) 
+					- Number(descuentoManual || 0) + Number(recargo || 0) + Number(CostoEnv || 0);
 
-    const descuentoManual =
-        parseFloat(
-            document.getElementById(
-                'descuento'
-            ).value
-        ) || 0;
+		if (totalGeneral < 0) {
+			totalGeneral = 0;
+		}
 
-    const recargo =
-        parseFloat(
-            document.getElementById(
-                'recargo'
-            ).value
-        ) || 0;
+		const imp1 = document.getElementById('importe1');
+		const imp2 = document.getElementById('importe2');
 
-    // TOTAL FINAL REAL
-    let totalGeneral =
-        subtotal
-        - descuentoPromo
-        - descuentoManual
-        + recargo;
+		let val1 = parseFloat(imp1.value) || 0;
+		let val2 = parseFloat(imp2.value) || 0;
 
-    if (totalGeneral < 0) {
-        totalGeneral = 0;
-    }
+		// =====================================
+		// MODIFICO IMPORTE 1
+		// =====================================
+		if (modificado === 1) {
+			val1 = Math.min(val1,totalGeneral);
+			val2 = totalGeneral - val1;
+			imp2.value = val2.toFixed(2);
+		}
 
-    const imp1 =
-        document.getElementById('importe1');
+		// =====================================
+		// MODIFICO IMPORTE 2
+		// =====================================
+		else if (modificado === 2) {
+			val2 = Math.min(val2,totalGeneral);
+			val1 =totalGeneral - val2;
+			imp1.value = val1.toFixed(2);
+		}
 
-    const imp2 =
-        document.getElementById('importe2');
-
-    let val1 =
-        parseFloat(imp1.value) || 0;
-
-    let val2 =
-        parseFloat(imp2.value) || 0;
-
-    // =====================================
-    // MODIFICO IMPORTE 1
-    // =====================================
-
-    if (modificado === 1) {
-
-        val1 = Math.min(
-            val1,
-            totalGeneral
-        );
-
-        val2 =
-            totalGeneral - val1;
-
-        imp2.value =
-            val2.toFixed(2);
-    }
-
-    // =====================================
-    // MODIFICO IMPORTE 2
-    // =====================================
-
-    else if (modificado === 2) {
-
-        val2 = Math.min(
-            val2,
-            totalGeneral
-        );
-
-        val1 =
-            totalGeneral - val2;
-
-        imp1.value =
-            val1.toFixed(2);
-    }
-
-    // =====================================
-    // AUTOMATICO
-    // =====================================
-
-    else {
-
-        imp1.value =
-            totalGeneral.toFixed(2);
-
-        imp2.value =
-            '0.00';
-    }
-};
+		// =====================================
+		// AUTOMATICO
+		// =====================================
+		else {
+			imp1.value = totalGeneral.toFixed(2);
+			imp2.value = '0';
+		}
+	};
 
 
     // ====== Finalizar venta (grabado) ======
@@ -864,8 +878,9 @@ window.recalcularImportes = async function(modificado = 0) {
 	
 		const descuento = parseFloat(document.getElementById('descuento').value) || 0;
 		const recargo = parseFloat(document.getElementById('recargo').value) || 0;
+		const cenvio = parseFloat(document.getElementById('cenvio').value) || 0;
 
-		const totalFinal = subtotal - descuentoPromo - descuento + recargo;
+		const totalFinal = Number(subtotal || 0) - Number(descuentoPromo || 0) - Number(descuento || 0) + Number(recargo || 0) + Number(cenvio || 0);
 
 		// VALIDACIONES
 
@@ -906,6 +921,7 @@ window.recalcularImportes = async function(modificado = 0) {
 				descuento,
 				recargo,
 				descuento_promociones: descuentoPromo || 0,
+				costo_envio: cenvio,
 				total: totalFinal,
 				f_pago1: fp1 ? parseInt(fp1) : 0,
 				f_pago2: fp2 ? parseInt(fp2) : 0,
@@ -973,10 +989,10 @@ window.recalcularImportes = async function(modificado = 0) {
       await renderTabla();
       document.getElementById('fpago1').value = '';
       document.getElementById('fpago2').value = '';
-      document.getElementById('importe1').value = '0.00';
-      document.getElementById('importe2').value = '0.00';
-      document.getElementById('descuento').value = '0.00';
-      document.getElementById('recargo').value = '0.00';
+      document.getElementById('importe1').value = '0';
+      document.getElementById('importe2').value = '0';
+      document.getElementById('descuento').value = '0';
+      document.getElementById('recargo').value = '0';
 
       clienteSeleccionado = null;
       document.getElementById('id_cliente').value = '';
@@ -984,6 +1000,11 @@ window.recalcularImportes = async function(modificado = 0) {
       document.getElementById('cli_domicilio').value = '';
       document.getElementById('cli_telefono').value = '';
       document.getElementById('cli_nota').value = '';
+	  
+		const cenvio = document.getElementById('cenvio');
+		cenvio.value = '0.00';
+		delete cenvio.dataset.manual;
+		await cargarConfiguracion();
     }
 /*
     // funcion hora
@@ -1298,22 +1319,23 @@ function cerrarModalPromos(){
 }
 
 
-    // Salir
-    window.SalirVenta = async function(){
-      if (window.productosVenta.length > 0) {
-		const deseaSalir = await mostrarConfirm({mensaje: "Hay productos en la venta.\n\n Desea salir y perder lo ingresado?"});
-        if (deseaSalir) { await LimpiarPantalla(); return; }
-        else return;
-      }
-      window.location.href = 'menu-ventas.html';
-    };
+// Salir
+window.SalirVenta = async function(){
+  if (window.productosVenta.length > 0) {
+	const deseaSalir = await mostrarConfirm({mensaje: "Hay productos en la venta.\n\n Desea salir y perder lo ingresado?"});
+	if (deseaSalir) { await LimpiarPantalla(); return; }
+	else return;
+  }
+  window.location.href = 'menu-ventas.html';
+};
 
-    // Cerrar modales con click fuera
-    window.onclick = function(event){
-      const mp = document.getElementById('modalProductos'), mc = document.getElementById('modalClientes');
-      if (event.target === mp) mp.style.display = 'none';
-      if (event.target === mc) mc.style.display = 'none';
-    };
+// Cerrar modales con click fuera
+window.onclick = function(event){
+  const mp = document.getElementById('modalProductos'), mc = document.getElementById('modalClientes');
+  if (event.target === mp) mp.style.display = 'none';
+  if (event.target === mc) mc.style.display = 'none';
+};
+
 </script>
 
 <script src="./JS/controlCaja.js"></script>

@@ -169,6 +169,8 @@ doc.text(`Subtotal: $${parseFloat(cabecera.subtotal || 0).toFixed(2)}`,5,y);
   y += 3;
   doc.text(`Dto: $${parseFloat(cabecera.descuento || 0).toFixed(2)}`, 0, y);
   doc.text(`Rec: $${parseFloat(cabecera.recargo || 0).toFixed(2)}`, 25, y);
+  y += 3;
+  doc.text(`Costo de envio: $${parseFloat(cabecera.costo_envio || 0).toFixed(2)}`, 0, y);
 
   y += 3;
   doc.setFontSize(6);

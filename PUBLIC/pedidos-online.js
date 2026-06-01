@@ -17,15 +17,22 @@ const formateadorMoneda = new Intl.NumberFormat(
 let grupos = [];
 let productos = [];
 let sabores = [];
-
 let carrito = {};
-
 let telefonoEmpresa = "";
+
+// ==========================================
+// CONFIGURACION DEL DELIVERY
+// ==========================================
+let configuracion = {
+  costo_envio: 0,
+  total_pedido: 0,
+  distancia_maxima: 0
+};
+
 
 // =====================================================
 // CARGA INICIAL
 // =====================================================
-
 async function cargarDatos() {
 
   const loading = document.getElementById("loadingMsg");
@@ -82,6 +89,7 @@ sabores = Array.isArray(sData)
 
     renderGrupos();
     renderProductos();
+	await cargarConfiguracion();
     actualizarTotalUI();
 
     document.getElementById("loadingMsg").style.display = "none";
@@ -109,6 +117,22 @@ sabores = Array.isArray(sData)
 
   }
 
+}
+
+// ==========================================
+// cargar la CONFIGURACION DEL DELIVERY
+// ==========================================
+async function cargarConfiguracion() {
+
+  try {
+    const resp = await fetch('/api/configuraciones');
+    configuracion = await resp.json();
+  } catch (error) {
+    console.error(
+      "Error cargando configuración:",
+      error
+    );
+  }
 }
 
 // =====================================================
@@ -142,7 +166,6 @@ function renderGrupos() {
 // =====================================================
 // OBTENER FILTROS
 // =====================================================
-
 function getGrupoSeleccionado() {
 
   const val = document.getElementById("cmbGrupo").value;
@@ -162,6 +185,18 @@ function getTextoBusqueda() {
     .toLowerCase();
 
 }
+
+// =====================================================
+// calculo el costo de envio
+// =====================================================
+function calcularCostoEnvio(subtotal) {
+
+  if (subtotal >= configuracion.total_pedido) {
+    return 0;
+  }
+  return parseFloat( configuracion.costo_envio || 0 );
+}
+
 
 function obtenerProductosParaPromos(){
 
@@ -668,31 +703,25 @@ function calcularTotal(){
   let total = 0;
 
   for (const p of productos){
-
-    const unidades =
-      carrito[p.id_producto] || [];
-
-    total +=
-      Number(p.precio || 0)
-      * unidades.length;
-
+    const unidades = carrito[p.id_producto] || [];
+    total += Number(p.precio || 0) * unidades.length;
   }
-
   return total;
-
 }
 
 async function actualizarTotalUI(){
 
   await recalcularPromociones();
-
   const subtotal = calcularTotal();
 
-  const total =
+  const subtotalConPromos  =
     totalFinalPromos > 0
       ? totalFinalPromos
       : subtotal;
 
+const costoEnvio = calcularCostoEnvio(subtotalConPromos);
+const total = subtotalConPromos + costoEnvio;
+  
   const tv = document.getElementById("totalValor");
 
   if (tv){
@@ -776,6 +805,24 @@ function actualizarCarritoUI(){
   if (!any){
     cont.innerHTML = "No hay productos seleccionados.";
   }
+  
+  			  //muestro el subtotal (sin promos)
+			  const SubtotDiv = document.createElement("div");
+			  SubtotDiv.style.marginTop = "10px";
+			  SubtotDiv.innerHTML = `
+				<hr>
+				<div style="
+				  color:#666;
+				  font-weight:bold;
+				">
+				  - Subtotal:
+				  ${formateadorMoneda.format(total)}
+				</div>
+			  `;
+			  cont.appendChild(SubtotDiv);
+			  //---------------
+  
+  
 		// =====================================
 		// PROMOCIONES aplicadas
 		// =====================================
@@ -813,16 +860,51 @@ function actualizarCarritoUI(){
 			  </div>
 			`;
 		  cont.appendChild(promoDiv);
+
+  			  //muestro el subtotal (CON promos)
+			  const SubtotDiv2 = document.createElement("div");
+			  SubtotDiv2.style.marginTop = "10px";
+			  SubtotDiv2.innerHTML = `
+				<hr>
+				<div style="
+				  color:#666;;
+				  font-weight:bold;
+				">
+				  - Subtotal:
+				  ${formateadorMoneda.format(totalFinalPromos)}
+				</div>
+			  `;
+			  cont.appendChild(SubtotDiv2);
+			  //---------------
+
 		}
 
-		//document.getElementById("carritoTotal").innerText = formateadorMoneda.format(total);
-		const totalMostrar =
+		const subtotalPromos =
 		  totalFinalPromos > 0
 			? totalFinalPromos
 			: total;
 
+		const costoEnvio = calcularCostoEnvio(subtotalPromos);
+		const totalMostrar = subtotalPromos + costoEnvio;
+  
+			  //muestro costo de envio
+			  const envioDiv = document.createElement("div");
+			  envioDiv.style.marginTop = "10px";
+			  envioDiv.innerHTML = `
+				<hr>
+				<div style="
+				  color:#e67e22;
+				  font-weight:bold;
+				">
+				  🚚 Costo de envío:
+				  ${formateadorMoneda.format(costoEnvio)}
+				</div>
+			  `;
+			  cont.appendChild(envioDiv);
+			  //---------------
+  
 		document.getElementById("carritoTotal").innerText = formateadorMoneda.format(totalMostrar);
-		//document.getElementById("totalValor").innerText = formateadorMoneda.format(total || 0);
+
 }
 
 // =====================================================
@@ -909,7 +991,6 @@ async function validarDireccionBackend(direccion){
 // =====================================================
 // ENVIAR PEDIDO
 // =====================================================
-
 async function enviarPedido(){
 
   const nombre = document.getElementById("nombre").value.trim();
@@ -919,18 +1000,10 @@ async function enviarPedido(){
   const tel = normalizarTelefono(document.getElementById("telefono").value);
   const domLower = domicilio.toLowerCase();
 
-  if (
-    !(
-      domLower.endsWith("bs as")
-      || domLower.endsWith("caba")
-    )
-  ){
-    alert(
-      "El domicilio debe terminar con Bs As o CABA"
-    );
-
+  if (!(domLower.endsWith("bs as") || domLower.endsWith("caba")))
+  {
+    alert("El domicilio debe terminar con Bs As o CABA");
     return;
-
   }
 
   if (
@@ -940,28 +1013,20 @@ async function enviarPedido(){
     || !pagaCon
   ){
 
-    alert(
-      "Complete nombre, domicilio, teléfono y cómo piensa pagar."
-    );
-
+    alert("Complete nombre, domicilio, teléfono y cómo piensa pagar.");
     return;
-
   }
 
-  const direccionOk =
-    await validarDireccionBackend(domicilio);
+/*
+  const direccionOk = await validarDireccionBackend(domicilio);
 
   if (!direccionOk){
-
-    const seguir = confirm(
-      "No pudimos verificar la dirección.\n¿Deseás continuar igualmente?"
-    );
-
+    const seguir = confirm("No pudimos verificar la dirección.\n¿Deseás continuar igualmente?");
     if (!seguir){
       return;
     }
-
   }
+*/
 
   if (!validarSabores()){
     return;
@@ -975,8 +1040,7 @@ const pedidoBackend = [];
 // =====================================
 for (const p of productos){
 
-  const unidades =
-    carrito[p.id_producto];
+  const unidades = carrito[p.id_producto];
 
   if (!unidades || unidades.length === 0){
     continue;
@@ -985,7 +1049,6 @@ for (const p of productos){
   for (const unidad of unidades){
 
     const item = {
-
       id_producto: p.id_producto,
       descripcion: p.descripcion,
       precio: Number(p.precio || 0)
@@ -1059,6 +1122,7 @@ for (const p of productos){
 let descuentoPromos = 0;
 let promocionesAplicadas = [];
 let totalFinal = calcularTotal();
+let costoEnvio = 0;
 
 try {
 
@@ -1078,45 +1142,29 @@ try {
   const promoData = await promoResp.json();
 
   if (promoData.ok){
-
-    descuentoPromos =
-      Number(promoData.descuentoPromos || 0);
-
-    promocionesAplicadas =
-      promoData.promocionesAplicadas || [];
-
-    totalFinal =
-      Number(promoData.totalFinal || 0);
-
+    descuentoPromos = Number(promoData.descuentoPromos || 0);
+    promocionesAplicadas = promoData.promocionesAplicadas || [];
+    totalFinal = Number(promoData.totalFinal || 0);
   }
+  
+  costoEnvio = calcularCostoEnvio(totalFinal);
+  totalFinal = totalFinal + costoEnvio;
 
 } catch(err){
-
-  console.error(
-    "Error calculando promociones:",
-    err
-  );
-
+  console.error("Error calculando promociones:",err);
 }
 
 
   if (pedidoBackend.length === 0){
-
-    alert(
-      "Debe agregar al menos 1 producto."
-    );
-
+    alert("Debe agregar al menos 1 producto.");
     return;
-
   }
 
   try {
 
-    const r = await fetch(
-      `${API_BASE}/api/pedidos`,
+    const r = await fetch(`${API_BASE}/api/pedidos`,
       {
         method:"POST",
-
         headers:{
           "Content-Type":"application/json"
         },
@@ -1129,7 +1177,8 @@ try {
           paga_con: pagaCon,
           detalle: pedidoBackend,
 		  descuento_promociones: descuentoPromos, 
-		  promociones_aplicadas: promocionesAplicadas, 
+		  promociones_aplicadas: promocionesAplicadas,
+		  costo_envio: costoEnvio,		  
 		  total_final: totalFinal
         })
 
@@ -1139,14 +1188,8 @@ try {
     const data = await r.json();
 
     if (!data.ok){
-
-      alert(
-        "Error guardando el pedido: "
-        + (data.error || "")
-      );
-
+      alert("Error guardando el pedido: " + (data.error || ""));
       return;
-
     }
 
     mostrarMensajeFinal(data.id_pedido);
@@ -1154,16 +1197,8 @@ try {
     resetAll();
 
   } catch(err){
-
-    console.error(
-      "Error enviando pedido:",
-      err
-    );
-
-    alert(
-      "Error enviando el pedido."
-    );
-
+    console.error("Error enviando pedido:", err);
+    alert("Error enviando el pedido.");
   }
 
 }

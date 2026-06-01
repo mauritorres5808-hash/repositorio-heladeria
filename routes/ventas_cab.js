@@ -71,6 +71,7 @@ router.post('/delivery', async (req, res) => {
             descuento,
             recargo,
 			descuento_promociones,
+            costo_envio,
             total,
             f_pago1,
             f_pago2,
@@ -118,10 +119,11 @@ router.post('/delivery', async (req, res) => {
                 id_cierre,
                 anulada,
                 tipo_venta,
-                id_cliente
+                id_cliente,
+                costo_envio
             )
             VALUES
-            (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         `, [
             id_venta,
             fecha,
@@ -138,7 +140,8 @@ router.post('/delivery', async (req, res) => {
             0,
             false,
             tipo_venta,
-            id_cliente
+            id_cliente,
+            costo_envio
         ]);
 
         // DETALLE + STOCK
@@ -255,7 +258,8 @@ router.post('/delivery', async (req, res) => {
                 total,
                 subtotal,
                 descuento,
-                recargo
+                recargo,
+                costo_envio
             },
             nombre: emp.length > 0 ? emp[0].nombre : ''
         });

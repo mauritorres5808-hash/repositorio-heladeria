@@ -49,6 +49,7 @@ const estadisticasRoutes = require('./routes/estadisticas');
 const promocionesRoutes = require('./routes/promociones'); 
 const ventasPromocionesRoutes = require('./routes/ventas_promociones');
 const promocionesABMRouter = require('./routes/promociones-abm');
+const configuracionesRouter = require('./routes/configuraciones');
 
 
 
@@ -112,6 +113,7 @@ app.use('/api/estadisticas', estadisticasRoutes);
 app.use( '/api/promociones', promocionesRoutes );
 app.use('/api/ventas_promociones',ventasPromocionesRoutes);
 app.use('/api/promociones-abm',promocionesABMRouter);
+app.use('/api/configuraciones',configuracionesRouter);
 
 
 

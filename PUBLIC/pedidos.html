@@ -225,82 +225,6 @@ async function cargar(){
 }
 
 
-async function imprimirPedido2(idPedido){  // (envia a PDF)
-  try {
-    const res = await fetch(`${API_BASE}/api/pedidos/${idPedido}`);
-    const p = await res.json();
-
-    if (!p || !p.id_pedido){
-      alert("No se pudo obtener el pedido");
-      return;
-    }
-
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ unit: "mm", format: [58, 200] });
-
-    let y = 5;
-
-    doc.setFontSize(8);
-    doc.text("PEDIDO", 0, y);
-
-    y += 5;
-    doc.setFontSize(7);
-    doc.text(`Pedido #${p.id_pedido}`, 0, y);
-
-    y += 4;
-    doc.text(`${p.fecha} ${p.hora}`, 0, y);
-
-    y += 4;
-    doc.text(`Cliente: ${p.nombre}`, 0, y);
-
-    y += 4;
-    doc.text(`Tel: ${p.telefono}`, 0, y);
-
-    y += 4;
-    doc.text(`Dir: ${p.domicilio}`, 0, y);
-
-    y += 5;
-    doc.text("-----------------------------", 0, y);
-
-    y += 4;
-
-    let total = 0;
-
-    (p.pedido_detalle || []).forEach((it, idx) => {
-      doc.text(`${idx+1}) ${it.descripcion}`, 0, y);
-      y += 3;
-
-      doc.text(`$${it.precio}`, 0, y);
-      y += 4;
-
-      total += Number(it.precio || 0);
-
-		if (it.sabores) {
-			const listaSabores = it.sabores.split(',');
-			listaSabores.forEach(s => {
-				  doc.text(`- ${saborDesc(s)}`, 2, y);
-				  y += 3;
-			});
-		}
-
-      y += 2;
-    });
-
-    doc.text("-----------------------------", 0, y);
-    y += 4;
-    doc.setFontSize(9);
-    doc.text(`TOTAL: $${total}`, 0, y);
-    y += 4;
-    doc.text(`Paga con: ${p.paga_con}`, 0, y);
-
-    doc.save(`Pedido_${p.id_pedido}.pdf`);
-
-  } catch(err){
-    console.error(err);
-    alert("Error al imprimir pedido");
-  }
-}
-
 
 // 🖨️ Imprimir ticket directo (SIN PDF - impresora directa)
 async function imprimirPedido(idPedido){
@@ -318,6 +242,7 @@ async function imprimirPedido(idPedido){
   const SubtP= Number(p.total || 0) + Number(p.descuento_promociones || 0);
   const DescuP= Number(p.descuento_promociones || 0);
   const TotalP= Number(p.total || 0);
+  const CostoEnv= Number(p.costo_envio || 0);
   
   
   let contenido = `
@@ -360,6 +285,7 @@ async function imprimirPedido(idPedido){
       <hr>
 	  <b>Subtotal: $ ${SubtP}</b>
 	  <br><b>Descuentos: $ ${DescuP}</b>
+	  <br><b>Costo de envio: $ ${CostoEnv}</b>
       <hr>
 	  <b>TOTAL: $ ${TotalP}</b>
 	  <hr>
@@ -407,6 +333,7 @@ function renderList(items){
 
 let subtotalPedido = 0;
 let html = "";
+let CostoEnv = p.costo_envio;
 
 html += `
   <div style="display:flex;justify-content:space-between; font-size:20px">
@@ -597,7 +524,7 @@ if (p.promociones && p.promociones.length > 0) {
   html += `</div>`;
 }
 
-const totalFinal = subtotalPedido - totalDescuentos;
+const totalFinal = Number(subtotalPedido || 0) - Number(totalDescuentos || 0) + Number(CostoEnv || 0);
 
 // ======================================
 // TOTALES
@@ -614,6 +541,13 @@ html += `
     <div>
       <b>Subtotal:</b>
       ${formateadorMoneda.format(subtotalPedido)}
+    </div>
+
+    <div>
+      <b>Costo de Envio:</b>
+      ${formateadorMoneda.format(CostoEnv)}
+      <b>Subtotal:</b>
+      ${formateadorMoneda.format(Number(subtotalPedido || 0)+Number(CostoEnv || 0))}
     </div>
 
     <div style="color:green">

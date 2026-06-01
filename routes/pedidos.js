@@ -162,15 +162,14 @@ router.post('/', async (req, res) => {
             detalle,
 			descuento_promociones, 
 			promociones_aplicadas, 
+			costo_envio, 
 			total_final
         } = req.body;
 
 			// ======================================
 			// FECHA / HORA / TOTAL
 			// ======================================
-
 			const ahora = new Date();
-
 			const fecha =
 			  ahora.getFullYear() + "-" +
 			  String(ahora.getMonth() + 1).padStart(2, "0") + "-" +
@@ -186,9 +185,9 @@ router.post('/', async (req, res) => {
 			  subtotal += Number(item.precio || 0);
 			}
 			const descuentoPromos = Number(descuento_promociones || 0);
+			
 			const total = Number(total_final || subtotal);
-
-
+			const costo_env = Number(costo_envio || 0);
 
         // insertar cabecera
         const [result] = await conn.query(`
@@ -205,9 +204,10 @@ router.post('/', async (req, res) => {
                 total,
                 id_cliente,
                 id_venta,
-				descuento_promociones
+				descuento_promociones,
+				costo_envio
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
             fecha,
             hora,
@@ -220,7 +220,8 @@ router.post('/', async (req, res) => {
             total,
             0,
             0,
-			descuentoPromos
+			descuentoPromos,
+			costo_env
         ]);
 
         const idPedido = result.insertId;

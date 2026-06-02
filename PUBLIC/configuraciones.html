@@ -43,7 +43,7 @@ label{
 }
 
 input{
-    width:100%;
+    width:20%;
     padding:8px;
     border-radius:6px;
     border:1px solid #999;
@@ -82,10 +82,10 @@ button:hover{
 
     <div class="campo">
         <label>
-            Costo de envío
+            Costo de envío $
         </label>
 
-        <input
+        $ <input
             id="costo_envio"
             type="number"
             step="0.01">
@@ -93,10 +93,10 @@ button:hover{
 
     <div class="campo">
         <label>
-            Pedido mínimo para envío gratis
+            mínimo para Pedido con envío gratis
         </label>
 
-        <input
+        $ <input
             id="total_pedido"
             type="number"
             step="0.01">
@@ -120,7 +120,7 @@ button:hover{
         </button>
 
         <button
-            onclick="location.href='menu-tablas.html'">
+            onclick="location.href='menu-general.html'">
             ↩ Volver
         </button>
 
@@ -181,28 +181,21 @@ async function guardar() {
         }
     );
 
-    const data =
-        await resp.json();
+    const data = await resp.json();
 
     if (data.ok) {
-
-        await mostrarAlerta({
-            mensaje: "Configuración guardada correctamente",
-            icono: "✅"
-        });
+        await mostrarAlerta({mensaje: "Configuración guardada correctamente",icono: "✅"});
 
     } else {
-
-        await mostrarAlerta({
-            mensaje: "Error al guardar",
-            icono: "❌"
-        });
+        await mostrarAlerta({mensaje: "Error al guardar",icono: "❌"});
     }
 }
 
 cargar();
 
 </script>
+
+<script src="JS/modal.js"></script>
 
 </body>
 </html>

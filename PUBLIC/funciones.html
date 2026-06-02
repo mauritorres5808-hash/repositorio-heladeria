@@ -16,7 +16,7 @@
     select, input[type="text"], input[type="number"] { padding:6px; }
     table { width:70%; border-collapse:collapse; margin-top:12px; font-size:13px; }
     th, td { border:1px solid #0E0D0C; padding:8px; text-align:center; }
-    th { background:#f2f2f2; }
+    th { background:#BDC2CB; }
     .boton-redondeado { padding:8px 16px; margin:5px; cursor:pointer; border:none; background-color:#007bff; color:white; border-radius:6px; }
     .boton-redondeado:disabled { background-color:#cccccc; color:#666666; cursor:not-allowed; }
   /*  .acciones { display:flex; gap:6px; justify-content:center; }*/
@@ -215,7 +215,7 @@ init();
 	  const idMod = parseInt(selectModulo.value);
 
 	  if (!idf || !desc || !idMod) {
-		alert('Complete ID, Descripción y Módulo.');
+		await mostrarAlerta({mensaje: `Complete ID, Descripción y Módulo`});
 		return;
 	  }
 
@@ -241,7 +241,7 @@ init();
 		  return;
 		}
 
-		alert('✅ Guardado correctamente.');
+		await mostrarAlerta({mensaje: `Guardado correctamente`,icono:`&#10004;`});
 
 		await listarFunciones();
 
@@ -258,13 +258,18 @@ init();
 	  const idf = parseInt(idInput.value);
 
 	  if (!idf) {
-		alert('Seleccione una función.');
+		await mostrarAlerta({mensaje: `Seleccione una función`});
 		return;
 	  }
 
-	  if (!confirm('¿Confirma eliminar la función?')) {
-		return;
-	  }
+		const confirmar = await mostrarConfirm({
+		  mensaje: "¿Confirma eliminar la función ?",
+		  textoAceptar: "Sí, cerrar",
+		  textoCancelar: "Cancelar"
+		});
+		if (!confirmar) {
+		  return;
+		}		
 
 	  try {
 		const resp = await fetch(`/api/funciones/${idf}`, {method: 'DELETE'});
@@ -275,7 +280,7 @@ init();
 		  return;
 		}
 
-		alert('🗑️ Función eliminada.');
+		await mostrarAlerta({mensaje: `Función eliminada correctamente`,icono:`&#10004;`});
 
 		await listarFunciones();
 
@@ -286,6 +291,7 @@ init();
 	}
   </script>
 
+<script src="JS/modal.js"></script>
 
 </body>
 </html>

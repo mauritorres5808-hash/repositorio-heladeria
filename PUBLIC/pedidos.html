@@ -27,13 +27,14 @@
   border-radius:8px;
 }
 .contenedor2{
-  max-width:965px;
+  max-width:951px;
   background:#9BD9ED; /*#fff;*/
   position:fixed;
   top:0.1;
   width:100%;
+  height: 80px;
   z-index:999;
-  padding:2px;
+  padding:8px;
   border-radius:8px;
   border:8px solid #1F8DB2;
   text-align: center;
@@ -106,7 +107,7 @@ select {
 <body>
   <div class="contenedor">
 	  <div class="contenedor2">
-			<h2 id="titulo">🔔 Pedidos Online  </h2>
+			<div id="titulo" style="font-size:25px;font-weight:bold; text-align:left">🔔 Pedidos Online  </div>
 			<header>
 			  buscar un cliente &rArr; <input id="searchBox" type="search" placeholder="nombre o teléfono">  en &rArr; 
 	<!--		  <button onclick="cargar(true)">Buscar</button> -->
@@ -118,8 +119,6 @@ select {
 			<button class="boton-derecha" onclick="location.href='/menu-ventas.html'">&#8617; Volver</button>
 			</header>
 	  </div>
-	  <br>
-	  <br>
 	  <br>
 	  <br>
 	  <br>
@@ -216,7 +215,7 @@ async function cargar(){
 
 		  // ✅ cantidad total del filtro aplicado
 		  const cantidadTotal = items.length;
-					document.getElementById("titulo").textContent = `🔔 Pedidos Online  (${cantidadTotal} ${estado}s)`;
+		  document.getElementById("titulo").textContent = `🔔 Pedidos Online  (${cantidadTotal} ${estado}s)`;
 	
     renderList(items);
   } catch(e){

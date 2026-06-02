@@ -67,7 +67,7 @@ th, td{
 }
 
 th{
-    background:#f2f2f2;
+    background:#BDC2CB;
 }
 
 .fila-anulada{
@@ -276,9 +276,9 @@ async function consultar(){
 
         });
 
-        document.getElementById("totalGeneral").innerHTML =`Total General: ${formateador.format(total)}`;
-        document.getElementById("totalGeneral").innerHTML +=`<br>       Total INGRESOS: ${formateador.format(totalIngresos)}`;
-        document.getElementById("totalGeneral").innerHTML +=`<br>       Total EGRESOS: ${formateador.format(totalEgresos)}`;
+        document.getElementById("totalGeneral").innerHTML =`Total INGRESOS: ${formateador.format(totalIngresos)}`;
+        document.getElementById("totalGeneral").innerHTML +=`<br>Total EGRESOS: ${formateador.format(totalEgresos)}`;
+        document.getElementById("totalGeneral").innerHTML +=`<br>Total General: ${formateador.format(total)}`;
 
     } catch(error){
         console.error(error);

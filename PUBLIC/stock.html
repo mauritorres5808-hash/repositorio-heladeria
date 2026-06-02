@@ -42,7 +42,7 @@
       text-align: center;
     }
     th {
-      background: #f2f2f2;
+      background: #BDC2CB;
     }
 	tr.total-row {
       font-weight: bold;
@@ -150,14 +150,9 @@ async function cargarGrupos() {
 
       // deshabilitado = 0 -> habilitado
       if (g.deshabilitado === 0) {
-
         const option = document.createElement("option");
-
         option.value = g.id_grupo;
-
-        option.textContent =
-          `${g.descripcion}`;
-
+        option.textContent = `${g.descripcion}`;
         select.appendChild(option);
       }
     });
@@ -179,19 +174,12 @@ async function buscarStock() {
     parseInt(document.getElementById("grupo").value);
 
   if (!grupoId) {
-
-    alert("Seleccione un grupo v¨¢lido.");
-
+    alert("Seleccione un grupo valido.");
     return;
   }
 
-  const selectElement =
-    document.getElementById("grupo");
-
-  const textoSeleccionado =
-    selectElement.options[
-      selectElement.selectedIndex
-    ].text;
+  const selectElement = document.getElementById("grupo");
+  const textoSeleccionado = selectElement.options[selectElement.selectedIndex].text;
 
   try {
 
@@ -238,20 +226,11 @@ async function buscarStock() {
 
       productos.forEach(data => {
 
-        const stock =
-          Number(data.stock || 0);
-
-        const stockMin =
-          Number(data.stock_minimo || 0);
-
-        const precio =
-          Number(data.precio || 0);
-
-        const valorizado =
-          precio * stock;
-
-        const bajoMinimo =
-          stock < stockMin;
+        const stock = Number(data.stock || 0);
+        const stockMin = Number(data.stock_minimo || 0);
+        const precio = Number(data.precio || 0);
+        const valorizado = Number(precio || 0) * Number(stock || 0);
+        const bajoMinimo = stock < stockMin;
 
         totalValor += valorizado;
 

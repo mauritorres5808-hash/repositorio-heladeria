@@ -22,7 +22,7 @@
     }
 
     .contenedor {
-      max-width: 75%;
+      max-width: 90%;
       margin: auto;
       background: #fff;
       padding: 20px;
@@ -61,7 +61,7 @@
       text-align: center;
     }
 
-    th { background-color: #f2f2f2; }
+    th { background-color: #BDC2CB;  }
 
     .total { font-size: 16px; font-weight: bold; background-color: #e8f5e9; }
     .resumen { margin-top: 25px; border-top: 12px solid #333; padding-top: 10px; }
@@ -192,7 +192,7 @@
       </label>
 
 		<div style="position:relative;">
-		  <label>Cliente:</label>
+		  <label>buscar Cliente:</label>
 		  <input
 			  type="text"
 			  id="buscarCliente"
@@ -374,7 +374,6 @@ async function consultarVentas() {
         let url = '/api/ventas_cab/consulta?';
 
         const sin_cierre = document.getElementById("chk_cierre").checked;
-
         const sin_det = document.getElementById("chk_detalle").checked;
 
         if (tipoConsulta === 'fecha') {
@@ -431,6 +430,7 @@ async function consultarVentas() {
         });
 
         let totalGeneral = 0;
+        let CantGeneral = 0;
         let resumenFP = {};
         let cantidadFP = {};
         let resumenPorFecha = {};
@@ -453,6 +453,7 @@ async function consultarVentas() {
         for (const fecha of Object.keys(agrupadas).sort()) {
 
             let totalDia = 0;
+            let CantDia = 0;
 
             if (!sin_det) {
 
@@ -539,7 +540,9 @@ async function consultarVentas() {
 					    if (v.tipo_venta === 1) {
 						html += `
 						<tr>
-						<th></th>
+						<td>&#8921;</td>
+						<td>&#8921;</td>
+						<td>&#8921;</td>
 						<th>Nombre</th>
 						<th>Domicilio</th>
 						<th>Telefono</th>
@@ -547,7 +550,9 @@ async function consultarVentas() {
 						</tr>
 
 						<tr>
-						<th>&#8921;</th>
+						<td>&#8921;</td>
+						<td>&#8921;</td>
+						<td>&#8921;</td>
 						<td>${cliente.nombre || '-'}</td>
 						<td>${cliente.domicilio || '-'}</td>
 						<td>${cliente.telefono || '-'}</td>
@@ -560,6 +565,8 @@ async function consultarVentas() {
                 if (!v.anulada) {
 
                     totalDia += parseFloat(v.total || 0);
+                    CantDia += 1;
+					CantGeneral += 1;
 
                     totalGeneral += parseFloat(v.total || 0);
 
@@ -583,10 +590,15 @@ async function consultarVentas() {
 
                 html += `
                 <tr class="total">
-                    <td colspan="8">
+                    <td >
+                        Cantidad
+                    </td>
+                    <td>
+                        ${CantDia}
+                    </td>
+                    <td colspan="6">
                         Total del dia
                     </td>
-
                     <td>
                         ${formateadorMoneda.format(totalDia)}
                     </td>
@@ -598,7 +610,8 @@ async function consultarVentas() {
 
         html += `
         <h3 style="text-align:center;">
-            TOTAL GENERAL: ${formateadorMoneda.format(totalGeneral)}
+            Cantidad total de Ventas: ${CantGeneral}<br>
+			TOTAL GENERAL: ${formateadorMoneda.format(totalGeneral)}
         </h3>
         `;
 
@@ -624,6 +637,7 @@ async function consultarVentas() {
         // =========================
         let htmlFP = `
         <h3>Totales por Forma de Pago</h3>
+        <h5 style="color:red">(considerar que una misma venta puede tener mas de una forma de pago)</h5>
 
         <table>
             <tr>

@@ -55,7 +55,7 @@
       text-align: center;
     }
 
-    th { background-color: #f2f2f2; }
+    th { background-color: #BDC2CB; }
 	
 	input, select {
       padding: 6px;
@@ -714,7 +714,7 @@ async function consultarHorasMasVendidas() {
                     <td>  ${Number(d.cant_pedidosya).toLocaleString()} </td>
                     <td>  ${Number(d.cant_mostrador).toLocaleString()} </td>
                     <td>  ${Number(d.cant_online).toLocaleString()} </td>
-                    <td> $ ${Number(d.ticket_promedio).toFixed(2)} </td>
+                <td>$ ${Number(d.ticket_promedio).toLocaleString('es-AR')}</td>
                 </tr>
             `;
         }

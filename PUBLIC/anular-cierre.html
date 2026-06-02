@@ -97,10 +97,15 @@ verificarSesion();
 		if (!ultimoCierreDoc)
 			return;
 
-		const confirmar = confirm("¿Confirma anular el último cierre?");
-
-		if (!confirmar)
-			return;
+			const confirmar = await mostrarConfirm({
+			mensaje: "¿Confirma anular el ultimo cierre ?",
+			textoAceptar: "Sí, confirmo",
+			textoCancelar: "Cancelar"
+			});
+			
+		if (!confirmar) {
+		  return;
+		}	
 
 		document.getElementById("mensaje").innerHTML = "⏳ Procesando... por favor espere...";
 
@@ -137,7 +142,6 @@ verificarSesion();
 		} catch (e) {
 			console.error(e);
 			alert("Error al anular cierre");
-
 			document.getElementById("btnAnular").disabled = false;
 			document.getElementById("mensaje").innerHTML = "";
 		}
@@ -145,6 +149,7 @@ verificarSesion();
 
 </script>
 
+<script src="JS/modal.js"></script>
 
 </body>
 </html>

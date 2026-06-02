@@ -18,7 +18,7 @@ router.get('/clientes', async (req, res) => {
                 c.nombre,
                 COUNT(v.id_venta) AS cantidad_ventas,
                 SUM(v.total) AS total_vendido,
-				AVG(total) AS ticket_promedio,
+				ROUND(AVG(total), 2) AS ticket_promedio,
                 SUM(
                     CASE
                         WHEN tipo_venta = 1
@@ -160,7 +160,7 @@ router.get('/dias-mas-ventas', async (req, res) => {
                 DAYOFWEEK(fecha) AS dia_semana,
                 COUNT(*) AS cantidad_ventas,
                 SUM(total) AS total_vendido,
-				AVG(total) AS ticket_promedio,
+				ROUND(AVG(total), 2) AS ticket_promedio,
                 SUM(
                     CASE
                         WHEN tipo_venta = 1
@@ -272,7 +272,7 @@ router.get('/ventas-por-hora', async (req, res) => {
                 LEFT(hora,2) AS hora,
                 COUNT(*) AS cant_ventas,
                 SUM(total) AS total_general,
-                AVG(total) AS ticket_promedio,
+				ROUND(AVG(total), 2) AS ticket_promedio,
                 SUM(
                     CASE
                         WHEN tipo_venta = 1

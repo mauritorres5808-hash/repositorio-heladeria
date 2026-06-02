@@ -70,13 +70,13 @@ table{
 }
 
 th, td{
-    border:1px solid #ccc;
+    border:1px solid #0E0D0C;
     padding:8px;
     text-align:center;
 }
 
 th{
-    background:#eee;
+    background:#BDC2CB;
 }
 
 .modal{
@@ -338,7 +338,7 @@ async function renderPromociones(){
 async function cargarProductos(){
     const resp = await fetch('/api/productos');
     const data = await resp.json();
-    productos =data.filter(p => p.deshabilitado != 1);
+    productos = data.filter(p => p.deshabilitado != 1);
     renderProductosModal(productos);
 }
 
@@ -353,14 +353,13 @@ function renderProductosModal(lista){
     lista.forEach(p => {
         const existe = productosSeleccionados.some(x => x.id_producto == p.id_producto);
 
-        div.innerHTML += `
-        <div class="producto-item" style="padding:6px; border-bottom:1px solid #ddd;">
-            <label>
+        div.innerHTML += `<div class="producto-item" style="padding:6px; border-bottom:1px solid #ddd;">
+            <label style="font-style:italic; font-weight:normal">
                 <input type="checkbox"
                     ${existe ? 'checked' : ''}
                     onchange="toggleProducto(${p.id_producto}, '${p.descripcion.replace(/'/g,"")}')"
                 >
-                ${p.id_producto} - ${p.descripcion}
+                ${p.id_producto} - ${p.descripcion} _____ ($${p.precio}) 
             </label>
         </div>
         `;

@@ -117,29 +117,73 @@ router.put('/:id', async (req, res) => {
 });
 
 
-// ==========================================
-// ELIMINAR LÓGICO
-// ==========================================
+// ======================================
+// ELIMINAR Sabor
+// ======================================
 router.delete('/:id', async (req, res) => {
 
-  try {
+    const conn = await db.getConnection();
 
-    const id = req.params.id;
+    try {
+        const id = parseInt(req.params.id);
+		
+        // ==========================
+        // verifico con NO este en ningun pedido en estado (V)enta ni (N)uevo 
+        // ==========================
+		const [usado] = await conn.query(`
+			SELECT pd.id_pedido
+			FROM pedidos_det pd
+			INNER JOIN pedidos_cab pc
+				ON pc.id_pedido = pd.id_pedido
+			WHERE pc.estado IN ('N','V')
+			  AND FIND_IN_SET(?, pd.sabores) > 0
+			LIMIT 1
+		`, [id]);
 
-    await db.query(`
-      UPDATE sabores
-      SET deshabilitado = 1
-      WHERE id_sabor = ?
-    `, [id]);
+		if (usado.length > 0) {
+			return res.status(400).json({
+				ok: false,
+				mensaje: 'No se puede eliminar el sabor porque está utilizado en algun Pedido.'
+			});
+		}
+		
+		
+        await conn.beginTransaction();
 
-    res.json({ ok: true });
+        // ==========================
+        // BORRAR 
+        // ==========================
+        const [result] = await conn.query(`
+            DELETE FROM sabores
+            WHERE id_sabor = ?
+        `, [id]);
 
-  } catch (error) {
+        if (result.affectedRows === 0) {
+            await conn.rollback();
+            return res.status(404).json({
+                ok: false,
+                mensaje: 'Sabor no encontrado'
+            });
+        }
 
-    console.error(error);
-    res.status(500).json({ error: 'Error eliminando sabor' });
+        await conn.commit();
 
-  }
+        res.json({
+            ok: true,
+            mensaje: 'Sabor eliminado correctamente'
+        });
+
+    } catch (error) {
+        await conn.rollback();
+        console.error(error);
+        res.status(500).json({
+            ok: false,
+            mensaje: '- ERROR eliminando Sabor -'
+        });
+
+    } finally {
+        conn.release();
+    }
 });
 
 

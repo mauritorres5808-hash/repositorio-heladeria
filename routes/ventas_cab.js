@@ -856,7 +856,6 @@ router.get('/:id', async (req, res) => {
         `, [id]);
 
         if (rows.length === 0) {
-
             return res.status(404).json({
                 ok: false,
                 mensaje: 'Venta no encontrada'
@@ -866,9 +865,7 @@ router.get('/:id', async (req, res) => {
         res.json(rows[0]);
 
     } catch (error) {
-
         console.error(error);
-
         res.status(500).json({
             ok: false,
             mensaje: 'Error obteniendo venta'

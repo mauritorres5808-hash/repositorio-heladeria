@@ -191,7 +191,6 @@ router.post('/', async (req, res) => {
     // ======================================
     await conn.query(`
       INSERT INTO compras_cab (
-
         id_compra,
         fecha,
         hora,

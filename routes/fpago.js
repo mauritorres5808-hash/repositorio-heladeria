@@ -188,4 +188,52 @@ router.put('/:id', async (req, res) => {
     }
 });
 
+// ======================================
+// ELIMINAR 
+// ======================================
+router.delete('/:id', async (req, res) => {
+
+    const conn = await db.getConnection();
+
+    try {
+        const id = parseInt(req.params.id);
+        await conn.beginTransaction();
+
+        // ==========================
+        // BORRAR 
+        // ==========================
+        const [result] = await conn.query(`
+            DELETE FROM f_pago
+            WHERE id_fpago = ?
+        `, [id]);
+
+        if (result.affectedRows === 0) {
+            await conn.rollback();
+            return res.status(404).json({
+                ok: false,
+                mensaje: 'Forma de Pago no encontrado'
+            });
+        }
+
+        await conn.commit();
+
+        res.json({
+            ok: true,
+            mensaje: 'Forma de Pago eliminada correctamente'
+        });
+
+    } catch (error) {
+        await conn.rollback();
+        console.error(error);
+        res.status(500).json({
+            ok: false,
+            mensaje: '- ERROR eliminando Forma de Pago -'
+        });
+
+    } finally {
+        conn.release();
+    }
+});
+
+
 module.exports = router;

@@ -234,7 +234,7 @@ async function imprimirPedido(idPedido){
     const p = await res.json();
 
     if (!p || !p.id_pedido){
-      alert("No se pudo obtener el pedido");
+	  await mostrarAlerta({mensaje: `No se pudo obtener el pedido`});
       return;
     }
 
@@ -490,6 +490,21 @@ individuales.forEach(it => {
 
 
 
+
+// ======================================
+// TOTALES
+// ======================================
+html += `
+	<div style="font-size:20px; margin-top:14px; padding:10px; background:#f5f5f5; border-radius:8px;">
+
+    <div>
+      <b>Subtotal:</b>
+      ${formateadorMoneda.format(subtotalPedido)}
+    </div>
+`;
+
+///////////////////////////////
+///////////////////////////////
 // ======================================
 // PROMOCIONES
 // ======================================
@@ -497,7 +512,7 @@ let totalDescuentos = 0;
 
 if (p.promociones && p.promociones.length > 0) {
 
-  html += `
+  html += `<br>
     <div style="
       background:#fff4d6;
       border-left:5px solid orange;
@@ -509,9 +524,7 @@ if (p.promociones && p.promociones.length > 0) {
   `;
 
   p.promociones.forEach(pr => {
-
     totalDescuentos += Number(pr.descuento || 0);
-
     html += `
       • ${pr.descripcion}
       <span style="color:green;font-weight:bold">
@@ -519,39 +532,23 @@ if (p.promociones && p.promociones.length > 0) {
       </span><br>
     `;
   });
-
   html += `</div>`;
 }
-
 const totalFinal = Number(subtotalPedido || 0) - Number(totalDescuentos || 0) + Number(CostoEnv || 0);
+///////////////////////////////
+///////////////////////////////
 
-// ======================================
-// TOTALES
-// ======================================
 html += `
-  <div style="
-    font-size:20px;
-    margin-top:14px;
-    padding:10px;
-    background:#f5f5f5;
-    border-radius:8px;
-  ">
-
-    <div>
-      <b>Subtotal:</b>
-      ${formateadorMoneda.format(subtotalPedido)}
+    <div >
+      <b style="color:green">Total Descuentos:</b>
+      - ${formateadorMoneda.format(totalDescuentos)}
+      <b style="color:black">Subtotal:</b>
+      ${formateadorMoneda.format(Number(subtotalPedido || 0)-Number(totalDescuentos || 0))}
     </div>
-
     <div>
+	<br>
       <b>Costo de Envio:</b>
       ${formateadorMoneda.format(CostoEnv)}
-      <b>Subtotal:</b>
-      ${formateadorMoneda.format(Number(subtotalPedido || 0)+Number(CostoEnv || 0))}
-    </div>
-
-    <div style="color:green">
-      <b>Descuentos:</b>
-      - ${formateadorMoneda.format(totalDescuentos)}
     </div>
 
     <div style="
@@ -578,6 +575,10 @@ html += `
 		html += `    <button onclick="imprimirPedido(${p.id_pedido})">🖨️ Imprimir Pedido</button>`
 		html += `    <button onclick="distancia('${p.domicilio}')">&#128663; Ver distancia</button>`
     }		
+	if (p.estado==="C"){
+		html += `	 <button class="eliminar"  onclick="eliminar(${p.id_pedido})">❎ Eliminar Pedido</button>`
+    }		
+
 
 	html += `		<button class="boton-derecha" onclick="location.href='/menu-ventas.html'">&#8617; Volver</button>
 		   <hr>
@@ -626,26 +627,26 @@ async function confirmarConversion(){
   const imp2 = Number(document.getElementById("imp2").value);
 
   if ((imp1 + imp2) !== totalPedidoActual){
-    alert("❌ La suma de los importes no coincide con el total ($" + totalPedidoActual + ")");
+	await mostrarAlerta({mensaje: `La suma de los importes no coincide con el total ($ `+ totalPedidoActual + `)`});
     return;
   }
 
   if (imp1 > 0 && fp1 === 0){
-    alert("Debe seleccionar forma de pago 1");
+	await mostrarAlerta({mensaje: `Debe seleccionar forma de pago 1`});
     return;
   }
 
   if (imp2 > 0 && fp2 === 0){
-    alert("Debe seleccionar forma de pago 2");
+	await mostrarAlerta({mensaje: `Debe seleccionar forma de pago 2`});
     return;
   }
 
   if (fp1 != 0 && imp1 <= 0){
-    alert("Debe ingresar el importe para la forma de pago 1");
+	await mostrarAlerta({mensaje: `Debe ingresar el importe para la forma de pago 1`});
     return;
   }
   if (fp2 != 0 && imp2 <= 0){
-    alert("Debe ingresar el importe para la forma de pago 2");
+	await mostrarAlerta({mensaje: `Debe ingresar el importe para la forma de pago 2`});
     return;
   }
  document.getElementById("resultado").innerHTML = `<p><b>Procesando, por favor espere...</b></p>`;
@@ -669,17 +670,67 @@ async function confirmarConversion(){
   }
 
   document.getElementById("resultado").innerHTML = ``;
-  alert("Pedido confirmado. Venta #" + j.id_venta);
+  await mostrarAlerta({mensaje: `Pedido confirmado. Venta #` + j.id_venta,icono:`&#10004;`});
   cerrarModalPago();
   cargar();
 }
 
+//-------------------------------------------
 // ---------------- Cancelar ----------------
+//-------------------------------------------
 async function cancelar(id){
-  if (!confirm("Cancelar pedido #" + id + "?")) return;
-  const res = await fetch(`${API_BASE}/api/pedidos/${id}/cancelar`, { method:"PUT"});
+  
+  		const confirmar = await mostrarConfirm({
+		  mensaje: "¿Cancelar pedido # " + id + " ?",
+		  textoAceptar: "Sí, cancelarlo",
+		  textoCancelar: "No"
+		});
+		if (!confirmar) {
+		  return;
+		}	
+    
+		const res = await fetch(`${API_BASE}/api/pedidos/${id}/cancelar`, {
+			method: "PUT",
+			headers: {
+				"Content-Type": "application/json",
+				"usuario-id": localStorage.getItem("usuarioId")
+			}
+		});
+
+  
   const j = await res.json();
-  if (j.ok) alert("Pedido cancelado");
+  if (j.ok) await mostrarAlerta({mensaje: `Pedido cancelado`,icono:`&#10004;`});
+
+  cargar();
+}
+
+//-------------------------------------------
+// ---------------- Eliminar ----------------
+//-------------------------------------------
+async function eliminar(id){
+  
+  		const confirmar = await mostrarConfirm({
+		  mensaje: "¿Eliminar definitivamente el Pedido # " + id + " ?",
+		  textoAceptar: "Sí, eliminarlo",
+		  textoCancelar: "No"
+		});
+		if (!confirmar) {
+		  return;
+		}	
+    
+		const resp = await fetch(
+			`/api/pedidos/${id}`,
+			{
+				method: 'DELETE'
+			}
+		);
+
+		const data = await resp.json();
+
+		if (data.ok) {
+			await mostrarAlerta({mensaje: `Pedido eliminado`,icono:`&#10004;`});
+		}
+
   cargar();
 }
 
@@ -688,7 +739,7 @@ async function distancia(domicilioCliente) {
 
     const info = await obtenerDatosEmpresa();
     if (!info) {
-        alert("No se pudo obtener el domicilio de la empresa");
+		await mostrarAlerta({mensaje: `No se pudo obtener el domicilio de la empresa`});
         return;
     }
 
@@ -709,8 +760,6 @@ async function obtenerDatosEmpresa() {
     }
     const data = await resp.json();
 
-//alert('data.nombre:' + data.nombre);	
-//alert('data.domicilio:' + data.domicilio);	
     return {
       nombre: data.nombre || "",
       domicilio: data.domicilio || ""
@@ -836,6 +885,8 @@ setInterval(() => {
 
   </div>
 </div>
+
+<script src="JS/modal.js"></script>
 
 </body>
 </html>

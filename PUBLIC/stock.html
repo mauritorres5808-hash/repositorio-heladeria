@@ -137,17 +137,12 @@ const formateadorMonedaArgentina = new Intl.NumberFormat('es-AR', {
 async function cargarGrupos() {
 
   try {
-
     const resp = await fetch('/api/grupos');
-
     const grupos = await resp.json();
-
     const select = document.getElementById("grupo");
 
     select.innerHTML = "";
-
     grupos.forEach(g => {
-
       // deshabilitado = 0 -> habilitado
       if (g.deshabilitado === 0) {
         const option = document.createElement("option");
@@ -158,9 +153,7 @@ async function cargarGrupos() {
     });
 
   } catch (error) {
-
     console.error("Error cargando grupos:", error);
-
     alert("Error cargando grupos");
   }
 }

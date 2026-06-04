@@ -267,13 +267,6 @@
       </div>
     </div>
 
-<!--
-    <br><br>
-    <div style="display:flex;justify-content:center;gap:20px">
-      <button onclick="finalizarVenta()">Aceptar</button>
-      <button onclick="SalirVenta()">Salir</button>
-    </div>
--->
 <br><br>
     <div class="contenedor-botones" >
     <button class="boton-centrado" id="btnAceptar" onclick="finalizarVenta()">&#128190; Confirmar</button>
@@ -850,7 +843,6 @@ async function aplicarDescuentoRecargo() {
 	window.finalizarVenta = async function(){
 
 		if (window.productosVenta.length === 0) {
-				//alert('No hay productos en la venta');
 				await mostrarAlerta({mensaje: "No hay productos en la venta"});
 			return;
 		}
@@ -860,7 +852,6 @@ async function aplicarDescuentoRecargo() {
 		);
 
 		if (tipoVenta === 1 && !clienteSeleccionado) {
-			//alert('Debe seleccionar un cliente');
 			await mostrarAlerta({mensaje: "Debe seleccionar un cliente"});
 			id_cliente.focus();
 			return;
@@ -885,29 +876,24 @@ async function aplicarDescuentoRecargo() {
 		// VALIDACIONES
 
 		if (!fp1 && !fp2) {
-			//alert('Debe seleccionar forma de pago');
 			await mostrarAlerta({mensaje: "Debe seleccionar forma de pago"});
 			return;
 		}
 
 		if (fp1 && fp2 && fp1 === fp2) {
-			//alert('Las formas de pago no pueden ser iguales');
 			await mostrarAlerta({mensaje: "Las formas de pago no pueden ser iguales"});
 			return;
 		}
 
       if ((!fp1 && imp1 > 0) || (!fp2 && imp2 > 0)) { 	
-			//alert('Falta seleccionar alguna forma de pago.'); 
 			await mostrarAlerta({mensaje: "Falta seleccionar alguna forma de pago"});
 	  return; }
 	  
       if ((fp1 && imp1 <= 0) || (fp2 && imp2 <= 0)) { 
-			//alert('Las formas de pago seleccionadas no pueden tener importe cero.'); 
 			await mostrarAlerta({mensaje: "Las formas de pago seleccionadas no pueden tener importe cero"});
 	  return; }
       
 		if (Math.abs((imp1 + imp2) - totalFinal) > 0.01) {
-			//alert('Los importes no coinciden');
 			await mostrarAlerta({mensaje: "Los importes no coinciden"});
 			return;
 		}
@@ -916,15 +902,15 @@ async function aplicarDescuentoRecargo() {
 
 			const venta = {
 				tipo_venta: tipoVenta,
-				id_cliente: clienteSeleccionado ? clienteSeleccionado.id_cliente : 0,
+				id_cliente: clienteSeleccionado ? clienteSeleccionado.id_cliente : null,
 				subtotal,
 				descuento,
 				recargo,
 				descuento_promociones: descuentoPromo || 0,
 				costo_envio: cenvio,
 				total: totalFinal,
-				f_pago1: fp1 ? parseInt(fp1) : 0,
-				f_pago2: fp2 ? parseInt(fp2) : 0,
+				f_pago1: fp1 ? parseInt(fp1) : null,
+				f_pago2: fp2 ? parseInt(fp2) : null,
 				importe_fp1: imp1,
 				importe_fp2: imp2,
 				promociones: window.promocionesAplicadas || [],

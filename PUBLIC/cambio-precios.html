@@ -180,17 +180,15 @@ verificarSesion();
 	let grupoSeleccionado = null;
 	let usuarioEmail = localStorage.getItem("usuarioEmail") || "";
 
+/*
 async function cargarGrupos() {
 
   try {
-
     const resp = await fetch('/api/grupos');
-
     const grupos = await resp.json();
     const sel = document.getElementById("selGrupo");
 
     sel.innerHTML = "";
-
     grupos.forEach(g => {
       sel.innerHTML += `
         <option value="${g.id_grupo}">
@@ -204,6 +202,38 @@ async function cargarGrupos() {
     alert('Error cargando grupos');
   }
 }
+*/
+// ======================================
+// CARGAR GRUPOS
+// ======================================
+async function cargarGrupos() {
+
+  try {
+    const resp = await fetch('/api/grupos');
+    const grupos = await resp.json();
+    const sel = document.getElementById("selGrupo");
+
+    sel.innerHTML = "";
+    grupos.forEach(g => {
+      // deshabilitado = 0 -> habilitado
+      if (g.deshabilitado === 0) {
+      sel.innerHTML += `
+        <option value="${g.id_grupo}">
+          ${g.descripcion}
+        </option>
+      `;
+      }
+    });
+
+  } catch (error) {
+    console.error("Error cargando grupos:", error);
+    alert("Error cargando grupos");
+  }
+}
+
+
+
+
 
 cargarGrupos();
 

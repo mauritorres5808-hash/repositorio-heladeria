@@ -180,13 +180,10 @@ document.addEventListener("DOMContentLoaded", () => {
 		// GUARDAR RELACION RELA_PROD_SUB
 		// ======================================
 		const resp = await fetch(`/api/productos-sub/${productoActual}`, {
-
 		  method: "POST",
-
 		  headers: {
 			"Content-Type": "application/json"
 		  },
-
 		  body: JSON.stringify({
 			subproductos: subProdLista
 		  })
@@ -207,13 +204,10 @@ document.addEventListener("DOMContentLoaded", () => {
 		const resp2 = await fetch(
 		  `/api/productos/${productoActual}/subproductos`,
 		  {
-
 			method: "PUT",
-
 			headers: {
 			  "Content-Type": "application/json"
 			},
-
 			body: JSON.stringify({
 			  subproductos: tieneSubproductos
 			})
@@ -223,13 +217,10 @@ document.addEventListener("DOMContentLoaded", () => {
 		const data2 = await resp2.json();
 
 		if (!data2.ok) {
-
-		  return alert(
-			"Se guardó RELA_PROD_SUB pero falló actualizar el campo subproductos"
-		  );
+		  return alert( "Se guardó RELA_PROD_SUB pero falló actualizar el campo subproductos");
 		}
 
-		alert("Subproductos guardados");
+		await mostrarAlerta({mensaje: `Subproductos actualizados correctamente`,icono:`&#10004;`});
 
 		document.getElementById("modalSubproductos").style.display = "none";
 

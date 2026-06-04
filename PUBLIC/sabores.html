@@ -153,6 +153,7 @@
     <div>
       <button class="boton-redondeado" id="btnAlta">&#10133; Alta</button>
       <button class="boton-redondeado" id="btnModificar">&#9999;&#65039; Modificar</button>
+      <button class="boton-redondeado" id="btnEliminar">❌ Eliminar</button>
       &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
       <button onclick="window.location.href='menu-tablas.html'">&#8617; Volver</button>
     </div>
@@ -212,12 +213,15 @@ document.addEventListener("DOMContentLoaded", async () => {
 window.aplicarPermisos = function() {
     const btn = document.getElementById("btnAlta");
     const btn2 = document.getElementById("btnModificar");
+    const btn3 = document.getElementById("btnEliminar");
 
     if (!tienePermiso(11)) {
 		if (btn) btn.disabled = true;
 		btn.title = "No tiene permiso para usar esta funcion";
 		if (btn2) btn2.disabled = true;
 		btn2.title = "No tiene permiso para usar esta funcion";
+		if (btn3) btn3.disabled = true;
+		btn3.title = "No tiene permiso para usar esta funcion";
     }
 };
 
@@ -256,6 +260,46 @@ ArmarTabla();
   document.getElementById("tipo_sabor").value =
     data.id_tipo_sabor || "";
 };
+
+//-------------------------------------------
+// ---------------- Eliminar ----------------
+//-------------------------------------------
+document.getElementById("btnEliminar").onclick = async () => {
+
+		const id = parseInt(idSabor.value);
+
+		if (!id)
+			return await mostrarAlerta({mensaje: `Ingrese un codigo valido`});
+
+  		const confirmar = await mostrarConfirm({
+		  mensaje: "¿Eliminar definitivamente el Sabor # " + id + " ?",
+		  textoAceptar: "Sí, eliminarlo",
+		  textoCancelar: "No"
+		});
+		if (!confirmar) {
+		  return;
+		}	
+
+
+		const resp = await fetch(`/api/sabores/${id}`,
+			{
+				method: 'DELETE'
+			}
+		);
+
+		const data = await resp.json();
+
+		if (data.ok) {
+			await mostrarAlerta({mensaje: `Sabor eliminado`,icono:`&#10004;`});
+		} else {
+			await mostrarAlerta({mensaje: data.mensaje + "\n Si el Sabor esta usado en algun Pedido convertido en Venta o aun pendiente"
+			+ " no puede eliminarlo."});
+			return;
+		}
+
+        limpiarCampos();
+        ArmarTabla();
+}
 
     // --- Alta ---
 document.getElementById("btnAlta").onclick = async () => {

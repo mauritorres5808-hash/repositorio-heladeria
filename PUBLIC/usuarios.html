@@ -147,16 +147,13 @@
 &nbsp;&nbsp;&nbsp;
     <label>Nivel </label>
     <select id="nivel">
-      <option value="1">1 - Vendedor</option>
-      <option value="2">2 - Supervisor</option>
+      <option value="1">Vendedor</option>
+      <option value="2">Supervisor</option>
     </select>
-
 		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 		<label for="deshabili">Deshabilitado?</label>
 		<input class="input-pequeno" type="checkbox" id="deshabili">
-
     <br>
-	
     <br>
 	<button class="boton-redondeado" id="btnAlta">&#10133; Alta</button>
 	<button class="boton-redondeado" id="btnModificar">&#9999;&#65039; Modificar</button>
@@ -212,21 +209,11 @@ document.getElementById("btnVerificar").onclick = async () => {
         limpiarCampos();
         return;
     }
-
-    document.getElementById("id_usuario").value =
-        data.id_usuario;
-
-    document.getElementById("nombre").value =
-        data.nombre || '';
-
-    document.getElementById("email").value =
-        data.email || '';
-
-    document.getElementById("nivel").value =
-        data.nivel || 1;
-
-    document.getElementById("deshabili").checked =
-        data.deshabilitado == 1;
+    document.getElementById("id_usuario").value = data.id_usuario;
+    document.getElementById("nombre").value = data.nombre || '';
+    document.getElementById("email").value = data.email || '';
+    document.getElementById("nivel").value = data.nivel || 1;
+    document.getElementById("deshabili").checked = data.deshabilitado == 1;
 };
 
 //alta usuario
@@ -259,16 +246,13 @@ document.getElementById("btnAlta").onclick = async () => {
 
     const resp = await fetch('/api/usuarios', {
         method: 'POST',
-
         headers: {
             'Content-Type': 'application/json'
         },
-
         body: JSON.stringify({
             nombre,
             email,
             nivel,
-
             deshabilitado:
                 document.getElementById("deshabili")
                     .checked ? 1 : 0
@@ -312,15 +296,11 @@ document.getElementById("btnModificar").onclick = async () => {
         headers: {
             'Content-Type': 'application/json'
         },
-
         body: JSON.stringify({
             nombre,
             email,
             nivel,
-
-            deshabilitado:
-                document.getElementById("deshabili")
-                    .checked ? 1 : 0
+            deshabilitado: document.getElementById("deshabili").checked ? 1 : 0
         })
     });
 
@@ -356,13 +336,9 @@ document.getElementById("btnLimpiar").onclick = limpiarCampos;
 async function cargarUsuarios() {
 
   try {
-
     const resp = await fetch('/api/usuarios');
-
     const data = await resp.json();
-
-    const tbody =
-      document.getElementById("tablaUsuarios");
+    const tbody = document.getElementById("tablaUsuarios");
 
     tbody.innerHTML = "";
 
@@ -386,21 +362,17 @@ async function cargarUsuarios() {
       let nivelDesc = "";
 
       if (u.nivel == 1)
-        nivelDesc = "1 - Vendedor";
+        nivelDesc = "Vendedor";
 
       if (u.nivel == 2)
-        nivelDesc = "2 - Supervisor";
+        nivelDesc = "Supervisor";
 
       tbody.innerHTML += `
         <tr>
           <td>${u.id_usuario}</td>
-
           <td>${u.nombre || ""}</td>
-
           <td>${u.email || ""}</td>
-
           <td>${nivelDesc}</td>
-
           <td
             style="
               ${u.deshabilitado == 1
@@ -418,16 +390,9 @@ async function cargarUsuarios() {
     });
 
     tbody.innerHTML += `
-      <tr
-        style="
-          font-weight:bold;
-          background:#f2f2f2;
-        "
-      >
+      <tr style="font-weight:bold; background:#f2f2f2;">
         <td>CANTIDAD</td>
-
         <td>${cantidad}</td>
-
         <td></td>
         <td></td>
         <td></td>

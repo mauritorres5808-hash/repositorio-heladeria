@@ -149,6 +149,7 @@
     <div>
       <button class="boton-redondeado" id="btnAlta">&#10133; Alta</button>
       <button class="boton-redondeado" id="btnModificar">&#9999;&#65039; Modificar</button>
+      <button class="boton-redondeado" id="btnEliminar">❌ Eliminar</button>
       &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
       <button onclick="window.location.href='menu-tablas.html'">&#8617; Volver</button>
     </div>
@@ -273,7 +274,6 @@ document.getElementById("btnVerificar").onclick = async () => {
 // ============================================
 // ALTA
 // ============================================
-
 document.getElementById("btnAlta").onclick = async () => {
 
     if (idGrupo.value) {
@@ -326,7 +326,6 @@ document.getElementById("btnAlta").onclick = async () => {
 // ============================================
 // MODIFICAR
 // ============================================
-
 document.getElementById("btnModificar").onclick = async () => {
 
     const codigo = parseInt(idGrupo.value);
@@ -368,6 +367,47 @@ document.getElementById("btnModificar").onclick = async () => {
         alert("Error modificando grupo");
     }
 };
+
+//-------------------------------------------
+// ---------------- Eliminar ----------------
+//-------------------------------------------
+document.getElementById("btnEliminar").onclick = async () => {
+
+		const id = parseInt(idGrupo.value);
+
+		if (!id)
+			return await mostrarAlerta({mensaje: `Ingrese un codigo valido`});
+
+  		const confirmar = await mostrarConfirm({
+		  mensaje: "¿Eliminar definitivamente el Grupo # " + id + " ?",
+		  textoAceptar: "Sí, eliminarlo",
+		  textoCancelar: "No"
+		});
+		if (!confirmar) {
+		  return;
+		}	
+
+
+		const resp = await fetch(`/api/grupos/${id}`,
+			{
+				method: 'DELETE'
+			}
+		);
+
+		const data = await resp.json();
+
+		if (data.ok) {
+			await mostrarAlerta({mensaje: `Grupo eliminado`,icono:`&#10004;`});
+		} else {
+			await mostrarAlerta({mensaje: data.mensaje + "\n Si el grupo esta asignado a algun producto"
+			+ " no puede eliminarlo."});
+			return;
+		}
+
+        limpiarCampos();
+        ArmarTabla();
+}
+
 
 // ============================================
 // VALIDAR CAMPOS

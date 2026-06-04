@@ -202,6 +202,52 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// ======================================
+// ELIMINAR 
+// ======================================
+router.delete('/:id', async (req, res) => {
+
+    const conn = await db.getConnection();
+
+    try {
+        const id = parseInt(req.params.id);
+        await conn.beginTransaction();
+
+        // ==========================
+        // BORRAR 
+        // ==========================
+        const [result] = await conn.query(`
+            DELETE FROM clientes
+            WHERE id_cliente = ?
+        `, [id]);
+
+        if (result.affectedRows === 0) {
+            await conn.rollback();
+            return res.status(404).json({
+                ok: false,
+                mensaje: 'Cliente no encontrado'
+            });
+        }
+
+        await conn.commit();
+
+        res.json({
+            ok: true,
+            mensaje: 'Cliente eliminado correctamente'
+        });
+
+    } catch (error) {
+        await conn.rollback();
+        console.error(error);
+        res.status(500).json({
+            ok: false,
+            mensaje: '- ERROR eliminando Cliente -'
+        });
+
+    } finally {
+        conn.release();
+    }
+});
 
 
 module.exports = router;

@@ -422,9 +422,9 @@ router.post('/:id/convertir', async (req, res) => {
             String(ahora.getMinutes()).padStart(2, '0') + ':' +
             String(ahora.getSeconds()).padStart(2, '0')
 			
-const descuentoPromociones = Number(pedido.descuento_promociones || 0);
+		const descuentoPromociones = Number(pedido.descuento_promociones || 0);
 
-const SubtotalVenta = Number(pedido.total || 0) + Number(descuentoPromociones || 0);
+		const SubtotalVenta = Number(pedido.total || 0) + Number(descuentoPromociones || 0);
 
 		// ======================================
         // INSERTAR VENTA CABECERA
@@ -605,14 +605,13 @@ const SubtotalVenta = Number(pedido.total || 0) + Number(descuentoPromociones ||
 router.put('/:id/cancelar', async (req, res) => {
 
     try {
-
         const id = req.params.id;
+		const usuario = req.headers["usuario-id"] || 0;
 
         // ============================================
         // FECHA Y HORA ACTUAL
         // ============================================
         const ahora = new Date();
-
         const fechaHoy =
             ahora.getFullYear() + '-' +
             String(ahora.getMonth() + 1).padStart(2, '0') + '-' +
@@ -628,8 +627,9 @@ router.put('/:id/cancelar', async (req, res) => {
             SET estado = 'C'
 			,fecha_canc = ?
 			,hora_canc = ?
+			,id_usuario_canc = ?
             WHERE id_pedido = ?
-        `, [fechaHoy, horaHoy, id]);
+        `, [fechaHoy, horaHoy, usuario, id]);
 
         res.json({
             ok: true
@@ -666,7 +666,6 @@ router.get('/venta/:idVenta', async (req, res) => {
         `, [idVenta]);
 
         if (cabRows.length === 0) {
-
             return res.status(404).json({
                 ok: false,
                 error: 'Pedido no encontrado'
@@ -674,6 +673,16 @@ router.get('/venta/:idVenta', async (req, res) => {
         }
 
         const pedido = cabRows[0];
+
+		// PROMOCIONES
+		const [detPromociones] = await db.query(`
+			SELECT
+				id_promocion,
+				descripcion,
+				descuento
+			FROM pedidos_promociones
+            WHERE id_pedido = ?
+        `, [pedido.id_pedido]);
 
         // ======================================
         // DETALLE
@@ -720,7 +729,8 @@ router.get('/venta/:idVenta', async (req, res) => {
         res.json({
             ok: true,
             cabecera: pedido,
-            detalle: detRows
+            detalle: detRows,
+            promociones: detPromociones
         });
 
     } catch (error) {
@@ -731,6 +741,62 @@ router.get('/venta/:idVenta', async (req, res) => {
             ok: false,
             error: 'Error obteniendo pedido'
         });
+    }
+});
+
+// ======================================
+// ELIMINAR PEDIDO
+// ======================================
+router.delete('/:id', async (req, res) => {
+
+    const conn = await db.getConnection();
+
+    try {
+        const id = parseInt(req.params.id);
+
+        await conn.beginTransaction();
+
+        // ==========================
+        // BORRAR DETALLE
+        // ==========================
+        await conn.query(`
+            DELETE FROM pedidos_det
+            WHERE id_pedido = ?
+        `, [id]);
+
+        // ==========================
+        // BORRAR CABECERA
+        // ==========================
+        const [result] = await conn.query(`
+            DELETE FROM pedidos_cab
+            WHERE id_pedido = ?
+        `, [id]);
+
+        if (result.affectedRows === 0) {
+            await conn.rollback();
+            return res.status(404).json({
+                ok: false,
+                mensaje: 'Pedido no encontrado'
+            });
+        }
+
+        await conn.commit();
+
+        res.json({
+            ok: true,
+            mensaje: 'Pedido eliminado correctamente'
+        });
+
+    } catch (error) {
+        await conn.rollback();
+        console.error(error);
+        res.status(500).json({
+            ok: false,
+            mensaje: 'Error eliminando pedido'
+        });
+
+    } finally {
+        conn.release();
     }
 });
 

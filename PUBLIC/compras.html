@@ -384,8 +384,7 @@ id_producto.focus();
 			return;
 		  }
 
-		  const fp1 =
-			document.getElementById('fpago1').value;
+		  const fp1 = document.getElementById('fpago1').value;
 
 		  if (!fp1) {
 			await mostrarAlerta({mensaje: `Debe seleccionar forma de pago`});
@@ -400,45 +399,30 @@ id_producto.focus();
 
 		  try {
 
-			const productos =
-			  window.productosCompra.map(p => ({
-
+			const productos = window.productosCompra.map(p => ({
 				id_producto: Number(p.id),
-
 				cantidad: Number(p.cantidad),
-
 				precio: Number(p.precio),
-
 				subtotal:
 				  Number(p.precio) *
 				  Number(p.cantidad)
 			  }));
 
 			const ahora = new Date();
-
-			const fecha =
-			  ahora.toISOString().slice(0,10);
-
-			const hora =
-			  Obtener_Hora();
+			// FECHA formato MySQL DATE
+			const fecha = ahora.toISOString().split('T')[0];
+			const hora = Obtener_Hora();
 
 			const body = {
-
 			  fecha,
 			  hora,
-
 			  total: totalFinal,
-
 			  f_pago1: Number(fp1),
-
 			  productos
 			};
 
-			const resp =
-			  await fetch('/api/compras', {
-
+			const resp = await fetch('/api/compras', {
 				method: 'POST',
-
 				headers: {
 				  'Content-Type': 'application/json'
 				},
@@ -446,8 +430,7 @@ id_producto.focus();
 				body: JSON.stringify(body)
 			  });
 
-			const data =
-			  await resp.json();
+			const data = await resp.json();
 
 			if (!data.ok) {
 			  alert(data.mensaje || 'Error grabando compra');

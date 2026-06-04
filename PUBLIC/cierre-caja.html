@@ -164,22 +164,13 @@ document.getElementById("userLabel").textContent = localStorage.getItem("usuario
   
           const addPago = (idfp, imp) => {
             if (!idfp) return;
-            //resumenPorTipo[tipo].formasPago[idfp] = (resumenPorTipo[tipo].formasPago[idfp] || 0) + (parseFloat(imp)||0);
-            //resumenPorForma[idfp] = (resumenPorForma[idfp] || 0) + (parseFloat(imp)||0);
 			  // Importes
-			  resumenPorTipo[tipo].formasPago[idfp] =
-				(resumenPorTipo[tipo].formasPago[idfp] || 0) + (parseFloat(imp) || 0);
-
-			  resumenPorForma[idfp] =
-				(resumenPorForma[idfp] || 0) + (parseFloat(imp) || 0);
-
+			  resumenPorTipo[tipo].formasPago[idfp] = (resumenPorTipo[tipo].formasPago[idfp] || 0) + (parseFloat(imp) || 0);
+			  resumenPorForma[idfp] = (resumenPorForma[idfp] || 0) + (parseFloat(imp) || 0);
 			  // Cantidades por tipo
-			  resumenPorTipo[tipo].cantidades[idfp] =
-				(resumenPorTipo[tipo].cantidades[idfp] || 0) + 1;
-
+			  resumenPorTipo[tipo].cantidades[idfp] = (resumenPorTipo[tipo].cantidades[idfp] || 0) + 1;
 			  // Cantidades generales
-			  cantidadPorForma[idfp] =
-				(cantidadPorForma[idfp] || 0) + 1;
+			  cantidadPorForma[idfp] = (cantidadPorForma[idfp] || 0) + 1;
           };
 		  
           addPago(v.f_pago1, v.importe_fp1);
@@ -189,7 +180,6 @@ document.getElementById("userLabel").textContent = localStorage.getItem("usuario
         });
 
         // Clasificar movimientos
-        //const ingresos = movimientos.filter(m => m.tipo === 'I' , 'S');
 		const ingresos = movimientos.filter(m => m.tipo === 'I' || m.tipo === 'S');
 
         const egresos = movimientos.filter(m => m.tipo === 'E');
@@ -199,7 +189,6 @@ document.getElementById("userLabel").textContent = localStorage.getItem("usuario
         const totalGeneral = totalVentas + totalIngresos - totalEgresos - totalCompras;
 
         // Guardar para grabar
-      //  datosCierre = { idCierre, ventas, movimientos, ingresos, egresos, resumenPorTipo, resumenPorForma, totalVentas, totalIngresos, totalEgresos, totalGeneral };
 		datosCierre = { 
 		  idCierre,
 		  ventas, movimientos,
@@ -229,7 +218,7 @@ document.getElementById("userLabel").textContent = localStorage.getItem("usuario
           for (const idfp in t.formasPago) {
             html += `<tr><td>${formasPago[idfp] || idfp}</td> <td>${formateadorMoneda.format(t.formasPago[idfp])}</td></tr>`;
           }
-          html += `<tr style="font-weight:bold;background:#e8f5e9"><td style="text-align:right">Subtotal Tipo ${TipoVenta}</td><td>${formateadorMoneda.format(t.total)}</td></tr></table><br>`;
+          html += `<tr style="font-weight:bold;background:#e8f5e9"><td style="text-align:right">Subtotal ${TipoVenta}</td><td>${formateadorMoneda.format(t.total)}</td></tr></table><br>`;
         }
 
 		// =======================
@@ -242,19 +231,12 @@ document.getElementById("userLabel").textContent = localStorage.getItem("usuario
         for (const idfp in resumenPorForma) {
           const importe = resumenPorForma[idfp];
           totalGeneralFP += importe;
-          //html += `<tr><td>${formasPago[idfp ;font-size=40px" || idfp}</td><td>${formateadorMoneda.format(importe)}</td></tr>`;
+
 		  html += `<tr>
-			<td>${idfp} - ${formasPago[idfp] || idfp}</td>
+			<td>${formasPago[idfp] || idfp}</td>
 			<td>${cantidadPorForma[idfp] || 0}</td>
 			<td>${formateadorMoneda.format(importe)}</td>
 			</tr>`;
-		/*		
-		html += `<tr>
-				<td>${idfp} - ${formasPago[idfp] || idfp}</td>
-				<td>${t.cantidades[idfp] || 0}</td>
-				<td>${formateadorMoneda.format(t.formasPago[idfp])}</td>
-				</tr>`;
-		*/
         }
 
         html += `<tr style="font-weight:bold;background:#d7ffd9">
@@ -301,7 +283,7 @@ document.getElementById("userLabel").textContent = localStorage.getItem("usuario
 				}
 
 				html += `<tr style="font-weight:bold;background:#ffe0e0">
-							 <td style="text-align:right">TOTAL COMPRAS</td>
+							 <td style="text-align:right">Total Compras</td>
 							 <td>${formateadorMoneda.format(totalCompras)}</td>
 						   </tr>
 						   </table>`;

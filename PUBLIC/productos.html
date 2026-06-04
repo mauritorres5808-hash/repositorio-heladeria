@@ -175,10 +175,8 @@ button:hover {
 			<button id="btnVerificar">&#9989; Verificar</button>
 			<button id="btnBuscar">&#128269; Buscar</button>
 			<button id="btnVaciar" onclick="limpiar_datos()">&#9851; Limpiar</button>
+			<button id="btnEliminar">❌ Eliminar</button>
 				&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 	<button class="boton-redondeado"  onclick="window.location.href='menu-tablas.html'">&#8617; Volver</button>
 
@@ -383,9 +381,9 @@ function mostrarImagen(pRuta) {
     cargarGrupos();
 
 	document.getElementById("btnVerificar").onclick = () => {
-	  if (!idProd.value.trim()) return  mostrarAlerta({mensaje: `Ingrese un codigo valido`});
 	  verificarProducto();
 	};
+	
 	document.getElementById("id_producto").addEventListener("blur", () => {
 	  if (idProd.value.trim() !== "") verificarProducto();
 	});
@@ -395,7 +393,8 @@ function mostrarImagen(pRuta) {
 
 		const codigo = parseInt(idProd.value);
 
-		if (!codigo) return;
+		if (!codigo) return await mostrarAlerta({mensaje: `Ingrese un codigo valido`});
+
 
 		try {
 			const resp = await fetch(`/api/productos/${codigo}`);
@@ -439,7 +438,45 @@ function mostrarImagen(pRuta) {
 		}
 	}
 
-    // --- Alta de producto ---
+    //-------------------------------------------
+	// ---------------- Eliminar ----------------
+	//-------------------------------------------
+	document.getElementById("btnEliminar").onclick = async () => {
+
+			const id = parseInt(idProd.value) || 0;
+
+			if (!id)
+				return await mostrarAlerta({mensaje: `Ingrese un codigo valido`});
+
+			const confirmar = await mostrarConfirm({
+			  mensaje: "¿Eliminar definitivamente el Producto # " + id + " ?",
+			  textoAceptar: "Si, eliminarlo",
+			  textoCancelar: "No"
+			});
+			if (!confirmar) {
+			  return;
+			}	
+
+
+			const resp = await fetch(`/api/productos/${id}`,
+				{
+					method: 'DELETE'
+				}
+			);
+
+			const data = await resp.json();
+
+			if (data.ok) {
+				await mostrarAlerta({mensaje: `Producto eliminado`,icono:`&#10004;`});
+			} else {
+				await mostrarAlerta({mensaje: data.mensaje + "\n Si el Producto esta asignado a alguna Venta"
+				+ " no puede eliminarlo."});
+				return;
+			}
+			limpiar_datos();
+	}
+
+	// --- Alta de producto ---
 	document.getElementById("btnAlta").onclick = async () => {
 
 		const codigo = parseInt(idProd.value) || 0;

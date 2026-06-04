@@ -839,41 +839,60 @@ async function verPedido(idVenta) {
 
     try {
 
-        const resp = await fetch(`/api/pedidos/venta/${idVenta}`);
+        const resp = await fetch(
+            `/api/pedidos/venta/${idVenta}`
+        );
+
         const data = await resp.json();
 
         if (!data.ok) {
+
             alert(data.error || 'Error obteniendo pedido');
             return;
         }
 
         const pedido = data.cabecera;
+
         const detalle = data.detalle;
-const promociones = data.promociones || [];
 
-        const cont = document.getElementById("detalleContenido");
-        const encabezado = document.getElementById("encabezado_detalle");
+        const cont =
+            document.getElementById("detalleContenido");
 
-        encabezado.innerHTML = "Pedido Online - Venta Nro. " + idVenta;
+        const encabezado =
+            document.getElementById("encabezado_detalle");
+
+        encabezado.innerHTML =
+            "Pedido Online - Venta Nro. " + idVenta;
 
         let html = `
+
         <div class="alert-modern">
+
             <b>Pedido # </b> ${pedido.id_pedido} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <b>Fecha:</b> ${convertirFechaOK(pedido.fecha)}&nbsp;&nbsp;&nbsp;<b>Hora:</b> ${pedido.hora}
             <br>
+            
             <b>Cliente:</b> ${pedido.nombre}
             <br>
+
             <b>Teléfono:</b> ${pedido.telefono}
             <br>
+
             <b>Domicilio:</b> ${pedido.domicilio}
             <br>
+
             <b>Paga con:</b> ${pedido.paga_con || '-'}
             <br>
+
             <b>Nota:</b> ${pedido.nota || '-'}
             <br>
+
             <b>Total:</b>
             ${formateadorMoneda.format(pedido.total || 0)}
+
         </div>
+
         <table>
+
             <tr>
                 <th>Producto</th>
                 <th>Precio</th>
@@ -882,53 +901,33 @@ const promociones = data.promociones || [];
         `;
 
         detalle.forEach(d => {
+
             html += `
             <tr>
+
                 <td>${d.prod_desc}</td>
+
                 <td>
                     ${formateadorMoneda.format(d.prod_precio || 0)}
                 </td>
+
                 <td>${d.sabores_desc || '-'}</td>
+
             </tr>
             `;
         });
 
         html += `</table>`;
 
-if (promociones.length > 0) {
-
-    html += `
-        <br>
-        <div class="alert-modern">
-            <b>🎁 Promociones Aplicadas</b><br><br>
-    `;
-
-    promociones.forEach(p => {
-
-        html += `
-            ${p.descripcion}
-            &nbsp;&nbsp;
-            (-${formateadorMoneda.format(p.descuento || 0)})
-            <br>
-        `;
-    });
-
-    html += `
-        <br>
-        <b>Total promociones:</b>
-        ${formateadorMoneda.format(
-            pedido.descuento_promociones || 0
-        )}
-        </div>
-    `;
-}
-
         cont.innerHTML = html;
 
-        document.getElementById("detalleModal").style.display = "flex";
+        document.getElementById("detalleModal")
+            .style.display = "flex";
 
     } catch (err) {
+
         console.error(err);
+
         alert('Error obteniendo pedido');
     }
 }

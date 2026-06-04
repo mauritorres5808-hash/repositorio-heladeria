@@ -144,6 +144,7 @@
     <div>
       <button class="boton-redondeado" id="btnAlta">&#10133; Alta</button>
       <button class="boton-redondeado" id="btnModificar">&#9999;&#65039; Modificar</button>
+      <button class="boton-redondeado" id="btnEliminar">❌ Eliminar</button>
       &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
       <button onclick="window.location.href='menu-tablas.html'">&#8617; Volver</button>
     </div>
@@ -259,10 +260,50 @@ document.getElementById("btnVerificar").onclick = async () => {
     }
 };
 
+//-------------------------------------------
+// ---------------- Eliminar ----------------
+//-------------------------------------------
+document.getElementById("btnEliminar").onclick = async () => {
+
+		const id = parseInt(idFpago.value);
+
+		if (!id)
+			return await mostrarAlerta({mensaje: `Ingrese un codigo valido`});
+
+  		const confirmar = await mostrarConfirm({
+		  mensaje: "¿Eliminar definitivamente la Forma de Pago # " + id + " ?",
+		  textoAceptar: "Sí, eliminarlo",
+		  textoCancelar: "No"
+		});
+		if (!confirmar) {
+		  return;
+		}	
+
+
+		const resp = await fetch(`/api/fpago/${id}`,
+			{
+				method: 'DELETE'
+			}
+		);
+
+		const data = await resp.json();
+
+		if (data.ok) {
+			await mostrarAlerta({mensaje: `Forma de Pago eliminado`,icono:`&#10004;`});
+		} else {
+			await mostrarAlerta({mensaje: data.mensaje + "\n Si la Forma de Pago esta asignada a alguna Venta"
+			+ " no puede eliminarla."});
+			return;
+		}
+
+        limpiarCampos();
+        ArmarTabla();
+}
+
+
 // ============================================
 // ALTA
 // ============================================
-
 document.getElementById("btnAlta").onclick = async () => {
 
     if (idFpago.value) {

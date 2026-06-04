@@ -9,7 +9,6 @@ const db = require('../db');
 router.get('/', async (req, res) => {
 
     try {
-
         const [rows] = await db.query(`
 			SELECT
 				id_apertura,
@@ -26,9 +25,7 @@ router.get('/', async (req, res) => {
         res.json(rows);
 
     } catch (error) {
-
         console.error(error);
-
         res.status(500).json({
             ok: false,
             mensaje: 'Error obteniendo aperturas'
@@ -43,7 +40,6 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
 
     try {
-
         const {
             hora,
             fecha,
@@ -79,9 +75,7 @@ router.post('/', async (req, res) => {
         });
 
     } catch (error) {
-
         console.error(error);
-
         res.status(500).json({
             ok: false,
             mensaje: 'Error creando apertura'

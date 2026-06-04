@@ -144,6 +144,7 @@
     <div>
       <button class="boton-redondeado" id="btnAlta">&#10133; Alta</button>
       <button class="boton-redondeado" id="btnModificar">&#9999;&#65039; Modificar</button>
+	<button class="boton-redondeado" id="btnEliminar">❌ Eliminar</button>
       &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
       <button onclick="window.location.href='menu-tablas.html'">&#8617; Volver</button>
     </div>
@@ -242,11 +243,51 @@ window.aplicarPermisos = function() {
 	};
 
 
+//-------------------------------------------
+// ---------------- Eliminar ----------------
+//-------------------------------------------
+document.getElementById("btnEliminar").onclick = async () => {
+
+		const id = parseInt(idTipo.value);
+
+		if (!id)
+			return await mostrarAlerta({mensaje: `Ingrese un codigo valido`});
+
+  		const confirmar = await mostrarConfirm({
+		  mensaje: "¿Eliminar definitivamente el Tipo de Sabor # " + id + " ?",
+		  textoAceptar: "Sí, eliminarlo",
+		  textoCancelar: "No"
+		});
+		if (!confirmar) {
+		  return;
+		}	
+
+
+		const resp = await fetch(`/api/tipo-sabores/${id}`,
+			{
+				method: 'DELETE'
+			}
+		);
+
+		const data = await resp.json();
+
+		if (data.ok) {
+			await mostrarAlerta({mensaje: `Tipo de Sabor eliminado`,icono:`&#10004;`});
+		} else {
+			await mostrarAlerta({mensaje: data.mensaje + "\n Si el Tipo de Sabor esta usado en algun Sabor"
+			+ " no puede eliminarlo."});
+			return;
+		}
+
+        limpiarCampos();
+        ArmarTabla();
+}
+
+
     // --- Alta ---
 	document.getElementById("btnAlta").onclick = async () => {
 
     if (idTipo.value) {
-
 		return await mostrarAlerta({mensaje: `Para dar de alta NO debe ingresar el codigo.\n
 				Este se genera automaticamente.\n
 				Borrar el codigo, cargar los demas campos y volver a presionar ALTA
@@ -446,15 +487,10 @@ window.aplicarPermisos = function() {
 		  });
 
 		  html += `
-			<tr class="total-row"
-				style="font-weight:bold;background:#f2f2f2">
-
+			<tr class="total-row" style="font-weight:bold;background:#f2f2f2">
 			  <td colspan="1">CANTIDAD</td>
-
 			  <td>${cant}</td>
-
 			  <td></td>
-
 			</tr>
 		  `;
 
@@ -465,7 +501,6 @@ window.aplicarPermisos = function() {
 		  html;
 
 	  } catch (error) {
-
 		console.error(
 		  "Error buscando tipos sabores:",
 		  error

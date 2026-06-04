@@ -193,7 +193,8 @@
     <div>
       <button class="boton-redondeado" id="btnAlta">&#10133; Alta</button>
       <button class="boton-redondeado" id="btnModificar">&#9999;&#65039; Modificar </button>
-      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+		<button class="boton-redondeado" id="btnEliminar">❌ Eliminar</button>
+		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
       <button onclick="volver()">&#8617; Volver</button>
     </div>
 
@@ -205,7 +206,7 @@
         <button id="btnBuscarCliente">Buscar</button>
         <table id="tablaResultados">
           <thead>
-            <tr><th>ID</th><th>Nombre</th></tr>
+            <tr><th style="background:#BDC2CB;">ID</th><th style="background:#BDC2CB;">Nombre</th></tr>
           </thead>
           <tbody></tbody>
         </table>
@@ -322,6 +323,46 @@ const idCliente = document.getElementById("id_cliente");
 
 	  nota.value = data.nota || "";
 	};
+
+
+//-------------------------------------------
+// ---------------- Eliminar ----------------
+//-------------------------------------------
+document.getElementById("btnEliminar").onclick = async () => {
+
+		const id = parseInt(idCliente.value);
+
+		if (!id)
+			return await mostrarAlerta({mensaje: `Ingrese un codigo valido`});
+
+  		const confirmar = await mostrarConfirm({
+		  mensaje: "¿Eliminar definitivamente el Cliente # " + id + " ?",
+		  textoAceptar: "Sí, eliminarlo",
+		  textoCancelar: "No"
+		});
+		if (!confirmar) {
+		  return;
+		}	
+
+
+		const resp = await fetch(`/api/clientes/${id}`,
+			{
+				method: 'DELETE'
+			}
+		);
+
+		const data = await resp.json();
+
+		if (data.ok) {
+			await mostrarAlerta({mensaje: `Cliente eliminado`,icono:`&#10004;`});
+		} else {
+			await mostrarAlerta({mensaje: data.mensaje + "\n Si el Cliente esta asignado a alguna Venta"
+			+ " no puede eliminarlo."});
+			return;
+		}
+
+	  limpiarCampos();
+}
 
     // --- Alta ---
 	document.getElementById("btnAlta").onclick = async () => {

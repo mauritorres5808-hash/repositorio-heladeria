@@ -77,7 +77,7 @@
 
     <!-- Mensaje moderno (visual) -->
 	<div class="filaMensajePromo">
-		<div id="mensajeTipo" class="alert-modern">Delivery propio seleccionado. Si mantiene la opcion, debe seleccionar el cliente.</div>
+		<div id="mensajeTipo" class="alert-modern">Delivery propio seleccionado. Si mantiene la opcion, debe completar los datos del cliente.</div>
 		<button  id="btnVerPromos">&#x2764;&#xFE0F; Ver promos vigentes</button>
 	</div>
  
@@ -435,7 +435,7 @@ mostrarMapaDistancia(origen, destino);
       const tipo = document.querySelector('input[name="tipoDelivery"]:checked').value;
       if (tipo === "1") {
         bloqueCliente.style.display = "block";
-        mensajeTipo.textContent = "Delivery propio seleccionado. Debe seleccionar el cliente.";
+        mensajeTipo.textContent = "Delivery propio seleccionado. Debe completar los datos del cliente.";
         mensajeTipo.style.display = "block";
 		imgDelivery.style.display = "none";	
 		cenvio.value = calcularCostoEnvio(document.getElementById("subtotalGeneral"));

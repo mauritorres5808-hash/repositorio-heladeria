@@ -4,7 +4,9 @@ const router = express.Router();
 const db = require('../db');
 
 
+// ============================================
 // OBTENER TODOS LOS PRODUCTOS
+// ============================================
 router.get('/', async (req, res) => {
 
     try {
@@ -23,9 +25,7 @@ router.get('/', async (req, res) => {
         res.json(rows);
 
     } catch (error) {
-
         console.error(error);
-
         res.status(500).json({
             error: 'Error obteniendo productos'
         });
@@ -49,9 +49,7 @@ router.get('/', async (req, res) => {
         res.json(rows);
 
     } catch (error) {
-
         console.error(error);
-
         res.status(500).json({
             ok: false,
             mensaje: 'Error obteniendo productos'
@@ -113,9 +111,7 @@ router.get('/buscar/:texto', async (req, res) => {
         res.json(rows);
 
     } catch (error) {
-
         console.error(error);
-
         res.status(500).json({
             ok: false,
             mensaje: 'Error buscando productos'
@@ -161,32 +157,24 @@ router.put('/cambio-masivo', async (req, res) => {
         // ======================================
 		await conn.query(`
 			INSERT INTO auditoria_precios (
-
 				fecha,
 				hora,
-
 				id_usuario,
 				usuario,
-
 				id_grupo,
 				grupo,
-
 				tipo_cambio,
 				valor_cambio
-
 			)
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 		`, [
 
 			auditoria.fecha,
 			auditoria.hora,
-
 			auditoria.id_usuario,
 			auditoria.usuario,
-
 			auditoria.id_grupo,
 			auditoria.grupo,
-
 			auditoria.tipo_cambio,
 			auditoria.valor_cambio
 		]);
@@ -198,18 +186,14 @@ router.put('/cambio-masivo', async (req, res) => {
         });
 
     } catch (error) {
-
         await conn.rollback();
-
         console.error(error);
-
         res.status(500).json({
             ok: false,
             mensaje: 'Error aplicando cambio masivo'
         });
 
     } finally {
-
         conn.release();
     }
 });
@@ -242,9 +226,7 @@ router.put('/precio/:id_producto', async (req, res) => {
         });
 
     } catch (error) {
-
         console.error(error);
-
         res.status(500).json({
             ok: false,
             mensaje: 'Error actualizando precio'
@@ -274,9 +256,7 @@ router.get('/grupo/:id_grupo', async (req, res) => {
         res.json(rows);
 
     } catch (error) {
-
         console.error(error);
-
         res.status(500).json({
             error: 'Error obteniendo productos'
         });
@@ -312,9 +292,7 @@ router.put('/:id/subproductos', async (req, res) => {
         });
 
     } catch (error) {
-
         console.error(error);
-
         res.status(500).json({
             ok: false,
             mensaje: 'Error actualizando campo subproductos'
@@ -345,9 +323,7 @@ router.get('/:id', async (req, res) => {
         res.json(rows[0]);
 
     } catch (error) {
-
         console.error(error);
-
         res.status(500).json({
             ok: false,
             mensaje: 'Error obteniendo producto'
@@ -385,6 +361,7 @@ router.post('/', async (req, res) => {
                 contenido,
                 id_grupo,
                 precio,
+                precio_c,
                 cod_barra,
                 stock,
                 imagen,
@@ -396,13 +373,14 @@ router.post('/', async (req, res) => {
                 modifica,
                 sabores
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
             nuevoCodigo,
             datos.descripcion,
             datos.contenido,
             datos.id_grupo,
             datos.precio,
+            datos.precio_c,
             datos.cod_barra,
             datos.stock,
             `img/${nuevoCodigo}.png`,
@@ -421,9 +399,7 @@ router.post('/', async (req, res) => {
         });
 
     } catch (error) {
-
         console.error(error);
-
         res.status(500).json({
             ok: false,
             mensaje: 'Error dando alta'
@@ -450,6 +426,7 @@ router.put('/:id', async (req, res) => {
                 contenido = ?,
                 id_grupo = ?,
                 precio = ?,
+                precio_c = ?,
                 cod_barra = ?,
                 stock = ?,
 				imagen = ?,
@@ -466,6 +443,7 @@ router.put('/:id', async (req, res) => {
             datos.contenido,
             datos.id_grupo,
             datos.precio,
+            datos.precio_c,
             datos.cod_barra,
             datos.stock,
 			`img/${id}.png`,
@@ -484,9 +462,7 @@ router.put('/:id', async (req, res) => {
         });
 
     } catch (error) {
-
         console.error(error);
-
         res.status(500).json({
             ok: false,
             mensaje: 'Error modificando producto'
@@ -540,7 +516,6 @@ router.delete('/:id', async (req, res) => {
         conn.release();
     }
 });
-
 
 
 module.exports = router;

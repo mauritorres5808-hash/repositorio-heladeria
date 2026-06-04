@@ -204,6 +204,10 @@ button:hover {
 
     <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
 		<div>
+			<label for="precio">Precio Costo</label>
+			<input class="input-pequeno" type="number" id="precio_c" step="0.01" onkeydown="if(event.key==='Enter')precio.focus()" />
+		</div>
+		<div>
 			<label for="precio">Precio Venta</label>
 			<input class="input-pequeno" type="number" id="precio" step="0.01" onkeydown="if(event.key==='Enter')stock.focus()" />
 		</div>
@@ -349,6 +353,7 @@ function mostrarImagen(pRuta) {
     const conteni = document.getElementById("contenido");
     const grupo = document.getElementById("grupo");
     const precio = document.getElementById("precio");
+    const precio_c = document.getElementById("precio_c");
 
     // --- Cargar grupos en combo ---
 	function cargarGrupos() {
@@ -412,6 +417,7 @@ function mostrarImagen(pRuta) {
 			conteni.value = data.contenido;
 			grupo.value = data.id_grupo;
 			precio.value = data.precio;
+			precio_c.value = data.precio_c;
 			cod_barra.value = data.cod_barra;
 			stock.value = data.stock;
 			stock_minimo.value = data.stock_minimo;
@@ -506,6 +512,7 @@ function mostrarImagen(pRuta) {
 					contenido: conteni.value.trim(),
 					id_grupo: parseInt(grupo.value),
 					precio: parseFloat(precio.value),
+					precio_c: parseFloat(precio_c.value),
 					cod_barra: cod_barra.value,
 					stock: parseFloat(stock.value),
 					stock_minimo: parseFloat(stock_minimo.value),
@@ -574,6 +581,7 @@ function mostrarImagen(pRuta) {
 					contenido: conteni.value.trim(),
 					id_grupo: parseInt(grupo.value),
 					precio: parseFloat(precio.value),
+					precio_c: parseFloat(precio_c.value),
 					cod_barra: cod_barra.value,
 					stock: parseFloat(stock.value),
 					stock_minimo: parseFloat(stock_minimo.value),
@@ -658,6 +666,7 @@ async function limpiar_datos() {
     document.getElementById("contenido").value = "";
     document.getElementById("grupo").value = "0";
     document.getElementById("precio").value = "0";
+    document.getElementById("precio_c").value = "0";
     document.getElementById("cod_barra").value = "";
     document.getElementById("stock").value = "0";
     document.getElementById("stock_minimo").value = "0";

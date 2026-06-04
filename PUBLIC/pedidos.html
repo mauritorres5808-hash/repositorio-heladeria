@@ -115,6 +115,7 @@ select {
 				<option value="nuevo">Nuevos Pedidos</option>
 				<option value="confirmado">confirmados como Venta</option>
 				<option value="cancelado">Pedidos Cancelados</option>
+				<option value="eliminado">Pedidos Eliminados</option>
 			  </select>
 			<button class="boton-derecha" onclick="location.href='/menu-ventas.html'">&#8617; Volver</button>
 			</header>
@@ -201,7 +202,6 @@ async function cargar(){
   try {
     const res = await fetch(url);
     const items = await res.json();
-
   
 		// 🔔 detectar nuevos pedidos SOLO en estado "nuevo"
 		if (estado === "nuevo") {
@@ -224,8 +224,7 @@ async function cargar(){
 }
 
 
-
-// 🖨️ Imprimir ticket directo (SIN PDF - impresora directa)
+// Imprimir ticket directo (SIN PDF - impresora directa)
 async function imprimirPedido(idPedido){
 
 //---------------
@@ -348,6 +347,18 @@ html += `
         <div style="font-size:16px; color:red">
           <br><b>&#10140; Fecha/Hora/usuario de la cancelacion:</b>
           <span style="color:black">${convertirFechaOK(p.fecha_canc)} ${p.hora_canc}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;usuario: ${p.usuario_canc_nombre || 'No informado'}</span>
+        </div>`
+        : ""
+      }
+      ${p.estado === "E"
+        ? ` <br>❌ <span style="color:yellow; background:red"><b>ELIMINADO</b></span>
+        <div style="font-size:16px; color:red">
+          <br><b>&#10140; Fecha/Hora/usuario de la cancelacion:</b>
+          <span style="color:black">${convertirFechaOK(p.fecha_canc)} ${p.hora_canc}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;usuario: ${p.usuario_canc_nombre || 'No informado'}</span>
+        </div>
+        <div style="font-size:16px; color:red">
+          <b>&#10140; Fecha/Hora/usuario de la eliminacion:</b>
+          <span style="color:black">${convertirFechaOK(p.fecha_elim)} ${p.hora_elim}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;usuario: ${p.usuario_elim_nombre || 'No informado'}</span>
         </div>`
         : ""
       }
@@ -717,13 +728,14 @@ async function eliminar(id){
 		if (!confirmar) {
 		  return;
 		}	
-    
-		const resp = await fetch(
-			`/api/pedidos/${id}`,
-			{
-				method: 'DELETE'
+
+		const resp = await fetch(`/api/pedidos/${id}`, {
+				method: 'DELETE',
+			headers: {
+				"Content-Type": "application/json",
+				"usuario-id": localStorage.getItem("usuarioId")
 			}
-		);
+		});
 
 		const data = await resp.json();
 

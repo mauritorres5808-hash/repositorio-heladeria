@@ -65,7 +65,7 @@
       overflow-y: auto;
     }
     table {
-      width: 80%;
+      width: 95%;
       border-collapse: collapse;
       margin-top: 10px;
     }
@@ -136,7 +136,7 @@
 
     <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
       <div>
-        <label for="descripcion">Descripcion</label>
+        <label for="descripcion">Nombre</label>
         <input type="text" id="descripcion" onkeydown="if(event.key==='Enter')contenido.focus()" />
       </div>
       <div>
@@ -163,12 +163,12 @@
     <!-- Modal de busqueda -->
     <div id="modalBusqueda">
       <div id="contenidoModal" align="center">
-        <h3>Buscar Sabor por descripcion</h3>
-        <input type="text" id="txtBuscarNombre" placeholder="Ingrese parte de la descripcion" />
+        <h3>Buscar Sabor por Nombre</h3>
+        <input type="text" id="txtBuscarNombre" placeholder="Ingrese parte del nombre" />
         <button id="btnBuscarSabor">Buscar</button>
         <table id="tablaResultados">
           <thead>
-            <tr><th>ID</th><th>Descripcion</th></tr>
+            <tr><th>ID</th><th>Nombre</th></tr>
           </thead>
           <tbody></tbody>
         </table>
@@ -325,9 +325,7 @@ document.getElementById("btnAlta").onclick = async () => {
       id_tipo_sabor: parseInt(
         document.getElementById("tipo_sabor").value
       ),
-
       descripcion: descripcion.value.trim(),
-
       contenido: contenido.value.trim()
     })
   });
@@ -367,13 +365,9 @@ document.getElementById("btnModificar").onclick = async () => {
       id_tipo_sabor: parseInt(
         document.getElementById("tipo_sabor").value
       ),
-
       descripcion: descripcion.value.trim(),
-
       contenido: contenido.value.trim(),
-
-      deshabilitado:
-        document.getElementById("deshabili").checked ? 1 : 0
+      deshabilitado: document.getElementById("deshabili").checked ? 1 : 0
     })
   });
 
@@ -393,7 +387,7 @@ document.getElementById("btnModificar").onclick = async () => {
 
     async function validarCampos() {
       if (!descripcion.value.trim()) { 
-		await mostrarAlerta({mensaje: `Ingrese la descripcion`});
+		await mostrarAlerta({mensaje: `Ingrese el Nombre`});
 		return false; 
 		}
 	 if (!document.getElementById("tipo_sabor").value) {
@@ -484,7 +478,7 @@ document.getElementById("btnModificar").onclick = async () => {
         <table>
           <tr>
             <th>Codigo</th>
-            <th>Descripcion</th>
+            <th>Nombre</th>
             <th>Contenido</th>
             <th>Tipo</th>
             <th>Deshabilitado</th>

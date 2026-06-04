@@ -16,10 +16,13 @@ router.get('/', async (req, res) => {
 		let sql = `
 			SELECT
 				p.*,
-				u.nombre AS usuario_canc_nombre
+				u.nombre AS usuario_canc_nombre,
+				u2.nombre AS usuario_elim_nombre
 			FROM pedidos_cab p
 			LEFT JOIN usuarios u
 				ON p.id_usuario_canc = u.id_usuario
+			LEFT JOIN usuarios u2
+				ON p.id_usuario_elim = u2.id_usuario
 			WHERE 1=1
 		`;
 
@@ -29,6 +32,7 @@ router.get('/', async (req, res) => {
         if (estado === 'nuevo') {sql += ` AND estado = 'P' `;}
         if (estado === 'confirmado') {sql += ` AND estado = 'V' `;}
 		if (estado === 'cancelado') {sql += ` AND estado = 'C' `; }
+		if (estado === 'eliminado') {sql += ` AND estado = 'E' `; }
 
         // búsqueda
         if (q) {
@@ -46,6 +50,7 @@ router.get('/', async (req, res) => {
 		if (estado === 'nuevo') {sql += ` ORDER BY id_pedido `;}
 		if (estado === 'confirmado') {sql += ` ORDER BY id_venta desc `;}
 		if (estado === 'cancelado') {sql += ` ORDER BY fecha_canc desc, hora_canc desc `;}
+		if (estado === 'eliminado') {sql += ` ORDER BY fecha_elim desc, hora_elim desc `;}
 
         const [rows] = await db.query(sql, params);
 
@@ -81,9 +86,7 @@ router.get('/', async (req, res) => {
         res.json(rows);
 
     } catch (error) {
-
         console.error(error);
-
         res.status(500).json({
             ok: false,
             mensaje: 'Error obteniendo pedidos'
@@ -98,7 +101,6 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
 
     try {
-
         const id = req.params.id;
 
         const [cab] = await db.query(`
@@ -131,9 +133,7 @@ router.get('/:id', async (req, res) => {
         res.json(cab[0]);
 
     } catch (error) {
-
         console.error(error);
-
         res.status(500).json({
             ok: false,
             mensaje: 'Error obteniendo pedido'
@@ -277,7 +277,6 @@ router.post('/', async (req, res) => {
 			}
 		}
 
-
         await conn.commit();
 
         res.json({
@@ -286,11 +285,8 @@ router.post('/', async (req, res) => {
         });
 
     } catch (error) {
-
         await conn.rollback();
-
         console.error(error);
-
         res.status(500).json({
             ok: false,
             mensaje: 'Error guardando pedido'
@@ -744,43 +740,48 @@ router.get('/venta/:idVenta', async (req, res) => {
     }
 });
 
+
 // ======================================
-// ELIMINAR PEDIDO
+// ELIMINAR PEDIDO (marca estado = E)
 // ======================================
 router.delete('/:id', async (req, res) => {
 
-    const conn = await db.getConnection();
-
     try {
+
         const id = parseInt(req.params.id);
+		const usuario = req.headers["usuario-id"] || 0;
 
-        await conn.beginTransaction();
+        // ============================================
+        // FECHA Y HORA ACTUAL
+        // ============================================
+        const ahora = new Date();
+        const fechaHoy =
+            ahora.getFullYear() + '-' +
+            String(ahora.getMonth() + 1).padStart(2, '0') + '-' +
+            String(ahora.getDate()).padStart(2, '0');
 
-        // ==========================
-        // BORRAR DETALLE
-        // ==========================
-        await conn.query(`
-            DELETE FROM pedidos_det
+        const horaHoy =
+            String(ahora.getHours()).padStart(2, '0') + ':' +
+            String(ahora.getMinutes()).padStart(2, '0') + ':' +
+            String(ahora.getSeconds()).padStart(2, '0')
+
+        const [result] = await db.query(`
+            UPDATE pedidos_cab
+            SET estado = 'E'
+			,fecha_elim = ?
+			,hora_elim = ?
+			,id_usuario_elim = ?
             WHERE id_pedido = ?
-        `, [id]);
+        `, [fechaHoy, horaHoy, usuario, id]);
 
-        // ==========================
-        // BORRAR CABECERA
-        // ==========================
-        const [result] = await conn.query(`
-            DELETE FROM pedidos_cab
-            WHERE id_pedido = ?
-        `, [id]);
 
         if (result.affectedRows === 0) {
-            await conn.rollback();
+
             return res.status(404).json({
                 ok: false,
                 mensaje: 'Pedido no encontrado'
             });
         }
-
-        await conn.commit();
 
         res.json({
             ok: true,
@@ -788,15 +789,11 @@ router.delete('/:id', async (req, res) => {
         });
 
     } catch (error) {
-        await conn.rollback();
         console.error(error);
         res.status(500).json({
             ok: false,
             mensaje: 'Error eliminando pedido'
         });
-
-    } finally {
-        conn.release();
     }
 });
 

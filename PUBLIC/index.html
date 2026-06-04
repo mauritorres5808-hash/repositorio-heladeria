@@ -259,7 +259,7 @@ filter: brightness(1.08);
 <br>
 	<div class="contenedor">
 
-		<h3 style="margin-bottom:5px">
+		<h3 style="margin-bottom:2px">
 			Bienvenido al Sistema
 		</h3>
 
@@ -269,11 +269,11 @@ filter: brightness(1.08);
 
 		<div class="contenedor-nu">
 			<div class="menu-grid">
-				<button class="boton-redondeado" onclick="location.href='menu-tablas.html'">&#128221;<br>Tablas</button>
 				<button class="boton-redondeado" onclick="location.href='menu-ventas.html'">&#128178;<br>Ventas</button>
 				<button class="boton-redondeado" onclick="location.href='menu-compras.html'">&#127981;<br>Compras
 				<span class="subtexto">Ingreso de mercadería</span>
 				</button>
+				<button class="boton-redondeado" onclick="location.href='menu-tablas.html'">&#128221;<br>Tablas</button>
 				<button class="boton-redondeado" onclick="location.href='menu-caja.html'">&#128176;<br>Caja</button>
 				<button class="boton-redondeado" onclick="location.href='menu-general.html'">&#128273;<br>General</button>
 			</div>
@@ -291,13 +291,12 @@ verificarSesion();
 document.getElementById("userLabel").textContent = localStorage.getItem("usuarioEmail");
 
 function mostrarEmpresa(data) {
-    let html = `<h3 style="background:white; border-radius:15px; padding:15px; max-width:650px;
-					margin:auto; box-shadow:0 8px 20px rgba(0,0,0,.15);">
-            Bienvenido a: `;
+    let html = `<h2 style="background:white; border-radius:4px; padding:15px; max-width:650px;
+					margin:auto; box-shadow:0 8px 20px rgba(0,0,0,.15);">`;
     if (!data) {
-		html += `<span style='color:red'>No se encontraron los datos de la empresa</span></h4>`;
+		html += `<span style='color:red'>No se encontraron los datos de la empresa</span></h2>`;
 		} else {
-			html += `<span style="color: blue;">${data.nombre}</span></h4>`;
+			html += `<span style="color: blue;">★ ${data.nombre} ★</span></h2>`;
 		}
 
     document.getElementById("resultado").innerHTML = html;

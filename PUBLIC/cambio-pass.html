@@ -93,17 +93,13 @@ passActual.focus()
 
 async function cambiarPass() {
 
-    const passActual =
-        document.getElementById("passActual").value.trim();
-
-    const passNueva =
-        document.getElementById("passNueva").value.trim();
+    const passActual = document.getElementById("passActual").value.trim();
+    const passNueva = document.getElementById("passNueva").value.trim();
 
     if (!passActual || !passNueva) {
 		await mostrarAlerta({mensaje: `Debe completar las dos contraseñas`});
         return;
     }
-
     if (passNueva.length < 6) {
 		await mostrarAlerta({mensaje: `La nueva contraseña debe tener al menos 6 caracteres`});
         return;
@@ -113,18 +109,12 @@ async function cambiarPass() {
 
         const resp =
             await fetch('/api/usuarios/cambiar-password', {
-
                 method: 'POST',
-
                 headers: {
                     'Content-Type': 'application/json'
                 },
-
                 body: JSON.stringify({
-
-                    email:
-                        localStorage.getItem("usuarioEmail"),
-
+                    email: localStorage.getItem("usuarioEmail"),
                     passActual,
                     passNueva
                 })

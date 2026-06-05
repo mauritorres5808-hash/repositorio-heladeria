@@ -199,9 +199,9 @@ filter: brightness(1.08);
 .modal-content {
   background-color: white;
   margin: 10% auto;
-  padding: 25px;
+  padding: 15px;
   border-radius: 25px;
-  width: 420px;
+  width: 320px;
   max-width: 90%;
   box-shadow: 0 20px 40px rgba(0,0,0,.25);
   border:none;
@@ -241,22 +241,38 @@ filter: brightness(1.08);
   <div class="modal-content">
     <span class="close">&times;</span>
 	<img id="logo3" src="mi-logo2.png" alt="Tu Logo">
-<br><br>	
+<br>
 	<h4 class="titulo">Contacto y Soporte Tecnico</h4>
-    <h3><b>Mauricio Torres</h3>
-    <p>T.E.: 113469-2013</p>
-    <p style="font-size:14px">mt.sistemas.contacto@gmail.com</b></p>
+    <h3 style="font-style:italic"><b>Mauricio Torres</h3>
+    <p>🕿 113469-2013</p>
+    <p style="font-size:14px">📝 mt.sistemas.contacto@gmail.com</b></p>
   </div>
 </div>
 
 	<div id="resultado"></div>
+
 <br>
-<div style="display:inline-block; background:white; 
-			padding:10px 20px; border-radius:12px; 
-			box-shadow:0 3px 10px rgba(0,0,0,.15); margin-bottom:15px;">👤 Usuario:
-	<b><span id="userLabel"></span></b>
+<div style="
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    width:80%;
+    max-width:440px;
+    margin:0 auto 15px auto;
+    background:white;
+    padding:10px 20px;
+    border-radius:54px;
+    box-shadow:0 3px 10px rgba(0,0,0,.15);
+">
+    <div>
+        👤 Usuario: <b><span id="userLabel"></span></b>
+    </div>
+    <div>
+        📅 <b><label id="FechaHoy"></label></b>
+    </div>
 </div>
-<br>
+	
+	
 	<div class="contenedor">
 
 		<h3 style="margin-bottom:2px">
@@ -288,7 +304,18 @@ filter: brightness(1.08);
 
 
 verificarSesion(); 
+
+// Cargar usuario actual
 document.getElementById("userLabel").textContent = localStorage.getItem("usuarioEmail");
+
+// Cargar fecha actual
+const hoy = new Date();
+const yyyy = hoy.getFullYear();
+const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+const dd = String(hoy.getDate()).padStart(2, '0');
+const fechaHoy = `${dd}-${mm}-${yyyy}`;
+document.getElementById("FechaHoy").textContent = fechaHoy;
+
 
 function mostrarEmpresa(data) {
     let html = `<h2 style="background:#FFF7B8; font-style:italic; border-radius:54px; padding:15px; max-width:650px;

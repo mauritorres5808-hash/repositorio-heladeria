@@ -58,6 +58,17 @@
 	#mensajeTipo{ flex:1; }
 
  	label { font-weight: bold; margin-right: 10px; }
+
+.boton-salirvolver {
+  background-color: #555;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 8px 14px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
 	
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -77,7 +88,12 @@
 
     <!-- Mensaje moderno (visual) -->
 	<div class="filaMensajePromo">
-		<div id="mensajeTipo" class="alert-modern">Delivery propio seleccionado. Si mantiene la opcion, debe completar los datos del cliente.</div>
+		<div id="mensajeTipo" class="alert-modern">Delivery propio seleccionado. Debe completar los datos del cliente.</div>
+		    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+		    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+		    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+			<button class="boton-salirvolver" id="btnSalir" onclick="SalirVenta()">&#8617; Salir</button>
+
 		<button  id="btnVerPromos">&#x2764;&#xFE0F; Ver promos vigentes</button>
 	</div>
  
@@ -87,13 +103,9 @@
       <div class="flex" style="align-items:center">
 		<button onclick="NuevoCliente()">&#11207; ir a Clientes</button>
         <input type="text" id="id_cliente" placeholder="codigo cliente" style="width:140px" onkeydown="if(event.key==='Enter')btnVerificar.click()">
-		
 		<button id="btnVerificar">&#9989; Verificar</button>
-
-        <button id="btnBuscarCliente">&#128269; Buscar cliente</button>
-		
+        <button id="btnBuscarCliente">&#128269; Buscar cliente&nbsp;&nbsp;&nbsp;&nbsp;(F2)</button>
 		<button onclick="distancia()">&#128663; Ver distancia</button>
-
       </div>
         <div style="margin-left:12px;" class="cliente-box">
 			<div id="datosCliente" class="flex" style="align-items:center">
@@ -136,7 +148,7 @@
 				  style="width:250px;"
 				  onkeydown="if(event.key==='Enter')cli_telefono.focus()"
 				></input>
-				<br>
+				<br><br>
 			  <span><button onclick="guardarCliente()" style="background-color:#14BD55">
 				&#x1F4BE; Guardar cliente
 			  </button></span>
@@ -153,7 +165,7 @@
 	  <label style="font-weight:bold">Codigo del producto o Codigo de barras</label><br>
     <input type="text" id="id_producto" placeholder="codigo o cod.barras" onkeydown="if(event.key==='Enter')agregarProducto()" style="width:240px">
     <button id="btnAgregar" onclick="agregarProducto()">&#10133; Agregar</button>
-    <button id="btnBuscarProd">&#128269; Buscar producto</button>
+    <button id="btnBuscarProd">&#128269; Buscar producto&nbsp;&nbsp;&nbsp;&nbsp;(F1)</button>
 
     <!-- Modal Productos -->
     <div id="modalProductos" class="modal">
@@ -270,7 +282,7 @@
 <br><br>
     <div class="contenedor-botones" >
     <button class="boton-centrado" id="btnAceptar" onclick="finalizarVenta()">&#128190; Confirmar</button>
-    <button class="boton-derecha" id="btnSalir" onclick="SalirVenta()">&#8617; Salir</button>
+    <button class="boton-salirvolver" id="btnSalir" onclick="SalirVenta()">&#8617; Salir</button>
     </div>
 
   </div>
@@ -293,6 +305,21 @@ async function NuevoCliente() {
 localStorage.setItem("paginaAnterior", window.location.href);
 window.location.href = "clientes.html";
 }
+
+//F1 ///////////
+document.addEventListener("keydown", function(e) {
+    if (e.key === "F1") {
+        e.preventDefault(); // evita abrir la ayuda del navegador
+        document.getElementById("btnBuscarProd").click();
+    }
+});
+// F2 ///////////
+document.addEventListener("keydown", function(e) {
+    if (e.key === "F2") {
+        e.preventDefault(); // evita abrir la ayuda del navegador
+        document.getElementById("btnBuscarCliente").click();
+    }
+});
 
 // =====================================================
 // calculo el costo de envio
@@ -363,7 +390,7 @@ async function distancia() {
     }
 
     const origen = info.domicilio;
-    const destino = document.getElementById('cli_domicilio').textContent;
+    const destino = document.getElementById('cli_domicilio').value;
 
 //mostrarMapaDistancia('liniers 89, CABA', 'av albarellos 2500, Buenos Aires');
 mostrarMapaDistancia(origen, destino);
@@ -735,7 +762,7 @@ async function aplicarDescuentoRecargo() {
 		promoData.promocionesAplicadas.forEach(pr => {
 			html += `
 				<div>
-					* ${pr.descripcion}
+					🎁 ${pr.descripcion}
 					(-$ ${Number(pr.descuento).toFixed(2)})
 				</div>
 			`;
@@ -744,7 +771,6 @@ async function aplicarDescuentoRecargo() {
 	} else {
 		divPromos.innerHTML = '';
 		}
-
 	  
       window.productosVenta.forEach((p,i) => {
         const subtotal = (Number(p.precio)||0) * (Number(p.cantidad)||0);

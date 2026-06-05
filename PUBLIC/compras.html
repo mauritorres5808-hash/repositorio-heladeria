@@ -56,7 +56,8 @@
     <label style="font-weight:bold">Codigo del producto o Codigo de barras</label><br>
     <input type="text" id="id_producto" placeholder="codigo o cod.barras" onkeydown="if(event.key==='Enter')agregarProducto()" style="width:240px">
     <button id="btnAgregar" onclick="agregarProducto()">&#10133; Agregar</button>
-    <button id="btnBuscarProd">&#128269; Buscar producto</button>
+	    <button id="btnBuscarProd">&#128269; Buscar producto&nbsp;&nbsp;&nbsp;&nbsp;(F1)</button>
+
 
     <!-- Modal Productos -->
     <div id="modalProductos" class="modal">
@@ -110,6 +111,14 @@ id_producto.focus();
       const h2 = document.querySelector('h2');
       h2.textContent = `COMPRAS - Ingreso de Mercaderia  _____________________ ${fechaFormateada}`;
     });
+
+//F1 ///////////
+document.addEventListener("keydown", function(e) {
+    if (e.key === "F1") {
+        e.preventDefault(); // evita abrir la ayuda del navegador
+        document.getElementById("btnBuscarProd").click();
+    }
+});
 
 
     // Datos globales

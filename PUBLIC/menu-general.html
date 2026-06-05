@@ -34,7 +34,7 @@ body {
 
 
 .contenedor {
-    max-width: 650px;
+    max-width: 427px;
     margin: auto;
     background: white;
     padding: 15px;
@@ -44,21 +44,23 @@ body {
     font-size: 18px;
 }
 
+
 .menu-grid{
     display:grid;
     grid-template-columns: repeat(3,1fr);
     gap:15px;
-    margin-top:10px;
+    margin-top:20px;
     justify-items:center;
 }
- 
- /* Centrar el contenido dentro de cada celda */
+
+    /* Centrar el contenido dentro de cada celda */
     td {
       text-align: center;
       vertical-align: middle;
       padding: 10px;
       border: 0px solid #0E0D0C;
     }
+
 
 .boton-redondeado,
 .boton-redondeado3 {
@@ -210,12 +212,12 @@ filter: brightness(1.08);
         </td>
       </tr>
 
-      <tr>
+      <tr id="filaEspecial" style="display:none;">
         <td>
           <button class="boton-redondeado" id="btnFunciones" onclick="location.href='funciones.html'">Funciones</button>
         </td>
 		<td>
-          <button class="boton-redondeado" id="btnConfig" onclick="location.href='empresa_config.html'" style="display:none;">Config. Empresa</button>
+          <button class="boton-redondeado" id="btnConfig" onclick="location.href='empresa_config.html'">Config. Empresa</button>
         </td>
       </tr>
 
@@ -231,39 +233,59 @@ document.getElementById("userLabel").textContent = localStorage.getItem("usuario
 
 // BLOQUEA TODOS LOS BOTONES AL CARGAR LA PÁGINA (menos boton Volver)
 document.addEventListener("DOMContentLoaded", async () => {
+	// Deshabilitar todos los botones
+	const botones = document.querySelectorAll("button");
+	botones.forEach(btn => {
+		if (btn.id !== "btnVolver") {
+			btn.disabled = true;
+			btn.title = "No tiene permiso para usar esta función";
+		}
+	});
 
+	// Esperar permisos
+	await cargarPermisosUsuario();
 
-    // Deshabilitar todos los botones
-    const botones = document.querySelectorAll("button");
-    botones.forEach(btn => {
-        if (btn.id !== "btnVolver") {
-            btn.disabled = true;
-            btn.title = "No tiene permiso para usar esta función";
-        }
-    });
-
-    // Esperar permisos
-    await cargarPermisosUsuario();
-
-    // Aplicar permisos
-    aplicarPermisos();
+	// Aplicar permisos
+	aplicarPermisos();
 });
 </script>
 
 <script src="JS/permisos.js"></script>
 
 <script>
-if (parseInt(localStorage.getItem("usuarioId")) === 1) 
-	{ 
-	document.getElementById("btnConfig").style.display = "inline-block"; 
-	} 
-	
+
 window.aplicarPermisos = function() {
 
-  // Obtener usuario actual
-  const NomUsuarioActual = document.getElementById("userLabel").textContent = localStorage.getItem("usuarioEmail");
-  const idUsuarioActual = localStorage.getItem("usuarioId");
-//alert(idUsuarioActual);
+	// Obtener usuario actual
+	const NomUsuarioActual = document.getElementById("userLabel").textContent = localStorage.getItem("usuarioEmail");
+	const idUsuarioActual = localStorage.getItem("usuarioId");
+	//alert(idUsuarioActual);
+
+
+	if (idUsuarioActual == 1) {
+		document.getElementById("filaEspecial").style.display = "";
+	}
+
+/*
+if (idUsuarioActual != 1) {
+    document.getElementById("menuPrincipal").innerHTML += `
+      <tr>
+        <td>
+          <button class="boton-redondeado"
+                  onclick="location.href='funciones.html'">
+            Funciones
+          </button>
+        </td>
+        <td>
+          <button class="boton-redondeado"
+                  onclick="location.href='empresa_config.html'">
+            Config. Empresa
+          </button>
+        </td>
+      </tr>
+    `;
+}
+*/
 
     const btn = document.getElementById("btnUsuarios");
     if (tienePermiso(50)) {
@@ -332,12 +354,9 @@ window.aplicarPermisos = function() {
 		if (btn12) btn12.disabled = false;
 		btn12.title = "";
     }
-
-
 };
 
 </script>
-
 
 </body>
 </html>

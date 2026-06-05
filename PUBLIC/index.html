@@ -64,7 +64,7 @@ body {
 .boton-redondeado3 {
     width: 180px;
     height: 70px;
-	  background-color: #007bff; /* Color por defecto */
+	background-color: #007bff; /* Color por defecto */
     color: white;
     border: none;
     border-radius: 18px;
@@ -291,12 +291,12 @@ verificarSesion();
 document.getElementById("userLabel").textContent = localStorage.getItem("usuarioEmail");
 
 function mostrarEmpresa(data) {
-    let html = `<h2 style="background:white; border-radius:4px; padding:15px; max-width:650px;
+    let html = `<h2 style="background:#FFF7B8; font-style:italic; border-radius:54px; padding:15px; max-width:650px;
 					margin:auto; box-shadow:0 8px 20px rgba(0,0,0,.15);">`;
     if (!data) {
 		html += `<span style='color:red'>No se encontraron los datos de la empresa</span></h2>`;
 		} else {
-			html += `<span style="color: blue;">★ ${data.nombre} ★</span></h2>`;
+			html += `<span style="color: black;"> ${data.nombre} 🍦</span></h2>`;
 		}
 
     document.getElementById("resultado").innerHTML = html;

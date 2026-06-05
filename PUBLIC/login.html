@@ -6,24 +6,24 @@
 	
 	<style>  
 
-	body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            margin-top: 50px;
-            /* OPCIÓN 1: Fondo de color (ejemplo: azul). Descomenta para usar. */
-            /* background-color: #F5F5F4; */ /* Cambia 'blue' por el color que quieras, ej: #FF0000 para rojo */
-             background-color: #8AC0FF; /*#B8E6FE;*/
-            
-            /* OPCIÓN 2: Imagen de fondo. Descomenta estas líneas para usar. */
-             /*background-image: url('https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80');*/  /* Reemplaza con tu URL o ruta local */
-			 /*background-image: url('fondo-claro.jpeg');*/
-			 /*background-image: url('1.jpg');*/
-			 
-             background-size: cover; 
-             background-repeat: no-repeat; 
-             background-position: center; 
-             background-attachment: fixed;  /* Opcional: fija la imagen al scroll */
-        }
+body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    text-align: center;
+    margin-top: 50px;
+
+    background:
+    linear-gradient(
+        135deg,
+        #6DB7FF,
+        #B8E6FE
+    );
+
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+    min-height: 100vh;
+}
+
 
         #logo {
             /* position: absolute;*/ /* Fija la posición */
@@ -36,7 +36,8 @@
             box-shadow: 0 12px 15px rgba(0,0,0,0.2); /* Opcional: sombra para resaltar */
         }  
 
-    .contenedor { background:#FEF5E7; border-radius:10px;max-width:300px;margin:0 auto;padding:25px;box-shadow:0 0 10px rgba(0,0,0,0.2); }
+    .contenedor { background:#FEF5E7; border-radius:10px;max-width:300px;
+					margin:0 auto;padding:25px;box-shadow:0 0 10px rgba(0,0,0,0.2); }
 
 .boton-redondeado {
   padding: 10px 20px; /* Ajusta el padding a tu gusto */
@@ -62,8 +63,12 @@ button:hover {
   color: white;
 }
 
-
-
+	 input {
+      padding: 6px;
+      border-radius: 5px;
+      border: 1px solid #999;
+    }
+	
 		
   	</style>
 </head>
@@ -74,7 +79,7 @@ button:hover {
 <!-- =========================================
      MODAL SISTEMA BLOQUEADO
 ========================================= -->
-<div id="modalSistema" style="
+<div id="modalBloqueoSistema" style="
     display:none;
     position:fixed;
     top:0;
@@ -139,7 +144,7 @@ button:hover {
 
   <br>
   <br>
-  <h2>Ingreso al Sistema</h2>
+  <h2>🔑 Ingreso al Sistema</h2>
 
   <input style="padding: 10px 40px;" type="text" id="email" placeholder="usuario" 
 			onkeydown="if(event.key==='Enter')password.focus()" ><br>
@@ -160,7 +165,7 @@ localStorage.removeItem("usuarioData");
 email.focus();
 
 function cerrarmodalSistema(){
-    document.getElementById('modalSistema').style.display = 'none';
+    document.getElementById('modalBloqueoSistema').style.display = 'none';
 
     // limpiar login
     //document.getElementById('email').value = '';
@@ -178,7 +183,8 @@ async function login() {
     const password = document.getElementById("password").value;
 
     if (!email || !password) {
-        alert("Por favor, complete ambos campos.");
+        //alert("Por favor, complete ambos campos.");
+		await mostrarAlerta({mensaje: `Por favor, complete ambos campos`});
         return;
     }
 
@@ -204,7 +210,8 @@ async function login() {
         const data = await resp.json();
 
         if (!data.ok) {
-            alert("ERROR:\nNo se pudo autenticar al usuario");
+            //alert("ERROR:\nNo se pudo autenticar al usuario");
+			await mostrarAlerta({mensaje: `No se pudo autenticar al usuario`});
             return;
         }
 
@@ -225,7 +232,7 @@ async function login() {
             // SISTEMA DESHABILITADO
             // ---------------------------------
             if (parseInt(empresa.deshabilitada || 0) === 1) {
-                document.getElementById("modalSistema").style.display = "flex";
+                document.getElementById("modalBloqueoSistema").style.display = "flex";
                 document.getElementById("mensajeSistema")
                     .innerHTML =
                     "<b>⚠️ Sistema deshabilitado</b><br><br>Comuníquese con el administrador del sistema.";
@@ -243,7 +250,7 @@ async function login() {
                 fechaVenc.setHours(0,0,0,0);
 
                 if (hoy > fechaVenc) {
-                    document.getElementById("modalSistema").style.display = "flex";
+                    document.getElementById("modalBloqueoSistema").style.display = "flex";
                     document.getElementById("mensajeSistema")
                         .innerHTML =
                         "<b>⚠️ Sistema vencido</b><br><br>Comuníquese con el administrador del sistema.";
@@ -265,11 +272,14 @@ async function login() {
 
     } catch (err) {
         console.error(err);
-        alert("Error conectando con el servidor");
+        //alert("Error conectando con el servidor");
+		await mostrarAlerta({mensaje: `Error conectando con el servidor`});
     }
 }
 
 </script>
+
+<script src="JS/modal.js"></script>
 
 </body>
 </html>

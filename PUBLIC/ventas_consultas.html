@@ -942,7 +942,7 @@ if (promociones.length > 0) {
     promociones.forEach(p => {
 
         html += `
-            ${p.descripcion}
+            (Id ${p.id_promocion}) •  ${p.descripcion}
             &nbsp;&nbsp;
             (-${formateadorMoneda.format(p.descuento || 0)})
             <br>

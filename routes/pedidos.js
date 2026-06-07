@@ -416,8 +416,8 @@ router.post('/:id/convertir', async (req, res) => {
         // ============================================
         // FECHA Y HORA ACTUAL
         // ============================================
-        const ahora = new Date();
 /*
+        const ahora = new Date();
         const fechaHoy =
             ahora.getFullYear() + '-' +
             String(ahora.getMonth() + 1).padStart(2, '0') + '-' +

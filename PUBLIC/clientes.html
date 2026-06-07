@@ -233,16 +233,6 @@ let configuracion = {
 // BLOQUEA TODOS LOS BOTONES AL CARGAR LA PÁGINA (menos boton Volver)
 document.addEventListener("DOMContentLoaded", async () => {
 
-/*
-    // Deshabilitar todos los botones
-    const botones = document.querySelectorAll("button");
-    botones.forEach(btn => {
-        if (btn.id !== "btnVolver") {
-            btn.disabled = true;
-            btn.title = "No tiene permiso para usar esta función";
-        }
-    });
-*/
     // Esperar permisos
     await cargarPermisosUsuario();
 

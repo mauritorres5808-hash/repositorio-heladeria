@@ -138,6 +138,16 @@ const API_BASE =
 const API_BASE = window.location.origin;
 	
 verificarSesion();
+
+// ==========================================
+// CONFIGURACION DEL DELIVERY
+// ==========================================
+let configuracion = {
+  distancia_maxima: 0
+};
+
+    // Cargar configuracion
+    cargarConfiguracion();
   
 //notificacion con sonido de pedido NUEVO
 let pedidosNotificados = new Set();
@@ -185,6 +195,7 @@ async function cargarFormasPago(){
 }
 
 cargarFormasPago();
+
 
 let cantidadTotalPedidos = 0;
 
@@ -537,7 +548,7 @@ if (p.promociones && p.promociones.length > 0) {
   p.promociones.forEach(pr => {
     totalDescuentos += Number(pr.descuento || 0);
     html += `
-      • ${pr.descripcion}
+      (Id ${pr.id_promocion}) •  ${pr.descripcion}
       <span style="color:green;font-weight:bold">
         - ${formateadorMoneda.format(pr.descuento)}
       </span><br>
@@ -746,6 +757,20 @@ async function eliminar(id){
   cargar();
 }
 
+// ==========================================
+// cargar la CONFIGURACION DEL DELIVERY
+// ==========================================
+async function cargarConfiguracion() {
+
+  try {
+    const resp = await fetch('/api/configuraciones');
+    configuracion = await resp.json();
+  } catch (error) {
+    console.error("Error cargando configuración:",error);
+  }
+}
+
+
 // mostrar el mapa del domicilio del cliente
 async function distancia(domicilioCliente) {
 
@@ -758,7 +783,10 @@ async function distancia(domicilioCliente) {
     const origen = info.domicilio;
     const destino = domicilioCliente;
 
-    mostrarMapaDistancia(origen, destino);
+	await mostrarMapaDistancia(origen, destino);
+		if (window.distanciaDelivery > configuracion.distancia_maxima) {
+		await mostrarAlerta({mensaje: `distancia mayor a ` + configuracion.distancia_maxima + ` Kms.`});
+		}
 }
 
 async function obtenerDatosEmpresa() {

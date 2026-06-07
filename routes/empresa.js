@@ -42,6 +42,7 @@ router.put('/', async (req, res) => {
             nombre,
             domicilio,
             telefono,
+            alias,
             fecha_vigencia,
             deshabilitada
         } = req.body;
@@ -52,6 +53,7 @@ router.put('/', async (req, res) => {
                 nombre = ?,
                 domicilio = ?,
                 telefono = ?,
+                alias = ?,
                 fecha_vigencia = ?,
                 deshabilitada = ?
             WHERE id_empresa = 1
@@ -59,6 +61,7 @@ router.put('/', async (req, res) => {
             nombre,
             domicilio,
             telefono,
+            alias,
             fecha_vigencia,
             deshabilitada ? 1 : 0
         ]);

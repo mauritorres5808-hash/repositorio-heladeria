@@ -118,7 +118,7 @@ document.getElementById("distanciaTexto").innerText = "buscando direcciones.....
     const distanciaKm = (data.routes[0].distance / 1000).toFixed(2);
 	const tiempoMin = Math.round(data.routes[0].duration / 60);
 //    document.getElementById("distanciaTexto").innerText = `Hasta ${dir2} --- (en auto/moto)   Distancia: ${distanciaKm} km tiempo estimado: ${tiempoMin}`;
-    document.getElementById("distanciaTexto").innerText = `Hasta ${dir2} --- 🚗 ${distanciaKm} km` + `      `+ `⏱️ ${tiempoMin} min`;
+    document.getElementById("distanciaTexto").innerText = `Hasta ${dir2} - 🚗 ${distanciaKm} km` + `      `+ `⏱️ ${tiempoMin} min`;
 
 
 

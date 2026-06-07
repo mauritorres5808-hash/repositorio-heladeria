@@ -239,6 +239,42 @@
   }
 }
 
+.empresa-card{
+    max-width:900px;
+    margin:15px auto;
+    padding:18px 25px;
+    background:linear-gradient(35deg,#8A9DFF,#B8F6FE); 
+/*    background:#8A9DFF; */
+    border-radius:15px;
+    border:1px solid #dfe7ef;
+    box-shadow:0 4px 15px rgba(0,0,0,.15);
+}
+
+.empresa-titulo{
+    font-size:24px;
+    font-weight:bold;
+    color:black;
+    margin-bottom:12px;
+    text-align:center;
+}
+
+.empresa-datos{
+    display:flex;
+    justify-content:space-around;
+    flex-wrap:wrap;
+    gap:15px;
+}
+
+.empresa-item{
+    text-align:center;
+    background:#ffffff;
+    padding:10px 15px;
+    border-radius:10px;
+    box-shadow:0 2px 6px rgba(0,0,0,.08);
+    font-size:15px;
+    min-width:220px;
+}
+
 
 </style>
 </head>
@@ -260,7 +296,26 @@
     ⏳ Un momento, cargando los productos...
   </div>
 
-<form id="formPedido" novalidate>
+	<form id="formPedido" novalidate>
+
+	<!-- card de la Empresa -->
+	<div id="empresaHeader" class="empresa-card">
+		<div class="empresa-titulo">
+			 <span id="empNombre">Empresa</span>
+		</div>
+		<div class="empresa-datos">
+			<div class="empresa-item">
+				📍 <b><span id="empDomicilio"></b></span>
+			</div>
+			<div class="empresa-item">
+				☎️ <b><span id="empTelefono"></b></span>
+			</div>
+			<div class="empresa-item">
+				💳 Alias: <b><span id="empAlias"></b></span>
+			</div>
+		</div>
+	</div>
+
 
     <h1>
       Hacé tu pedido
@@ -532,6 +587,28 @@ const API_BASE =
 //const API_BASE = window.location.origin;
 document.getElementById('btnVerPromos').addEventListener('click',abrirModalPromos);
 
+cargarEmpresa();
+
+// ======================================
+// CARGAR EMPRESA
+// ======================================
+async function cargarEmpresa(){
+
+    try{
+        const resp = await fetch('/api/empresa');
+        const emp = await resp.json();
+
+		document.getElementById("empNombre").textContent = emp.nombre || '';
+		document.getElementById("empDomicilio").textContent = emp.domicilio || '';
+		document.getElementById("empTelefono").textContent = emp.telefono || '';
+		document.getElementById("empAlias").textContent = emp.alias || '';
+
+    }catch(err){
+        console.error(err);
+        alert("Error cargando empresa");
+    }
+}
+
 async function abrirModalPromos(){
     const modal =document.getElementById('modalPromos');
     const contenido =document.getElementById('contenidoPromos');
@@ -540,11 +617,7 @@ async function abrirModalPromos(){
     modal.style.display = 'block';
 
     try {
-        const resp =
-            await fetch(
-                '/api/promociones-abm/vigentes?mostrarCodigo="N"'
-            );
-
+        const resp = await fetch('/api/promociones-abm/vigentes?mostrarCodigo="N"');
         const data =await resp.json();
 
         if (!data.ok) {
@@ -615,7 +688,7 @@ async function abrirModalPromos(){
                         font-size:15px;
                     "
                 >
-                    ${detalle}
+                    ${detalle} - (Id ${p.id_promocion})
                 </div>
 
                 <div

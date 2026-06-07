@@ -103,7 +103,12 @@ button:hover{
 
     <div class="form-group">
         <label>Teléfono</label>
-        <input type="text" id="telefono" onkeydown="if(event.key==='Enter')fecha_vigencia.focus()">
+        <input type="text" id="telefono" onkeydown="if(event.key==='Enter')alias.focus()">
+    </div>
+
+    <div class="form-group">
+        <label>Alias para pagos</label>
+        <input type="text" id="alias" onkeydown="if(event.key==='Enter')fecha_vigencia.focus()">
     </div>
 
     <div class="form-group">
@@ -149,29 +154,19 @@ nombre.focus();
 async function cargarEmpresa(){
 
     try{
+        const resp = await fetch('/api/empresa');
+        const emp = await resp.json();
 
-        const resp =
-            await fetch('/api/empresa');
-
-        const emp =
-            await resp.json();
-
-        document.getElementById("nombre").value =
-            emp.nombre || '';
-
-        document.getElementById("domicilio").value =
-            emp.domicilio || '';
-
-        document.getElementById("telefono").value =
-            emp.telefono || '';
-
+        document.getElementById("nombre").value = emp.nombre || '';
+        document.getElementById("domicilio").value = emp.domicilio || '';
+        document.getElementById("telefono").value = emp.telefono || '';
+        document.getElementById("alias").value = emp.alias || '';
         document.getElementById("fecha_vigencia").value =
             emp.fecha_vigencia
                 ? emp.fecha_vigencia.split('T')[0]
                 : '';
 
-        document.getElementById("deshabilitada").checked =
-            parseInt(emp.deshabilitada || 0) === 1;
+        document.getElementById("deshabilitada").checked = parseInt(emp.deshabilitada || 0) === 1;
 
     }catch(err){
         console.error(err);
@@ -191,6 +186,7 @@ async function guardar(){
             nombre: document.getElementById("nombre").value,
             domicilio: document.getElementById("domicilio").value,
             telefono: document.getElementById("telefono").value,
+            alias: document.getElementById("alias").value,
             fecha_vigencia: document.getElementById("fecha_vigencia").value,
             deshabilitada:
                 document.getElementById("deshabilitada").checked

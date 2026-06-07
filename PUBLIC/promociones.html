@@ -212,6 +212,7 @@ th{
 
 <thead>
 <tr>
+<th>Id</th>
 <th>Descripción</th>
 <th>Tipo</th>
 <th>Desde fecha</th>
@@ -313,6 +314,7 @@ async function renderPromociones(){
     promociones.forEach(p => {
         tbody.innerHTML += `
         <tr>
+            <td>${p.id_promocion}</td>
             <td style="text-align:left">${p.descripcion}</td>
             <td>${p.tipo}</td>
             <td>${convertirFechaOK(p.fecha_desde)}</td>

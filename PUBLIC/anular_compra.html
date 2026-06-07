@@ -6,6 +6,7 @@
   <title>Anulación de Compras</title>
 
 <script src="JS/auth.js"></script>  <!-- ?? Aquí se verifica la autenticacion-->
+<script src="js/utils.js"></script>
 
   <style>
     body {
@@ -122,8 +123,6 @@
 
 verificarSesion();
 
-    const formateadorMoneda = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' });
-
 		let idCompraActual = null;
 		let docIdCompra = null;
 		let docFechaCompra = null;
@@ -221,7 +220,7 @@ verificarSesion();
 						<tr>
 							<td>${convertirFechaOK(compra.fecha)}</td>
 							<td>${compra.hora}</td>
-							<td>${formateadorMoneda.format(compra.total || 0)}</td>
+							<td>${Formatea_Moneda(compra.total || 0)}</td>
 							<td>${MAP_FP[compra.f_pago1] || ""}</td>
 						</tr>
 
@@ -263,8 +262,8 @@ verificarSesion();
 								<td>${det.id_producto}</td>
 								<td>${det.descripcion}</td>
 								<td>${det.cantidad}</td>
-								<td>${formateadorMoneda.format(det.precio || 0)}</td>
-								<td>${formateadorMoneda.format(det.subtotal || 0)}</td>
+								<td>${Formatea_Moneda(det.precio || 0)}</td>
+								<td>${Formatea_Moneda(det.subtotal || 0)}</td>
 							</tr>
 						`;
 

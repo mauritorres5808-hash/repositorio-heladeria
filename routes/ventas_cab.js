@@ -92,15 +92,16 @@ router.post('/delivery', async (req, res) => {
         const id_venta = ultVenta[0].nuevo;
 
 		const ahora = new Date();
-
 		// FECHA formato MySQL DATE
 		const fecha = ahora.toISOString().split('T')[0];
-
 		// HORA
-		const hora = ahora.toLocaleTimeString('es-AR', {hour12: false});
+		//const hora = ahora.toLocaleTimeString('es-AR', {hour12: false});
+		const _hora = String(ahora.getHours()).padStart(2, '0');
+		const _minutos = String(ahora.getMinutes()).padStart(2, '0');
+		const _segundos = String(ahora.getSeconds()).padStart(2, '0');
+		const hora = `${_hora}:${_minutos}:${_segundos}`;
 
         // INSERT CABECERA
-
         await conn.query(`
             INSERT INTO ventas_cab
             (

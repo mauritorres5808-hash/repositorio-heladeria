@@ -201,12 +201,12 @@
     <!-- Modal de busqueda -->
     <div id="modalBusqueda">
       <div id="contenidoModal" align="center">
-        <h3>Buscar clientes por nombre</h3>
-        <input type="text" id="txtBuscarNombre" placeholder="Ingrese parte del nombre" />
+        <h3>Buscar clientes por nombre o domicilio</h3>
+        <input type="text" id="txtBuscarNombre" placeholder="Ingrese parte del nombre o domicilio" />
         <button id="btnBuscarCliente">Buscar</button>
         <table id="tablaResultados">
           <thead>
-            <tr><th style="background:#BDC2CB;">ID</th><th style="background:#BDC2CB;">Nombre</th></tr>
+            <tr><th style="background:#BDC2CB;">ID</th><th style="background:#BDC2CB;">Nombre</th><th style="background:#BDC2CB;">Domicilio</th></tr>
           </thead>
           <tbody></tbody>
         </table>
@@ -222,6 +222,13 @@
 
 verificarSesion();
 id_cliente.focus();
+
+// ==========================================
+// CONFIGURACION DEL DELIVERY
+// ==========================================
+let configuracion = {
+  distancia_maxima: 0
+};
 
 // BLOQUEA TODOS LOS BOTONES AL CARGAR LA PÁGINA (menos boton Volver)
 document.addEventListener("DOMContentLoaded", async () => {
@@ -241,6 +248,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Aplicar permisos
     aplicarPermisos();
+
+    // Cargar configuracion
+    await cargarConfiguracion();
 });
 
 function volver() {
@@ -540,6 +550,20 @@ document.getElementById("btnValidarDom").onclick = async () => {
 };
 */
 
+// ==========================================
+// cargar la CONFIGURACION DEL DELIVERY
+// ==========================================
+async function cargarConfiguracion() {
+
+  try {
+    const resp = await fetch('/api/configuraciones');
+    configuracion = await resp.json();
+  } catch (error) {
+    console.error("Error cargando configuración:",error);
+  }
+}
+
+
 // mostrar el mapa del domicilio del cliente
 async function distancia() {
 
@@ -553,9 +577,12 @@ async function distancia() {
     const origen = info.domicilio;
     const destino = document.getElementById('domicilio').value;
 
-//mostrarMapaDistancia('liniers 89, CABA', 'av albarellos 2500, Buenos Aires');
-mostrarMapaDistancia(origen, destino);
-    };
+	await mostrarMapaDistancia(origen, destino);
+		if (window.distanciaDelivery > configuracion.distancia_maxima) {
+		await mostrarAlerta({mensaje: `distancia mayor a ` + configuracion.distancia_maxima + ` Kms.`});
+		}
+
+};
 
 async function obtenerDatosEmpresa() {
 
@@ -590,18 +617,13 @@ async function obtenerDatosEmpresa() {
 
 	document.getElementById("btnBuscarCliente").onclick = async () => {
 
-	  const texto =
-		document.getElementById("txtBuscarNombre")
-		  .value
-		  .trim()
-		  .toLowerCase();
+	  const texto = document.getElementById("txtBuscarNombre").value.trim().toLowerCase();
 
 	  if (!texto) {
 		return await mostrarAlerta({mensaje: `Ingrese texto a buscar`});
 	  }
 
-	  const tablaBody =
-		document.querySelector("#tablaResultados tbody");
+	  const tablaBody = document.querySelector("#tablaResultados tbody");
 
 	  tablaBody.innerHTML = "";
 
@@ -611,15 +633,14 @@ async function obtenerDatosEmpresa() {
 
 	  clientes.forEach(data => {
 
-		if ((data.nombre || '')
-		  .toLowerCase()
-		  .includes(texto)) {
+		if ((data.nombre || '').toLowerCase().includes(texto) || (data.domicilio || '').toLowerCase().includes(texto) ) {
 
 		  const fila = document.createElement("tr");
 
 		  fila.innerHTML = `
 			<td>${data.id_cliente}</td>
 			<td>${data.nombre}</td>
+			<td>${data.domicilio}</td>
 		  `;
 
 		  fila.onclick = () => {

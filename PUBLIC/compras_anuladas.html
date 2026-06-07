@@ -6,6 +6,7 @@
   <title>Consulta de Compras Anuladas</title>
 
 <script src="JS/auth.js"></script>  <!-- Aquí se verifica la autenticacion-->
+<script src="js/utils.js"></script>
 
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -188,13 +189,6 @@ const fechaHoy = `${yyyy}-${mm}-${dd}`;
 document.getElementById("fechaDesde").value = fechaHoy;
 document.getElementById("fechaHasta").value = fechaHoy;
 
-const formateadorMoneda = new Intl.NumberFormat(
-	'es-AR',
-	{
-		style: 'currency',
-		currency: 'ARS'
-	}
-);
 
 let chartInstance = null;
 let datosFormaPago = null;
@@ -356,7 +350,7 @@ async function consultarCompras() {
 					<tr>
 						<td>${v.hora}</td>
 						<td>${v.id_compra}</td>
-						<td>${formateadorMoneda.format(v.total || 0)}</td>
+						<td>${Formatea_Moneda(v.total || 0)}</td>
 						<td>${FORMAS_PAGO[v.f_pago1] || ""}</td>
 						<td>
 							<button onclick="verDetalle(${v.id_compra})">
@@ -374,7 +368,7 @@ async function consultarCompras() {
 					</td>
 
 					<td>
-						${formateadorMoneda.format(totalDia)}
+						${Formatea_Moneda(totalDia)}
 					</td>
 
 					<td colspan="5"></td>
@@ -389,7 +383,7 @@ async function consultarCompras() {
 		html += `
 			<h3 style="text-align:center;">
 				TOTAL GENERAL:
-				${formateadorMoneda.format(totalGeneral)}
+				${Formatea_Moneda(totalGeneral)}
 			</h3>
 		`;
 
@@ -529,33 +523,17 @@ function mostrarGrafico() {
 async function verDetalle(idCompra) {
 
 	try {
-
-		const resp =
-			await fetch(
-				`/api/compras/${idCompra}/detalle`
-			);
+		const resp = await fetch(`/api/compras/${idCompra}/detalle`);
 
 		const data = await resp.json();
 
-		const cont =
-			document.getElementById("detalleContenido");
-
-		const encabezado =
-			document.getElementById("encabezado_detalle");
-
-		encabezado.innerHTML =
-			"Detalle de Productos - Compra Nro. "
-			+
-			idCompra;
+		const cont = document.getElementById("detalleContenido");
+		const encabezado = document.getElementById("encabezado_detalle");
+		encabezado.innerHTML = "Detalle de Productos - Compra Nro. " + idCompra;
 
 		if (!data.ok || data.detalle.length === 0) {
-
-			cont.innerHTML =
-				"<p>No se encontraron productos para esta compra.</p>";
-
-			document.getElementById("detalleModal").style.display =
-				"flex";
-
+			cont.innerHTML = "<p>No se encontraron productos para esta compra.</p>";
+			document.getElementById("detalleModal").style.display = "flex";
 			return;
 		}
 
@@ -571,25 +549,20 @@ async function verDetalle(idCompra) {
 		`;
 
 		data.detalle.forEach(item => {
-
 			html += `
 				<tr>
 					<td>${item.id_producto}</td>
 					<td>${item.descripcion || ""}</td>
-					<td>${formateadorMoneda.format(item.precio || 0)}</td>
+					<td>${Formatea_Moneda(item.precio || 0)}</td>
 					<td>${item.cantidad}</td>
-					<td>${formateadorMoneda.format(item.subtotal || 0)}</td>
+					<td>${Formatea_Moneda(item.subtotal || 0)}</td>
 				</tr>
 			`;
-
 		});
 
 		html += `</table>`;
-
 		cont.innerHTML = html;
-
-		document.getElementById("detalleModal").style.display =
-			"flex";
+		document.getElementById("detalleModal").style.display = "flex";
 
 	} catch (error) {
 		console.error(error);

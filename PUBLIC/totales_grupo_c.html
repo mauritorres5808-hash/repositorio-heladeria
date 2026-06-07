@@ -5,6 +5,7 @@
   <title>Compras por Grupo</title>
 
 <script src="JS/auth.js"></script>  <!-- ?? Aquí se verifica la autenticacion-->
+<script src="js/utils.js"></script>
 
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -141,7 +142,7 @@
     <div class="filtros">
       <label>Desde: <input type="date" id="fechaDesde"></label>
       <label>Hasta: <input type="date" id="fechaHasta"></label>
-	<label for="chk_cierre">solo Ventas sin cierre</label>
+	<label for="chk_cierre">solo Compras sin cierre</label>
 	<input  type="checkbox" checked=true id="chk_cierre">
 	<br><br>
 	  <div class="contenedor-botones2">
@@ -174,14 +175,15 @@
 verificarSesion();
 
 
-    const formateadorMoneda = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' });
-
-    // 🔸 Fecha por defecto (hoy)
+	// 🔸 Fecha por defecto (hoy)
+/*
     const hoy = new Date();
     const yyyy = hoy.getFullYear();
     const mm = String(hoy.getMonth() + 1).padStart(2, "0");
     const dd = String(hoy.getDate()).padStart(2, "0");
     const fechaHoy = `${yyyy}-${mm}-${dd}`;
+*/	
+    const fechaHoy = FechaHoy_MySQL();
     document.getElementById("fechaDesde").value = fechaHoy;
     document.getElementById("fechaHasta").value = fechaHoy;
 
@@ -231,34 +233,24 @@ async function calcularTotales() {
 
     if (!totales.length) {
       mensaje.style.display = "none";
+		document.querySelector("#tablaTotales tbody").innerHTML = "";
+		graficoContainer.style.display = "none";
 	  await mostrarAlerta({mensaje: `No se encontraron compras en ese rango`});
       return;
     }
 
+		graficoContainer.style.display = "flex";
+
     // =====================================
     // TOTALES GENERALES
     // =====================================
-    const totalGeneralImporte =
-      totales.reduce(
-        (acc, g) =>
-          acc + Number(g.total),
-        0
-      );
-
-    const totalGeneralCantidad =
-      totales.reduce(
-        (acc, g) =>
-          acc + Number(g.cantidad),
-        0
-      );
+    const totalGeneralImporte = totales.reduce((acc, g) => acc + Number(g.total), 0);
+    const totalGeneralCantidad = totales.reduce((acc, g) => acc + Number(g.cantidad), 0);
 
     // =====================================
     // TABLA
     // =====================================
-    const tbody =
-      document.querySelector(
-        "#tablaTotales tbody"
-      );
+    const tbody = document.querySelector("#tablaTotales tbody");
 
     tbody.innerHTML = "";
 
@@ -267,33 +259,20 @@ async function calcularTotales() {
 
     totales.forEach(g => {
 
-      const porcentajeCant = (
-
-        (Number(g.cantidad)
-        / totalGeneralCantidad)
-
-        * 100
-
-      ).toFixed(2);
+      const porcentajeCant = ((Number(g.cantidad) / totalGeneralCantidad) * 100).toFixed(2);
 
       labels.push(g.desc_grupo);
 
       data.push(Number(g.cantidad));
 
       tbody.innerHTML += `
-
         <tr>
-
           <td>${g.desc_grupo}</td>
-
           <td>${g.cantidad}</td>
-
           <td>
-            ${formateadorMoneda.format(g.total)}
+            ${Formatea_Moneda(g.total)}
           </td>
-
           <td>${porcentajeCant}%</td>
-
         </tr>
       `;
     });
@@ -302,54 +281,35 @@ async function calcularTotales() {
     // TOTAL GENERAL
     // =====================================
     tbody.innerHTML += `
-
       <tr class="total">
-
         <td>TOTAL GENERAL</td>
-
         <td>
           ${totalGeneralCantidad}
         </td>
-
         <td>
-          ${formateadorMoneda.format(
-            totalGeneralImporte
-          )}
+          ${Formatea_Moneda(totalGeneralImporte)}
         </td>
-
         <td>100%</td>
-
       </tr>
     `;
 
     // =====================================
     // GRAFICO
     // =====================================
-    const ctx =
-      document.getElementById(
-        "graficoTorta"
-      ).getContext("2d");
+    const ctx = document.getElementById("graficoTorta").getContext("2d");
 
     if (grafico)
       grafico.destroy();
 
     grafico = new Chart(ctx, {
-
       type: "pie",
-
       data: {
-
         labels: labels,
-
         datasets: [{
-
           label:
             "Cantidad comprada",
-
           data: data,
-
           backgroundColor: [
-
             "#007bff",
             "#28a745",
             "#ffc107",
@@ -358,25 +318,17 @@ async function calcularTotales() {
             "#6f42c1",
             "#fd7e14",
             "#20c997"
-
           ]
         }]
       },
-
       options: {
-
         responsive: true,
-
         plugins: {
-
           legend: {
             position: "bottom"
           },
-
           title: {
-
             display: true,
-
             text:
               "Distribución de cantidad de Compras por Grupo (%)"
           }

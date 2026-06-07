@@ -224,10 +224,13 @@ async function calcularTotales() {
 
     if (totales.length === 0) {
       mensaje.style.display = "none";
-      //alert("No se encontraron ventas en ese rango.");
+		document.querySelector("#tablaTotales tbody").innerHTML = "";
+		graficoContainer.style.display = "none";
 	  await mostrarAlerta({mensaje: "No se encontraron ventas en ese rango"});
       return;
     }
+
+    graficoContainer.style.display = "flex";
 
     // ============================================
     // TOTALES GENERALES
@@ -333,7 +336,6 @@ async function calcularTotales() {
     mensaje.style.display = "none";
   }
 }
-
 
   </script>
 

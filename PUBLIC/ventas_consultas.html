@@ -128,8 +128,8 @@
       margin-top: 15px;
     }
 	.tachado {
-					background-color:#FF6467;
-					color:white;
+		background-color:#FF6467;
+		color:white;
 	}
 
     .alert-modern{background:#e9f7ef;border-left:6px solid red;padding:10px;border-radius:6px;margin:10px 0; font-style: italic;}
@@ -337,15 +337,9 @@ verificarSesion();
 		// SELECCIONAR CLIENTE
 		// ======================================
 		function seleccionarCliente(id,nombre){
-
 			clienteSeleccionado = id;
-
-			document.getElementById("buscarCliente")
-				.value = nombre;
-
-			document.getElementById(
-				"sugerenciasClientes"
-			).innerHTML = '';
+			document.getElementById("buscarCliente").value = nombre;
+			document.getElementById("sugerenciasClientes").innerHTML = '';
 		}
 
 
@@ -387,8 +381,6 @@ async function consultarVentas() {
 				`&tipo_venta=${tipoVenta}` +
 				`&sin_cierre=${sin_cierre}` +
 				`&id_cliente=${clienteSeleccionado}`;
-
-
         } else {
             const nro = document.getElementById("nroVenta").value;
             const tipoVenta = document.getElementById("tipoVentaNro").value;
@@ -456,7 +448,6 @@ async function consultarVentas() {
             let CantDia = 0;
 
             if (!sin_det) {
-
                 html += `<h3>📅 Fecha: ${convertirFechaOK(fecha)}</h3>`;
                 html += `<div id="mensajeTipo" class="alert-modern">las ventas en rojo (anuladas) no suman en el Total ni en el grafico.</div>`
                 html += `
@@ -477,6 +468,7 @@ async function consultarVentas() {
                     <th>Importe 2</th>
                     <th>Detalle</th>
                     <th>Reimp.</th>
+                    <th>Accion</th>
                     <th>Cierre</th>
                 </tr>
                 `;
@@ -484,10 +476,10 @@ async function consultarVentas() {
 
             for (const v of agrupadas[fecha]) {
 
-    // =========================
-    // datos del CLIENTE
-    // =========================
-    const cliente = mapaClientes[v.id_cliente] || {};
+				// =========================
+				// datos del CLIENTE
+				// =========================
+				const cliente = mapaClientes[v.id_cliente] || {};
 	
                 let TipoVenta = "--";
 
@@ -534,12 +526,18 @@ async function consultarVentas() {
 							: `-` }
 						
 						</td>
+                        <td>
+						${v.id_cierre == 0 && v.anulada == 0 ?
+                            `<button onclick="anularVenta(${v.id_venta})">Anular</button>`
+							: `-` }
+						
+						</td>
                         <td>${v.id_cierre || "-"}</td>
                     </tr>
                     `;
-					    if (v.tipo_venta === 1) {
+					if (v.tipo_venta === 1) {
 						html += `
-						<tr>
+                    <tr ${v.anulada ? 'class="tachado"' : ''}>
 						<td colspan="3"></td>
 						<th>Nombre</th>
 						<th>Domicilio</th>
@@ -547,7 +545,7 @@ async function consultarVentas() {
 						<th>Nota</th>
 						</tr>
 
-						<tr>
+                    <tr ${v.anulada ? 'class="tachado"' : ''}>
 						<td colspan="3"></td>
 						<td>${cliente.nombre || '-'}</td>
 						<td>${cliente.domicilio || '-'}</td>
@@ -555,7 +553,6 @@ async function consultarVentas() {
 						<td>${cliente.nota || '-'}</td>
 						</tr>
 						`;}
-
                 }
 
                 if (!v.anulada) {
@@ -774,10 +771,49 @@ async function verDetalle(idVenta) {
     }
 }
 
+async function anularVenta(idVentaActual) {
 
-    function cerrarModal() {
-      document.getElementById("detalleModal").style.display = "none";
-    }
+	const mensaje = document.getElementById("mensaje");
+
+	if (!idVentaActual) {
+		mensaje.innerText = "Debe buscar una venta valida antes de anular.";
+		return;
+	}
+
+	const confirmar = await mostrarConfirm({
+	  mensaje: "¿Está seguro que desea anular esta venta?",
+	  textoAceptar: "Sí, anular",
+	  textoCancelar: "Cancelar"
+	});
+	if (!confirmar) {
+	  return;
+	}
+
+	try {
+		const resp = await fetch(`/api/ventas_cab/anular/${idVentaActual}`, {
+			method: 'PUT'
+		});
+		const data = await resp.json();
+		if (!data.ok) {
+			mensaje.style.color = "red";
+			mensaje.innerText = data.error || 'Error anulando venta';
+			return;
+		}
+		//mensaje.style.color = "green";
+		//mensaje.innerText = ">> La venta fue anulada correctamente <<";
+		await mostrarAlerta({mensaje: `>> La venta fue anulada correctamente <<`,icono:`&#10004;`});
+
+	} catch (error) {
+		//mensaje.style.color = "red";
+		//mensaje.innerText = "Error al anular venta: " + error.message;
+		await mostrarAlerta({mensaje: `Error al anular venta`});
+	}
+}
+
+
+function cerrarModal() {
+  document.getElementById("detalleModal").style.display = "none";
+}
 	
 
 async function reimprimirTicket(idVenta) {
@@ -849,7 +885,7 @@ async function verPedido(idVenta) {
 
         const pedido = data.cabecera;
         const detalle = data.detalle;
-const promociones = data.promociones || [];
+		const promociones = data.promociones || [];
 
         const cont = document.getElementById("detalleContenido");
         const encabezado = document.getElementById("encabezado_detalle");
@@ -860,7 +896,7 @@ const promociones = data.promociones || [];
         <div class="alert-modern">
             <b>Pedido # </b> ${pedido.id_pedido} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <b>Fecha:</b> ${convertirFechaOK(pedido.fecha)}&nbsp;&nbsp;&nbsp;<b>Hora:</b> ${pedido.hora}
             <br>
-            <b>Cliente:</b> ${pedido.nombre}
+            <b>Cliente # ${pedido.id_cliente}:</b> ${pedido.nombre}
             <br>
             <b>Teléfono:</b> ${pedido.telefono}
             <br>
@@ -949,6 +985,8 @@ function convertirFechaOK(f) {
 }
 
   </script>
+
+<script src="JS/modal.js"></script>
 
 </body>
 </html>

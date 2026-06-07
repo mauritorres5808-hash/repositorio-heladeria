@@ -169,7 +169,7 @@
 
     <!-- Modal Productos -->
     <div id="modalProductos" class="modal">
-      <div class="modal-contenido">
+      <div class="modal-contenido" style="width:500px;">
         <span class="cerrar" onclick="cerrarModal('modalProductos')">&times;</span>
         <h3>Buscar productos por descripcion</h3>
         <input type="text" style="width:240px" id="txtBuscarProd" placeholder="Parte de la descripcion...">
@@ -180,10 +180,10 @@
 
     <!-- Modal Clientes -->
     <div id="modalClientes" class="modal">
-      <div class="modal-contenido">
+      <div class="modal-contenido" style="width:700px;">
         <span class="cerrar" onclick="cerrarModal('modalClientes')">&times;</span>
-        <h3>Buscar cliente por nombre o telefono</h3>
-        <input type="text" style="width:240px"  id="txtBuscarCli" placeholder="Parte del nombre o telefono...">
+        <h3>Buscar cliente por nombre o telefono o domicilio</h3>
+        <input type="text" style="width:240px"  id="txtBuscarCli" placeholder="Parte del nombre o telefono o domicilio...">
         <button id="btnBuscarClientesModal">&#128269; Buscar</button>
         <div id="resultCli" style="margin-top:10px"></div>
       </div>
@@ -393,8 +393,11 @@ async function distancia() {
     const destino = document.getElementById('cli_domicilio').value;
 
 //mostrarMapaDistancia('liniers 89, CABA', 'av albarellos 2500, Buenos Aires');
-mostrarMapaDistancia(origen, destino);
-    };
+await mostrarMapaDistancia(origen, destino);
+	if (window.distanciaDelivery > configuracion.distancia_maxima) {
+	await mostrarAlerta({mensaje: `distancia mayor a ` + configuracion.distancia_maxima + ` Kms.`});
+	}
+};
 
     // Mostrar fecha en encabezado (solo visual)
     const hoy = new Date();
@@ -516,8 +519,7 @@ mostrarMapaDistancia(origen, destino);
 			return (
 				!c.deshabilitado &&
 				(
-					(c.nombre || '').toLowerCase().includes(texto) ||
-					String(c.telefono || '').includes(texto)
+					(c.nombre || '').toLowerCase().includes(texto) || String(c.telefono || '').includes(texto)  || String(c.domicilio || '').toLowerCase().includes(texto)
 				)
 			);
 		});
@@ -571,7 +573,7 @@ mostrarMapaDistancia(origen, destino);
         let html = `<table style="width:100%;border-collapse:collapse"><tr><th>ID</th><th>DescripciÃ³n</th><th>Precio</th></tr>`;
         resultados.forEach(p => {
           html += `<tr style="cursor:pointer" onclick="seleccionarProductoModal('${p.id_producto}')">
-            <td>${p.id_producto}</td><td style="text-align:left">${p.descripcion}</td><td>${p.precio?.toFixed? p.precio.toFixed(2) : p.precio}</td></tr>`;
+            <td>${p.id_producto}</td><td style="text-align:left">${p.descripcion}</td><td>$ ${p.precio?.toFixed? p.precio.toFixed(2) : p.precio}</td></tr>`;
         });
         html += "</table>";
         cont.innerHTML = html;
@@ -963,7 +965,8 @@ async function aplicarDescuentoRecargo() {
 
 			document.getElementById('recargo').focus();
 			//const deseaImprimir = confirm(`Venta Nro ${data.id_venta} grabada correctamente.\n\n¿Desea imprimir el ticket?`);
-			const deseaImprimir = await mostrarConfirm({mensaje: `Venta Nro ${data.id_venta}\n grabada correctamente.\n\n Desea imprimir el ticket ?` });
+			const deseaImprimir = await mostrarConfirm({mensaje: `Venta Nro ${data.id_venta}\n grabada correctamente.\n\n Desea imprimir el ticket ?`,
+						  textoAceptar: "Si", textoCancelar: "No" });
 
 			if (deseaImprimir) {
 				generarComprobanteTermicoPDF(

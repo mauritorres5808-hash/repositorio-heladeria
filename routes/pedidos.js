@@ -169,6 +169,7 @@ router.post('/', async (req, res) => {
 			// ======================================
 			// FECHA / HORA / TOTAL
 			// ======================================
+/*
 			const ahora = new Date();
 			const fecha =
 			  ahora.getFullYear() + "-" +
@@ -178,6 +179,15 @@ router.post('/', async (req, res) => {
 			const hora =
 			  String(ahora.getHours()).padStart(2, "0") + ":" +
 			  String(ahora.getMinutes()).padStart(2, "0");
+*/
+			const ahora = new Date();
+			// FECHA formato MySQL DATE
+			const fecha = ahora.toISOString().split('T')[0];
+			// HORA
+			const _hora = String(ahora.getHours()).padStart(2, '0');
+			const _minutos = String(ahora.getMinutes()).padStart(2, '0');
+			const _segundos = String(ahora.getSeconds()).padStart(2, '0');
+			const hora = `${_hora}:${_minutos}:${_segundos}`;
 
 			// calcular total
 			let subtotal = 0;
@@ -407,7 +417,7 @@ router.post('/:id/convertir', async (req, res) => {
         // FECHA Y HORA ACTUAL
         // ============================================
         const ahora = new Date();
-
+/*
         const fechaHoy =
             ahora.getFullYear() + '-' +
             String(ahora.getMonth() + 1).padStart(2, '0') + '-' +
@@ -417,6 +427,15 @@ router.post('/:id/convertir', async (req, res) => {
             String(ahora.getHours()).padStart(2, '0') + ':' +
             String(ahora.getMinutes()).padStart(2, '0') + ':' +
             String(ahora.getSeconds()).padStart(2, '0')
+*/
+			const ahora = new Date();
+			// FECHA formato MySQL DATE
+			const fechaHoy = ahora.toISOString().split('T')[0];
+			// HORA
+			const _hora = String(ahora.getHours()).padStart(2, '0');
+			const _minutos = String(ahora.getMinutes()).padStart(2, '0');
+			const _segundos = String(ahora.getSeconds()).padStart(2, '0');
+			const horaHoy = `${_hora}:${_minutos}:${_segundos}`;
 			
 		const descuentoPromociones = Number(pedido.descuento_promociones || 0);
 
@@ -578,18 +597,14 @@ router.post('/:id/convertir', async (req, res) => {
         });
 
     } catch (error) {
-
         await conn.rollback();
-
         console.error(error);
-
         res.status(500).json({
             ok: false,
             error: 'Error convirtiendo pedido'
         });
 
     } finally {
-
         conn.release();
     }
 });
@@ -607,6 +622,7 @@ router.put('/:id/cancelar', async (req, res) => {
         // ============================================
         // FECHA Y HORA ACTUAL
         // ============================================
+/*
         const ahora = new Date();
         const fechaHoy =
             ahora.getFullYear() + '-' +
@@ -617,6 +633,15 @@ router.put('/:id/cancelar', async (req, res) => {
             String(ahora.getHours()).padStart(2, '0') + ':' +
             String(ahora.getMinutes()).padStart(2, '0') + ':' +
             String(ahora.getSeconds()).padStart(2, '0')
+*/
+			const ahora = new Date();
+			// FECHA formato MySQL DATE
+			const fechaHoy = ahora.toISOString().split('T')[0];
+			// HORA
+			const _hora = String(ahora.getHours()).padStart(2, '0');
+			const _minutos = String(ahora.getMinutes()).padStart(2, '0');
+			const _segundos = String(ahora.getSeconds()).padStart(2, '0');
+			const horaHoy = `${_hora}:${_minutos}:${_segundos}`;
 
         await db.query(`
             UPDATE pedidos_cab
@@ -754,6 +779,7 @@ router.delete('/:id', async (req, res) => {
         // ============================================
         // FECHA Y HORA ACTUAL
         // ============================================
+/*
         const ahora = new Date();
         const fechaHoy =
             ahora.getFullYear() + '-' +
@@ -764,6 +790,15 @@ router.delete('/:id', async (req, res) => {
             String(ahora.getHours()).padStart(2, '0') + ':' +
             String(ahora.getMinutes()).padStart(2, '0') + ':' +
             String(ahora.getSeconds()).padStart(2, '0')
+*/
+			const ahora = new Date();
+			// FECHA formato MySQL DATE
+			const fechaHoy = ahora.toISOString().split('T')[0];
+			// HORA
+			const _hora = String(ahora.getHours()).padStart(2, '0');
+			const _minutos = String(ahora.getMinutes()).padStart(2, '0');
+			const _segundos = String(ahora.getSeconds()).padStart(2, '0');
+			const horaHoy = `${_hora}:${_minutos}:${_segundos}`;
 
         const [result] = await db.query(`
             UPDATE pedidos_cab

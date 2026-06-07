@@ -151,14 +151,9 @@ function renderGrupos() {
       Number(g.publica || 0) === 1
     )
     .forEach(g => {
-
       const opt = document.createElement("option");
-
       opt.value = g.id_grupo;
-
-      opt.textContent =
-        `${g.descripcion}`;
-
+      opt.textContent = `${g.descripcion}`;
       cmb.appendChild(opt);
     });
 }
@@ -167,23 +162,14 @@ function renderGrupos() {
 // OBTENER FILTROS
 // =====================================================
 function getGrupoSeleccionado() {
-
   const val = document.getElementById("cmbGrupo").value;
-
   return val === ""
     ? null
     : Number(val);
-
 }
 
 function getTextoBusqueda() {
-
-  return (
-    document.getElementById("txtBuscar").value || ""
-  )
-    .trim()
-    .toLowerCase();
-
+  return (document.getElementById("txtBuscar").value || "").trim().toLowerCase();
 }
 
 // =====================================================
@@ -1006,13 +992,7 @@ async function enviarPedido(){
     return;
   }
 
-  if (
-    !nombre
-    || !domicilio
-    || !tel
-    || !pagaCon
-  ){
-
+  if ( !nombre || !domicilio || !tel || !pagaCon ){
     alert("Complete nombre, domicilio, teléfono y cómo piensa pagar.");
     return;
   }

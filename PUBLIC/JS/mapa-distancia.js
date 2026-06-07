@@ -116,7 +116,11 @@ document.getElementById("distanciaTexto").innerText = "buscando direcciones.....
     }
 
     const distanciaKm = (data.routes[0].distance / 1000).toFixed(2);
-    document.getElementById("distanciaTexto").innerText = `Hasta ${dir2} --- (en auto/moto)   Distancia: ${distanciaKm} km`;
+	const tiempoMin = Math.round(data.routes[0].duration / 60);
+//    document.getElementById("distanciaTexto").innerText = `Hasta ${dir2} --- (en auto/moto)   Distancia: ${distanciaKm} km tiempo estimado: ${tiempoMin}`;
+    document.getElementById("distanciaTexto").innerText = `Hasta ${dir2} --- 🚗 ${distanciaKm} km` + `      `+ `⏱️ ${tiempoMin} min`;
+
+
 
     // Inicializar o recrear mapa
     if (window.mapaLeaflet) {
@@ -151,6 +155,9 @@ document.getElementById("distanciaTexto").innerText = "buscando direcciones.....
         L.marker([coord2.lat, coord2.lon])
     ]);
     window.mapaLeaflet.fitBounds(group.getBounds(), { padding: [30, 30] });
+	
+	window.distanciaDelivery = parseFloat(distanciaKm);
+
 }
 
 

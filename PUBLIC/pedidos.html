@@ -681,7 +681,7 @@ async function confirmarConversion(){
   }
 
   document.getElementById("resultado").innerHTML = ``;
-  await mostrarAlerta({mensaje: `Pedido confirmado. Venta #` + j.id_venta,icono:`&#10004;`});
+  await mostrarAlerta({mensaje: `Pedido confirmado. Venta # ` + j.id_venta,icono:`&#10004;`});
   cerrarModalPago();
   cargar();
 }

@@ -6,6 +6,7 @@
   <title>Modificar Formas de Pago - Compras</title>
 
 <script src="JS/auth.js"></script>  <!-- Aqui se verifica la autenticacion-->
+<script src="js/utils.js"></script>
 
   <style>
     /* Estilos coherentes con tus otras páginas */
@@ -129,8 +130,6 @@
 
 verificarSesion();
 
-  const formateador = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
-
 
   // helpers de fecha
   function normalizarFechaDesdeDDMMYYYY_a_YYYYMMDD(fechaStr) {
@@ -218,7 +217,7 @@ verificarSesion();
 					<tr>
 						<td>${v.hora || ""}</td>
 						<td>${v.id_compra}</td>
-						<td>${formateador.format(v.total || 0)}</td>
+						<td>${Formatea_Moneda(v.total || 0)}</td>
 						<td>${fp1txt}</td>
 						<td class="acciones">
 
@@ -284,9 +283,9 @@ verificarSesion();
       // Rellenar datos actuales en modal
       document.getElementById("m_nrocompra").textContent = compraEditando.id_compra;
       document.getElementById("m_fecha").textContent = convertirFechaOK(compraEditando.fecha || "");
-	  document.getElementById("m_total").textContent = formateador.format(parseFloat(compraEditando.total || 0));
+	  document.getElementById("m_total").textContent = Formatea_Moneda(parseFloat(compraEditando.total || 0));
       document.getElementById("m_fpago1_actual").textContent = MAP_FP[compraEditando.f_pago1] || (compraEditando.f_pago1 ? compraEditando.f_pago1 : "");
-	  document.getElementById("m_imp1_actual").textContent = formateador.format(parseFloat(compraEditando.total || 0));
+	  document.getElementById("m_imp1_actual").textContent = Formatea_Moneda(parseFloat(compraEditando.total || 0));
 	
       // inicializar selects -> por defecto mostrar las formas actuales si están habilitadas
       // si la forma actual está deshabilitada, dejamos vacío para forzar nueva selección
@@ -485,9 +484,9 @@ function convertirFechaOK(f) {
 						<tr>
 							<td>${pd.id_producto}</td>
 							<td>${pd.descripcion || ""}</td>
-							<td>${formateador.format(pd.precio || 0)}</td>
+							<td>${Formatea_Moneda(pd.precio || 0)}</td>
 							<td>${pd.cantidad}</td>
-							<td>${formateador.format(pd.subtotal || 0)}</td>
+							<td>${Formatea_Moneda(pd.subtotal || 0)}</td>
 						</tr>
 					`;
 

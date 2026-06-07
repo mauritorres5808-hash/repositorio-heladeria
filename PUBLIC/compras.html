@@ -6,6 +6,7 @@
   <title>Compras - Ingreso de Mercaderia</title>
  
 <script src="JS/auth.js"></script>  <!-- Aquí se verifica la autenticacion -->
+<script src="js/utils.js"></script>
 
   <style>
     body{font-family:Arial;background:#f3f3f3;margin:0;padding:20px;background-color:#8AC0FF}
@@ -99,14 +100,12 @@
   </div>
 
   <script>
-  
-  
+    
 verificarSesion();
 id_producto.focus();
 
-    // Mostrar fecha en encabezado (solo visual)
-    const hoy = new Date();
-    const fechaFormateada = hoy.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'});
+    const fechaFormateada = FechaHoy();
+
     document.addEventListener('DOMContentLoaded', () => {
       const h2 = document.querySelector('h2');
       h2.textContent = `COMPRAS - Ingreso de Mercaderia  _____________________ ${fechaFormateada}`;
@@ -417,10 +416,12 @@ document.addEventListener("keydown", function(e) {
 				  Number(p.cantidad)
 			  }));
 
-			const ahora = new Date();
+			//const ahora = new Date();
 			// FECHA formato MySQL DATE
-			const fecha = ahora.toISOString().split('T')[0];
-			const hora = Obtener_Hora();
+			//const fecha = ahora.toISOString().split('T')[0];
+			const fecha = FechaHoy_MySQL();
+			//const hora = Obtener_Hora();
+			const hora = HoraHoy();
 
 			const body = {
 			  fecha,
@@ -462,6 +463,7 @@ document.addEventListener("keydown", function(e) {
       document.getElementById('fpago1').value = '';
     }
 
+/*
     // funcion hora
 	function Obtener_Hora(){
 	  const ahora = new Date();
@@ -470,6 +472,7 @@ document.addEventListener("keydown", function(e) {
 	  const segundos = String(ahora.getSeconds()).padStart(2, '0');
 	  return `${hora}:${minutos}:${segundos}`;
 	}
+*/
 
     // Salir
     window.SalirCompra = async function(){

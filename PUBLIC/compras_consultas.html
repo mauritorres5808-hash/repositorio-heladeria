@@ -6,6 +6,7 @@
   <title>Consulta de Compras</title>
 
 <script src="JS/auth.js"></script>  <!-- Aquí se verifica la autenticacion -->
+<script src="js/utils.js"></script>
 
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -125,7 +126,8 @@
       margin-top: 15px;
     }
 	.tachado {
-		text-decoration: line-through;
+		background-color:#FF6467;
+		color:white;
 	}
 
     .alert-modern{background:#e9f7ef;border-left:6px solid red;padding:10px;border-radius:6px;margin:10px 0; font-style: italic;}
@@ -203,11 +205,14 @@ label { font-weight: bold; margin-right: 10px; }
 
 verificarSesion();
 
+/*
     const hoy = new Date();
     const yyyy = hoy.getFullYear();
     const mm = String(hoy.getMonth() + 1).padStart(2, '0');
     const dd = String(hoy.getDate()).padStart(2, '0');
     const fechaHoy = `${yyyy}-${mm}-${dd}`;
+*/
+	const fechaHoy = FechaHoy_MySQL();
     document.getElementById("fechaDesde").value = fechaHoy;
     document.getElementById("fechaHasta").value = fechaHoy;
 
@@ -258,29 +263,21 @@ verificarSesion();
 		const formasPago = {};
 		fpData.formasPago.forEach(x => {formasPago[x.id_fpago] = x.descripcion;});
 
-
 		// =====================================
 		// PARAMETROS
 		// =====================================
-		const sin_det =
-		  document.getElementById("chk_detalle").checked;
+		const sin_det = document.getElementById("chk_detalle").checked;
+		const sin_cierre = document.getElementById("chk_cierre").checked;
 
-		const sin_cierre =
-		  document.getElementById("chk_cierre").checked;
-
-		let url =
-		  '/api/compras/consultas?';
+		let url = '/api/compras/consultas?';
 
 		// =====================================
 		// POR FECHAS
 		// =====================================
 		if (tipoConsulta === "fecha") {
 
-		  const fDesde =
-			document.getElementById("fechaDesde").value;
-
-		  const fHasta =
-			document.getElementById("fechaHasta").value;
+		  const fDesde = document.getElementById("fechaDesde").value;
+		  const fHasta = document.getElementById("fechaHasta").value;
 
 		  url += `tipo=fecha`;
 		  url += `&desde=${fDesde}`;
@@ -288,8 +285,7 @@ verificarSesion();
 
 		} else {
 
-		  const nro =
-			document.getElementById("nroCompra").value;
+		  const nro = document.getElementById("nroCompra").value;
 
 		  url += `tipo=nro`;
 		  url += `&id_compra=${nro}`;
@@ -300,28 +296,18 @@ verificarSesion();
 		// =====================================
 		// CONSULTA
 		// =====================================
-		const resp =
-		  await fetch(url);
-
-		const data =
-		  await resp.json();
+		const resp = await fetch(url);
+		const data = await resp.json();
 
 		if (!data.ok) {
-
-		  resultado.innerHTML =
-			"<p>Error obteniendo compras</p>";
-
+		  resultado.innerHTML = "<p>Error obteniendo compras</p>";
 		  return;
 		}
 
-		const compras =
-		  data.compras;
+		const compras = data.compras;
 
 		if (compras.length === 0) {
-
-		  resultado.innerHTML =
-			"<p>No se encontraron compras.</p>";
-
+		  resultado.innerHTML = "<p>No se encontraron compras.</p>";
 		  return;
 		}
 
@@ -329,19 +315,15 @@ verificarSesion();
 		// AGRUPAR
 		// =====================================
 		let totalGeneral = 0;
-
 		let resumenFP = {};
-
 		let resumenPorFecha = {};
-
+		
 		const agrupadas = {};
 
 		compras.forEach(v => {
-
 		  if (!agrupadas[v.fecha]) {
 			agrupadas[v.fecha] = [];
 		  }
-
 		  agrupadas[v.fecha].push(v);
 		});
 
@@ -349,21 +331,16 @@ verificarSesion();
 		// DETALLE
 		// =====================================
 		if (!sin_det) {
-
 		  let html = "";
 
 		  for (const fecha of Object.keys(agrupadas).sort()) {
-
 			let totalDia = 0;
-
 			html += `<h3>📅 Fecha: ${convertirFechaOK(fecha)}</h3>`;
-
 			html += `
 			  <div class="alert-modern">
 				las compras en ROJO son anuladas y no suman en el Total ni en el grafico.
 			  </div>
 			`;
-
 			html += `
 			  <table border='1'>
 				<tr>
@@ -377,15 +354,12 @@ verificarSesion();
 			`;
 
 			for (const v of agrupadas[fecha]) {
-
 			  html += `
 				<tr
 				  style="border:3px solid black;"
 				  ${v.anulada == 1 ? `class="tachado"` : ""}
 				>
-
 				  <td>${v.hora}</td>
-
 				  <td
 					${v.anulada == 1
 					  ? `style="background-color:#FF6467;color:white;"`
@@ -393,53 +367,39 @@ verificarSesion();
 				  >
 					${v.id_compra}
 				  </td>
-
 				  <td>
 					${formateadorMoneda.format(v.total)}
 				  </td>
-
 				  <td>
 					${formasPago[v.f_pago1] || ""}
 				  </td>
-
 				  <td>
 					<button onclick="verDetalle(${v.id_compra})">
 					  Ver
 					</button>
 				  </td>
-
 				  <td>
 					${v.id_cierre || "-"}
 				  </td>
-
 				</tr>
 			  `;
 
 			  if (v.anulada != 1) {
-
 				totalDia += Number(v.total);
-
 				totalGeneral += Number(v.total);
-
-				resumenFP[v.f_pago1] =
-				  (resumenFP[v.f_pago1] || 0)
-				  + Number(v.total);
+				resumenFP[v.f_pago1] = (resumenFP[v.f_pago1] || 0) + Number(v.total);
 			  }
 			}
 
 			html += `
 			  <tr class="total">
-
 				<td colspan="2">
 				  Total del día
 				</td>
-
 				<td>
 				  ${formateadorMoneda.format(totalDia)}
 				</td>
-
 				<td colspan="5"></td>
-
 			  </tr>
 			`;
 
@@ -460,25 +420,15 @@ verificarSesion();
 		} else {
 
 		  let html = "";
-
 		  for (const fecha of Object.keys(agrupadas).sort()) {
-
 			let totalDia = 0;
-
 			for (const v of agrupadas[fecha]) {
-
 			  if (v.anulada != 1) {
-
 				totalDia += Number(v.total);
-
 				totalGeneral += Number(v.total);
-
-				resumenFP[v.f_pago1] =
-				  (resumenFP[v.f_pago1] || 0)
-				  + Number(v.total);
+				resumenFP[v.f_pago1] = (resumenFP[v.f_pago1] || 0) + Number(v.total);
 			  }
 			}
-
 			resumenPorFecha[convertirFechaOK(fecha)] = totalDia;
 		  }
 
@@ -488,50 +438,32 @@ verificarSesion();
 			  ${formateadorMoneda.format(totalGeneral)}
 			</h3>
 		  `;
-
 		  resultado.innerHTML = html;
 		}
 
 		// =====================================
 		// GRAFICO FPAGO
 		// =====================================
-		const totalFP =
-		  Object.values(resumenFP)
-		  .reduce((a,b)=>a+b,0);
+		const totalFP = Object.values(resumenFP).reduce((a,b)=>a+b,0);
 
 		const etiquetas = [];
 		const valores = [];
 
 		Object.keys(resumenFP).forEach(fp => {
-
-		  const valor =
-			resumenFP[fp];
-
-		  const porcentaje =
-			((valor / totalFP) * 100).toFixed(1);
-
-		  etiquetas.push(
-			`${fp} - ${formasPago[fp]} (${porcentaje}%)`
-		  );
-
+		  const valor = resumenFP[fp];
+		  const porcentaje = ((valor / totalFP) * 100).toFixed(1);
+		  etiquetas.push(`${fp} - ${formasPago[fp]} (${porcentaje}%)`);
 		  valores.push(valor);
 		});
 
-		datosFormaPago = {
-		  etiquetas,
-		  valores
-		};
+		datosFormaPago = {etiquetas,valores};
 
 		// =====================================
 		// GRAFICO FECHA
 		// =====================================
 		datosFecha = {
-
-		  etiquetas:
-			Object.keys(resumenPorFecha).sort(),
-
-		  valores:
-			Object.values(resumenPorFecha)
+		  etiquetas: Object.keys(resumenPorFecha).sort(),
+		  valores: Object.values(resumenPorFecha)
 		};
 
 		selectorGrafico.style.display = "block";
@@ -539,11 +471,8 @@ verificarSesion();
 		mostrarGrafico();
 
 	  } catch (e) {
-
 		console.error(e);
-
-		resultado.innerHTML =
-		  `<p style="color:red">Error: ${e.message}</p>`;
+		resultado.innerHTML = `<p style="color:red">Error: ${e.message}</p>`;
 	  }
 	}
 
@@ -661,20 +590,6 @@ verificarSesion();
 	}
 
 
-// Convertir yyyy-mm-dd → dd/mm/yyyy
-function convertirFechaOK(f) {
-  if (!f) return "";
-  // Si viene como objeto Date
-  if (typeof f === "object") {
-    f = f.toISOString().split("T")[0];
-  }
-  // Si viene como string ISO
-  if (String(f).includes("T")) {
-    f = String(f).split("T")[0];
-  }
-  const [yyyy, mm, dd] = String(f).split("-");
-  return `${dd}/${mm}/${yyyy}`;
-}
 
     function cerrarModal() {
       document.getElementById("detalleModal").style.display = "none";

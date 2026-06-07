@@ -19,7 +19,6 @@ let productos = [];
 let sabores = [];
 let carrito = {};
 let telefonoEmpresa = "";
-let grupoSeleccionado = null;
 
 // ==========================================
 // CONFIGURACION DEL DELIVERY
@@ -91,8 +90,6 @@ sabores = Array.isArray(sData)
     renderGrupos();
     renderProductos();
 	await cargarConfiguracion();
-	document.getElementById("config_pedido").textContent = configuracion.total_pedido || '';
-
     actualizarTotalUI();
 
     document.getElementById("loadingMsg").style.display = "none";
@@ -143,9 +140,10 @@ async function cargarConfiguracion() {
 // =====================================================
 function renderGrupos() {
 
-  const cont = document.getElementById("cardsGrupos");
+  const cmb = document.getElementById("cmbGrupo");
 
-  cont.innerHTML = "";
+  cmb.innerHTML =
+    `<option value="">-- Seleccione un grupo --</option>`;
 
   grupos
     .filter(g =>
@@ -153,30 +151,10 @@ function renderGrupos() {
       Number(g.publica || 0) === 1
     )
     .forEach(g => {
-
-      const card = document.createElement("div");
-
-      card.className = "card-grupo";
-
-      card.innerHTML = `
-        🔸<br>
-        ${g.descripcion}
-      `;
-
-      card.onclick = () => {
-
-        grupoSeleccionado = Number(g.id_grupo);
-
-        document
-          .querySelectorAll(".card-grupo")
-          .forEach(c => c.classList.remove("activo"));
-
-        card.classList.add("activo");
-
-        renderProductos();
-      };
-
-      cont.appendChild(card);
+      const opt = document.createElement("option");
+      opt.value = g.id_grupo;
+      opt.textContent = `${g.descripcion}`;
+      cmb.appendChild(opt);
     });
 }
 
@@ -184,7 +162,10 @@ function renderGrupos() {
 // OBTENER FILTROS
 // =====================================================
 function getGrupoSeleccionado() {
-    return grupoSeleccionado;
+  const val = document.getElementById("cmbGrupo").value;
+  return val === ""
+    ? null
+    : Number(val);
 }
 
 function getTextoBusqueda() {
@@ -411,11 +392,14 @@ function agregarUnidad(id_producto){
 
   renderUnidades(id_producto);
 
-  const el = document.getElementById("count_" + id_producto);
+  const el =
+    document.getElementById("count_" + id_producto);
 
   if (el) {
+
     el.innerText =
       carrito[id_producto].length + " unidad/es";
+
   }
 
   actualizarTotalUI();
@@ -433,10 +417,14 @@ function quitarUnidad(id_producto,index){
 
   renderUnidades(id_producto);
 
-  const el = document.getElementById("count_" + id_producto);
+  const el =
+    document.getElementById("count_" + id_producto);
 
   if (el) {
-    el.innerText = carrito[id_producto].length + " unidad/es";
+
+    el.innerText =
+      carrito[id_producto].length + " unidad/es";
+
   }
 
   actualizarTotalUI();
@@ -450,7 +438,8 @@ function quitarUnidad(id_producto,index){
 
 function descSabor(id){
 
-  const s = sabores.find(x => x.id_sabor == id);
+  const s =
+    sabores.find(x => x.id_sabor == id);
 
   return s
     ? s.descripcion
@@ -464,17 +453,13 @@ function descSabor(id){
 
 function renderUnidades(id_producto){
 
-  const cont = document.getElementById("unidades_" + id_producto);
+  const cont =
+    document.getElementById("unidades_" + id_producto);
 
-  // Si el producto no está visible en pantalla,
-  // no intentamos redibujarlo
-  if (!cont) {
-    return;
-  }
-  
   cont.innerHTML = "";
 
-  const prod = productos.find(x => x.id_producto === id_producto);
+  const prod =
+    productos.find(x => x.id_producto === id_producto);
 
   if (Number(prod.sabores) !== 1) {
     return;
@@ -486,34 +471,51 @@ function renderUnidades(id_producto){
 
     div.className = "unidad";
 
-    let html = `<div class="titulo">Unidad #${idx+1}</div>`;
+    let html =
+      `<div class="titulo">Unidad #${idx+1}</div>`;
 
     for (let s=1; s<=prod.max_sabores; s++){
 
-      const sid = unidad.sabores[s-1] ?? "";
+      const sid =
+        unidad.sabores[s-1] ?? "";
 
       html += `
+
         <div>
+
           <label>Sabor ${s}:</label>
+
           <select
             id="sel_${id_producto}_${idx}_${s-1}"
             onchange="onChangeSabor(${id_producto},${idx},${s-1})">
+
             <option value="">
               -- elegir --
             </option>
+
             ${sabores.map(sb => `
-              <option value="${sb.id_sabor}"
+
+              <option
+                value="${sb.id_sabor}"
+
                 ${
                   String(sb.id_sabor) === String(sid)
                     ? 'selected'
                     : ''
                 }>
+
                 ${sb.descripcion}
+
               </option>
+
             `).join("")}
+
           </select>
+
         </div>
+
       `;
+
     }
 
     const elegidos =
@@ -533,12 +535,16 @@ function renderUnidades(id_producto){
     }
 
     html += `
+
       <button
         class="quitar"
         type="button"
         onclick="quitarUnidad(${id_producto},${idx})">
+
         Quitar unidad
+
       </button>
+
     `;
 
     div.innerHTML = html;
@@ -555,7 +561,8 @@ function renderUnidades(id_producto){
 
 function onChangeSabor(id_producto,uIndex,sIndex){
 
-  const el = document.getElementById(
+  const el =
+    document.getElementById(
       `sel_${id_producto}_${uIndex}_${sIndex}`
     );
 
@@ -563,17 +570,23 @@ function onChangeSabor(id_producto,uIndex,sIndex){
 
   const val = el.value;
 
-  const unidad = (carrito[id_producto] || [])[uIndex];
+  const unidad =
+    (carrito[id_producto] || [])[uIndex];
 
   if (!unidad) return;
 
   if (val === "") {
+
     unidad.sabores[sIndex] = undefined;
+
   } else {
+
     unidad.sabores[sIndex] = Number(val);
+
   }
 
   renderUnidades(id_producto);
+
 }
 
 // =====================================================

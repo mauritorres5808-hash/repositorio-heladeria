@@ -92,28 +92,32 @@ button:hover{
     <h2>⚙️ Configuración Empresa</h2>
 
     <div class="form-group">
-        <label>Nombre</label>
-        <input type="text" id="nombre" onkeydown="if(event.key==='Enter')domicilio.focus()">
+        <span <label><b>Nombre</b></label>
+        <input type="text" id="nombre" onkeydown="if(event.key==='Enter')domicilio.focus()"></span>
     </div>
 
     <div class="form-group">
-        <label>Domicilio</label>
-        <input type="text" id="domicilio" onkeydown="if(event.key==='Enter')telefono.focus()">
+        <span <label><b>Domicilio</b></label>
+        <input type="text" id="domicilio" onkeydown="if(event.key==='Enter')telefono.focus()"></span>
     </div>
 
     <div class="form-group">
-        <label>Teléfono</label>
-        <input type="text" id="telefono" onkeydown="if(event.key==='Enter')alias.focus()">
+        <span <label><b>Teléfono</b></label>
+        <input type="text" id="telefono" onkeydown="if(event.key==='Enter')alias.focus()"></span>
     </div>
 
     <div class="form-group">
-        <label>Alias para pagos</label>
-        <input type="text" id="alias" onkeydown="if(event.key==='Enter')fecha_vigencia.focus()">
+        <span <label><b>Alias para pagos</b></label>
+        <input type="text" id="alias" onkeydown="if(event.key==='Enter')alias_nombre.focus()"></span>
+    </div>
+    <div class="form-group">
+        <span <label><b>Alias a nombre de </b></label>
+        <input type="text" id="alias_nombre" onkeydown="if(event.key==='Enter')fecha_vigencia.focus()"></span>
     </div>
 
     <div class="form-group">
-        <label>Fecha Vigencia</label>
-        <input type="date" id="fecha_vigencia">
+        <span <label><b>Fecha Vigencia</b></label>
+        <input type="date" id="fecha_vigencia"></span>
     </div>
 
     <div class="form-group">
@@ -161,6 +165,7 @@ async function cargarEmpresa(){
         document.getElementById("domicilio").value = emp.domicilio || '';
         document.getElementById("telefono").value = emp.telefono || '';
         document.getElementById("alias").value = emp.alias || '';
+        document.getElementById("alias_nombre").value = emp.alias_nombre || '';
         document.getElementById("fecha_vigencia").value =
             emp.fecha_vigencia
                 ? emp.fecha_vigencia.split('T')[0]
@@ -187,6 +192,7 @@ async function guardar(){
             domicilio: document.getElementById("domicilio").value,
             telefono: document.getElementById("telefono").value,
             alias: document.getElementById("alias").value,
+            alias_nombre: document.getElementById("alias_nombre").value,
             fecha_vigencia: document.getElementById("fecha_vigencia").value,
             deshabilitada:
                 document.getElementById("deshabilitada").checked

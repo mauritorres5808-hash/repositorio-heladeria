@@ -60,9 +60,19 @@ router.get('/detalle/:id', async (req, res) => {
             ORDER BY vd.id_producto
         `, [idVenta]);
 
+        const [promociones] = await db.query(`
+            SELECT
+                id_promocion,
+                descripcion,
+                descuento
+            FROM ventas_promociones
+            WHERE id_venta = ?
+        `, [idVenta]);
+		
         res.json({
             ok: true,
-            detalle
+            detalle,
+			promociones
         });
 
     } catch (err) {

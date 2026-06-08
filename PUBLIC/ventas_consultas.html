@@ -762,6 +762,41 @@ async function verDetalle(idVenta) {
         });
 
         html += "</table>";
+
+//promociones Aplicadas
+if (data.promociones && data.promociones.length > 0) {
+
+    html += `
+        <br>
+        <div class="alert-modern">
+            <b>🎁 Promociones Aplicadas</b><br><br>
+    `;
+
+    let totalDescuento = 0;
+
+    data.promociones.forEach(p => {
+
+        totalDescuento += Number(p.descuento || 0);
+
+        html += `
+            (id ${p.id_promocion}) •  ${p.descripcion}
+            &nbsp;&nbsp;
+            (-${formateadorMoneda.format(p.descuento || 0)})
+            <br>
+        `;
+
+    });
+
+    html += `
+        <br>
+        <b>Total promociones:</b>
+        ${formateadorMoneda.format(totalDescuento || 0)}
+        </div>
+    `;
+
+}
+
+		
         cont.innerHTML = html;
         document.getElementById("detalleModal").style.display = "flex";
 

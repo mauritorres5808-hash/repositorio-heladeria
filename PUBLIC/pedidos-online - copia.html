@@ -504,22 +504,16 @@
 
     </div>
 
-    <label class="lbl">
+    <label for="paga_con" class="lbl">
       ¿Cómo pensás pagar?
     </label>
 
     <br>
 
-<select
-    id="paga_con"
-    name="paga_con"
-    style="width:50%;">
-    <option value="">
-        -- Seleccione forma de pago --
-    </option>
-</select>
-
-    <input id="cuanto" style="width:15%;" placeholder="Ej: $20000" />
+    <input id="paga_con"
+           name="paga_con"
+           style="width:50%;"
+           placeholder="Ej: Efectivo $5000" />
 
     <div class="meta">
       Si es en efectivo indicar con cuánto pagarás
@@ -651,7 +645,6 @@ const API_BASE =
 document.getElementById('btnVerPromos').addEventListener('click',abrirModalPromos);
 
 cargarEmpresa();
-cargarFormasPago();
 
 // ======================================
 // CARGAR EMPRESA
@@ -671,38 +664,6 @@ async function cargarEmpresa(){
     }catch(err){
         console.error(err);
         alert("Error cargando empresa");
-    }
-}
-
-async function cargarFormasPago() {
-
-    try {
-        const resp = await fetch('/api/fpago_public/publicadas');
-        const data = await resp.json();
-
-        if (!data.ok) {
-            console.error('Error obteniendo formas de pago');
-            return;
-        }
-
-        const cmb = document.getElementById('paga_con');
-
-        cmb.innerHTML = `
-            <option value="">
-                -- Seleccione forma de pago --
-            </option>
-        `;
-
-        data.formasPago.forEach(fp => {
-            cmb.innerHTML += `
-                <option value="${fp.id_fpago}">
-                    ${fp.descripcion}
-                </option>
-            `;
-        });
-
-    } catch (err) {
-        console.error(err);
     }
 }
 

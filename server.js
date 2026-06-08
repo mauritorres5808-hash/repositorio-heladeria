@@ -51,6 +51,8 @@ const ventasPromocionesRoutes = require('./routes/ventas_promociones');
 const promocionesABMRouter = require('./routes/promociones-abm');
 const configuracionesRouter = require('./routes/configuraciones');
 
+const fpagoPublicRoutes = require('./routes/fpago_public');
+
 
 
 // ==========================================
@@ -115,6 +117,7 @@ app.use('/api/ventas_promociones',ventasPromocionesRoutes);
 app.use('/api/promociones-abm',promocionesABMRouter);
 app.use('/api/configuraciones',configuracionesRouter);
 
+app.use('/api/fpago_public', fpagoPublicRoutes);
 
 
 app.get('/api/session', (req, res) => {

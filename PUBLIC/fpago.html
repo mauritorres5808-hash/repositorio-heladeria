@@ -138,6 +138,10 @@
 		<label for="deshabili">Deshabilitado?</label>
 		<input class="input-pequeno" type="checkbox" id="deshabili">
 	  </div>
+	  <div>
+		<label for="deshabili">Publica?</label>
+		<input class="input-pequeno" type="checkbox" id="publica">
+	  </div>
     </div>
 
     <br>
@@ -249,10 +253,9 @@ document.getElementById("btnVerificar").onclick = async () => {
         }
 
         const data = await resp.json();
-
         descripcion.value = data.descripcion;
-
         document.getElementById("deshabili").checked = (data.deshabilitado === 1);
+        document.getElementById("publica").checked = (data.publica === 1);
 
     } catch (error) {
         console.error(error);
@@ -331,7 +334,8 @@ document.getElementById("btnAlta").onclick = async () => {
             body: JSON.stringify({
 
                 descripcion: descripcion.value.trim(),
-                deshabilitado: document.getElementById("deshabili").checked ? 1 : 0
+                deshabilitado: document.getElementById("deshabili").checked ? 1 : 0,
+                publica: document.getElementById("publica").checked ? 1 : 0
             })
         });
 
@@ -377,11 +381,10 @@ document.getElementById("btnModificar").onclick = async () => {
             headers: {
                 'Content-Type': 'application/json'
             },
-
             body: JSON.stringify({
-
                 descripcion: descripcion.value.trim(),
-                deshabilitado: document.getElementById("deshabili").checked ? 1 : 0
+                deshabilitado: document.getElementById("deshabili").checked ? 1 : 0,
+                publica: document.getElementById("publica").checked ? 1 : 0
             })
         });
 
@@ -424,6 +427,7 @@ function limpiarCampos() {
     idFpago.value = "";
     descripcion.value = "";
     document.getElementById("deshabili").checked = false;
+    document.getElementById("publica").checked = false;
 }
 
 // ============================================
@@ -459,18 +463,12 @@ document.getElementById("btnBuscarFPago").onclick = async () => {
     try {
 
         const resp = await fetch(`/api/fpago/buscar/${texto}`);
-
         const data = await resp.json();
-
-        const tablaBody =
-            document.querySelector("#tablaResultados tbody");
-
+        const tablaBody = document.querySelector("#tablaResultados tbody");
         tablaBody.innerHTML = "";
 
         data.forEach(fp => {
-
             const fila = document.createElement("tr");
-
             fila.innerHTML = `
                 <td>${fp.id_fpago}</td>
                 <td>${fp.descripcion}</td>
@@ -481,6 +479,7 @@ document.getElementById("btnBuscarFPago").onclick = async () => {
                 idFpago.value = fp.id_fpago;
                 descripcion.value = fp.descripcion;
                 document.getElementById("deshabili").checked = (fp.deshabilitado === 1);
+                document.getElementById("publica").checked = (fp.publica === 1);
 
                 modal.style.display = "none";
             };
@@ -506,7 +505,6 @@ async function ArmarTabla() {
 		const data = await resp.json();
 		const formasPago = {};
 
-
         let html = "";
 
         if (data.length === 0) {
@@ -521,6 +519,7 @@ async function ArmarTabla() {
                         <th>Codigo</th>
                         <th>Descripcion</th>
                         <th>Deshabilitado</th>
+                        <th>Publica</th>
                     </tr>
             `;
 
@@ -535,6 +534,9 @@ async function ArmarTabla() {
 						<td style="${fp.deshabilitado == 1 ? 'background-color:#FF6467;color:white;' : ''}">
 							${fp.deshabilitado == 1 ? 'S' : 'N'}
 						</td>
+						<td>
+							${fp.publica == 1 ? 'S' : 'N'}
+						</td>
                     </tr>
                 `;
 
@@ -544,14 +546,11 @@ async function ArmarTabla() {
             html += `
                 <tr class="total-row"
                     style="font-weight:bold;background:#f2f2f2">
-
                     <td colspan="1">CANTIDAD</td>
                     <td>${cant}</td>
                     <td></td>
-
                 </tr>
             `;
-
             html += "</table>";
         }
 

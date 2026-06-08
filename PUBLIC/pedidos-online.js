@@ -81,7 +81,6 @@ sabores = Array.isArray(sData)
 	if (!Array.isArray(productos)) productos = [];
 	if (!Array.isArray(sabores)) sabores = [];
 
-
     carrito = {};
 
     productos.forEach(p => {
@@ -904,13 +903,8 @@ function validarSabores(){
           .filter(x => x !== undefined && x !== "");
 
       if (elegidos.length === 0){
-
-        alert(
-          `⚠ El producto "${p.descripcion}" requiere al menos 1 sabor por unidad.`
-        );
-
+        alert(`⚠ El producto "${p.descripcion}" requiere al menos 1 sabor por unidad.`);
         return false;
-
       }
 
     }
@@ -967,7 +961,17 @@ async function enviarPedido(){
   const nombre = document.getElementById("nombre").value.trim();
   const domicilio = document.getElementById("domicilio").value.trim();
   const nota = document.getElementById("nota").value.trim();
-  const pagaCon = document.getElementById("paga_con").value.trim();
+  
+const fpago = document.getElementById("paga_con").value;
+if (!fpago) {
+    alert("Debe seleccionar una forma de pago");
+    document.getElementById("paga_con").focus();
+    return;
+}
+
+  //const pagaCon = document.getElementById("paga_con").value.trim();
+let pagaCon = document.getElementById("paga_con").options[document.getElementById("paga_con").selectedIndex].text;
+pagaCon += ' ' + document.getElementById("cuanto").value;
   const tel = normalizarTelefono(document.getElementById("telefono").value);
   const domLower = domicilio.toLowerCase();
 

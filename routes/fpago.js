@@ -54,6 +54,7 @@ router.get('/habilitadas', async (req, res) => {
     }
 });
 
+
 // ============================================
 // BUSCAR POR ID
 // ============================================
@@ -116,7 +117,8 @@ router.post('/', async (req, res) => {
     try {
         const {
             descripcion,
-            deshabilitado
+            deshabilitado,
+            publica
         } = req.body;
 
         const [maximo] = await db.query(`
@@ -131,13 +133,15 @@ router.post('/', async (req, res) => {
             (
                 id_fpago,
                 descripcion,
-                deshabilitado
+                deshabilitado,
+                publica
             )
-            VALUES (?, ?, ?)
+            VALUES (?, ?, ?, ?)
         `, [
             nuevoId,
             descripcion,
-            deshabilitado
+            deshabilitado,
+            publica
         ]);
 
         res.json({
@@ -161,18 +165,21 @@ router.put('/:id', async (req, res) => {
         const { id } = req.params;
         const {
             descripcion,
-            deshabilitado
+            deshabilitado,
+            publica
         } = req.body;
 
         await db.query(`
             UPDATE f_pago
             SET
                 descripcion = ?,
-                deshabilitado = ?
+                deshabilitado = ?,
+                publica = ?
             WHERE id_fpago = ?
         `, [
             descripcion,
             deshabilitado,
+            publica,
             id
         ]);
 

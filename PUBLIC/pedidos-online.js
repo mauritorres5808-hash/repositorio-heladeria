@@ -1176,7 +1176,10 @@ try {
 function mostrarMensajeFinal(idPedido){
   window.idPedidoActual = idPedido;
   window.nombreClienteActual = document.getElementById("nombre").value.trim();
-  window.pagaConActual = document.getElementById("paga_con").value.trim();
+  //window.pagaConActual = document.getElementById("paga_con").value.trim();
+  window.pagaConActual = document.getElementById("paga_con").options[document.getElementById("paga_con").selectedIndex].text
+  window.pagaConActual += ' ' + document.getElementById("cuanto").value;
+  
   document.getElementById("nroPedido").innerHTML = `N° de Pedido: ${idPedido}`;
   document.getElementById("mensajeFinal").style.display = "block";
 }

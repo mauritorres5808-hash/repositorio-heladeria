@@ -70,6 +70,7 @@ router.post('/delivery', async (req, res) => {
             subtotal,
             descuento,
             recargo,
+            usuario,
 			descuento_promociones,
             costo_envio,
             total,
@@ -93,7 +94,7 @@ router.post('/delivery', async (req, res) => {
 
 		const ahora = new Date();
 		// FECHA formato MySQL DATE
-		const fecha = ahora.toISOString().split('T')[0];
+		const fecha = FechaHoy_MySQL();
 		// HORA
 		//const hora = ahora.toLocaleTimeString('es-AR', {hour12: false});
 		const _hora = String(ahora.getHours()).padStart(2, '0');
@@ -112,6 +113,7 @@ router.post('/delivery', async (req, res) => {
                 subtotal,
                 descuento,
                 recargo,
+                id_usuario,
 				descuento_promociones,
                 f_pago1,
                 f_pago2,
@@ -124,7 +126,7 @@ router.post('/delivery', async (req, res) => {
                 costo_envio
             )
             VALUES
-            (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         `, [
             id_venta,
             fecha,
@@ -133,6 +135,7 @@ router.post('/delivery', async (req, res) => {
             subtotal,
             descuento,
             recargo,
+            usuario,
 			descuento_promociones || 0,
             f_pago1,
             f_pago2,
@@ -460,9 +463,7 @@ router.get('/consulta', async (req, res) => {
         // FILTRO POR NUMERO
         // =========================
         if (nro) {
-
             where.push('id_venta = ?');
-
             params.push(parseInt(nro));
         }
 
@@ -499,10 +500,13 @@ router.get('/consulta', async (req, res) => {
         // VENTAS
         // =========================
         const [ventas] = await db.query(`
-            SELECT *
-            FROM ventas_cab
+            SELECT v.*,
+			u.nombre as usu_nombre
+            FROM ventas_cab v
+            LEFT JOIN usuarios u
+                ON v.id_usuario = u.id_usuario
             ${sqlWhere}
-            ORDER BY id_venta DESC
+            ORDER BY v.id_venta DESC
         `, params);
 
         // =========================
@@ -873,5 +877,13 @@ router.get('/:id', async (req, res) => {
         });
     }
 });
+
+function FechaHoy_MySQL() {
+    const hoy = new Date();
+    const yyyy = hoy.getFullYear();
+    const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+    const dd = String(hoy.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+}
 
 module.exports = router;

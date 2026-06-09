@@ -1,8 +1,10 @@
-	function FechaHoy_MySQL(){
-		// FECHA formato MySQL DATE - yyyy/mm/dd
-		const ahora = new Date();
-		return fecha = ahora.toISOString().split('T')[0];
-	}
+function FechaHoy_MySQL() {
+    const hoy = new Date();
+    const yyyy = hoy.getFullYear();
+    const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+    const dd = String(hoy.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+}
 
 	function HoraHoy(){
 	  const ahora = new Date();

@@ -70,9 +70,7 @@ router.get('/anuladas', async (req, res) => {
         });
 
     } catch (error) {
-
         console.error(error);
-
         res.status(500).json({
             ok: false,
             mensaje: "Error obteniendo compras anuladas"
@@ -138,9 +136,7 @@ router.get('/auditoria', async (req, res) => {
         });
 
     } catch (error) {
-
         console.error(error);
-
         res.status(500).json({
             ok: false
         });
@@ -165,6 +161,7 @@ router.post('/', async (req, res) => {
     const {
       fecha,
       hora,
+      usuario,
       total,
       f_pago1,
       productos
@@ -194,17 +191,19 @@ router.post('/', async (req, res) => {
         id_compra,
         fecha,
         hora,
+        id_usuario,
         total,
         f_pago1,
         id_cierre,
         anulada
 
-      ) VALUES (?, ?, ?, ?, ?, 0, 0)
+      ) VALUES (?, ?, ?, ?, ?, ?, 0, 0)
     `, [
 
       id_compra,
       fecha,
       hora,
+      usuario,
       total,
       f_pago1
     ]);
@@ -289,18 +288,14 @@ router.post('/', async (req, res) => {
     });
 
   } catch (error) {
-
     await conn.rollback();
-
     console.error(error);
-
     res.status(500).json({
       ok: false,
       mensaje: 'Error grabando compra'
     });
 
   } finally {
-
     conn.release();
   }
 });
@@ -323,10 +318,13 @@ router.get('/consultas', async (req, res) => {
         let sql = `
             SELECT
                 c.*,
-                f.descripcion AS desc_fpago
+                f.descripcion AS desc_fpago,
+                u.nombre as usu_nombre
             FROM compras_cab c
             LEFT JOIN f_pago f
                 ON c.f_pago1 = f.id_fpago
+            LEFT JOIN usuarios u
+                ON c.id_usuario = u.id_usuario
             WHERE 1 = 1
         `;
 
@@ -383,9 +381,7 @@ router.get('/consultas', async (req, res) => {
         });
 
     } catch (error) {
-
         console.error(error);
-
         res.status(500).json({
             ok: false,
             mensaje: 'Error obteniendo compras'
@@ -423,9 +419,7 @@ router.get('/detalle/:id_compra', async (req, res) => {
         });
 
     } catch (error) {
-
         console.error(error);
-
         res.status(500).json({
             ok: false,
             mensaje: 'Error obteniendo detalle'
@@ -501,9 +495,7 @@ router.get('/totales-grupo', async (req, res) => {
         res.json(rows);
 
     } catch (error) {
-
         console.error(error);
-
         res.status(500).json({
             ok: false,
             mensaje:
@@ -543,9 +535,7 @@ router.get('/por-fecha/:fecha', async (req, res) => {
         });
 
     } catch (error) {
-
         console.error(error);
-
         res.status(500).json({
             ok: false,
             mensaje: 'Error obteniendo compras'
@@ -718,9 +708,7 @@ router.get('/:id/detalle', async (req, res) => {
         });
 
     } catch (error) {
-
         console.error(error);
-
         res.status(500).json({
             ok: false,
             mensaje: 'Error obteniendo detalle'
@@ -811,11 +799,8 @@ router.put('/:id_compra/anular', async (req, res) => {
 		});
 
 	} catch (error) {
-
 		await conn.rollback();
-
 		console.error(error);
-
 		res.status(500).json({
 			ok: false
 		});
@@ -826,7 +811,5 @@ router.put('/:id_compra/anular', async (req, res) => {
 
 	}
 });
-
-
 
 module.exports = router;

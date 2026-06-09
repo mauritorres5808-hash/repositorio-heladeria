@@ -90,7 +90,7 @@ sabores = Array.isArray(sData)
     renderGrupos();
     renderProductos();
 	await cargarConfiguracion();
-	document.getElementById("config_pedido").textContent = configuracion.total_pedido || '';
+	document.getElementById("config_pedido").textContent = formateadorMoneda.format(configuracion.total_pedido || '');
 
     actualizarTotalUI();
 
@@ -287,12 +287,7 @@ const lista = productos.filter(p => {
   if (Number(p.publica || 0) === 0) return false;
 
   if (q) {
-
-    const text =
-      (p.descripcion || "")
-      .toString()
-      .toLowerCase();
-
+    const text = (p.descripcion || "").toString().toLowerCase();
     return text.includes(q);
   }
 
@@ -305,7 +300,6 @@ const lista = productos.filter(p => {
 
 
   if (lista.length === 0) {
-
     cont.innerHTML = `
       <div class="meta">
         No hay productos para mostrar.
@@ -332,13 +326,16 @@ const lista = productos.filter(p => {
 
           <div>
             <b>
-              ${p.descripcion}
+             &#9642; ${p.descripcion}
             </b>
           </div>
 
           <div class="meta">
 
             ${formateadorMoneda.format(Number(p.precio || 0))}
+            <br>${Number(p.publica_s) === 1
+                ? ` (Stock: ${p.stock})`
+                : ""}
 
             ${
               Number(p.sabores) === 1

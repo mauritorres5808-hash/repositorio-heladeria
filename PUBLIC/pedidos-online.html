@@ -117,6 +117,11 @@
     font-size:13px;
     color:#666;
   }
+  .lbl{
+    font-size:15px;
+    color:#0E0C0B;
+	font-weight:bold;
+  }
 
   #totalBox{
     margin-top:12px;
@@ -382,11 +387,12 @@
 <div class="promo-cupon">
     🚚 ENVÍO GRATIS
     <span>
-        comprando más de $
+        comprando más de
         <span id="config_pedido" style="font-weight:bold"></span>
     </span>
 </div>
 
+	<div style="display:flex; justify-content:center;">
 	  <button
 		type="button"
 		id="btnVerPromos"
@@ -400,10 +406,18 @@
 		">
 		&#x2764;&#xFE0F; Ver promos vigentes
 	  </button>
+    </div>
 
-    <h1>
-      Hacé tu pedido
-    </h1>
+	<div style="display:flex; justify-content:center;">
+		<h1>
+		  Hacé tu pedido
+		</h1>
+    </div>
+
+    &#x1F50D;<input id="txtBuscar"
+           placeholder="Buscar producto ..."
+           oninput="renderProductos()"
+           style="flex:1;width:30%;" />
 
 	<div
 	  class="topBar"
@@ -422,17 +436,13 @@
 		  align-items:center;
 		  gap:10px;
 		">
-		<label style="font-weight:bold;">Productos:</label>
+		<label style="font-weight:bold;">Productos</label>
 		<div id="cardsGrupos" class="cards-grupos"></div>
 	  </div>
 
 
 	</div>
 
-    &#x1F50D;<input id="txtBuscar"
-           placeholder="Buscar producto ..."
-           oninput="renderProductos()"
-           style="flex:1;width:30%;" />
 
     <div id="listaProductos"></div>
 
@@ -446,8 +456,7 @@
     <br><br>
 
     <label for="domicilio" class="lbl">
-      Domicilio (SOLO calle+nro+"Bs As" o "CABA")
-      --> Ejm: Junin 523 Bs As
+      Domicilio (calle+nro+"Bs As" o "CABA") -- Ejm: Junin 523 Bs As
     </label>
 
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
@@ -479,7 +488,7 @@
 
       <br>
 
-      <label>Teléfono (WhatsApp)</label><br>
+      <label class="lbl">Teléfono (WhatsApp)</label><br>
 
       <input id="telefono"
              name="telefono"
@@ -519,10 +528,13 @@
     </option>
 </select>
 
+    <label class="lbl">
+      ¿Con cuanto efectivo pagás?
+    </label>
     <input id="cuanto" style="width:15%;" placeholder="Ej: $20000" />
 
     <div class="meta">
-      Si es con efectivo indicar con cuánto pagarás para calcular tu vuelto.
+      Si es con efectivo indicar con cuánto pagás para calcular tu vuelto.
     </div>
     <div class="meta">
       Si es con mercado pago, arriba tienes nuestro alias. Recuerda enviar el comprobante de pago a nuestro telefono.

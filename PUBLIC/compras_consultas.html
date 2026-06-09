@@ -231,23 +231,15 @@ verificarSesion();
 	// consultar Compra
 	async function consultarCompras() {
 
-	  const tipoConsulta =
-		document.querySelector('input[name="tipoConsulta"]:checked').value;
-
-	  const resultado =
-		document.getElementById("resultado");
-
-	  const graficoContainer =
-		document.getElementById("graficoContainer");
-
-	  const selectorGrafico =
-		document.getElementById("selectorGrafico");
+	  const tipoConsulta = document.querySelector('input[name="tipoConsulta"]:checked').value;
+	  const resultado = document.getElementById("resultado");
+	  const graficoContainer = document.getElementById("graficoContainer");
+	  const selectorGrafico = document.getElementById("selectorGrafico");
 
 	  graficoContainer.style.display = "none";
 	  selectorGrafico.style.display = "none";
 
-	  resultado.innerHTML =
-		"<p><b>Procesando, por favor espere...</b></p>";
+	  resultado.innerHTML = "<p><b>Procesando, por favor espere...</b></p>";
 
 	  try {
 
@@ -345,6 +337,7 @@ verificarSesion();
 			  <table border='1'>
 				<tr>
 				  <th>Hora</th>
+				  <th>Usuario</th>
 				  <th>N° Compra</th>
 				  <th>TOTAL</th>
 				  <th>Forma Pago</th>
@@ -360,6 +353,7 @@ verificarSesion();
 				  ${v.anulada == 1 ? `class="tachado"` : ""}
 				>
 				  <td>${v.hora}</td>
+				  <td>${v.usu_nombre}</td>
 				  <td
 					${v.anulada == 1
 					  ? `style="background-color:#FF6467;color:white;"`

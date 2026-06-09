@@ -229,7 +229,7 @@ filter: brightness(1.08);
 <script>
 
 verificarSesion(); 
-document.getElementById("userLabel").textContent = localStorage.getItem("usuarioEmail");
+document.getElementById("userLabel").textContent = localStorage.getItem("usuarioNombre");
 
 // BLOQUEA TODOS LOS BOTONES AL CARGAR LA PÁGINA (menos boton Volver)
 document.addEventListener("DOMContentLoaded", async () => {
@@ -257,7 +257,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 window.aplicarPermisos = function() {
 
 	// Obtener usuario actual
-	const NomUsuarioActual = document.getElementById("userLabel").textContent = localStorage.getItem("usuarioEmail");
+	const NomUsuarioActual = document.getElementById("userLabel").textContent = localStorage.getItem("usuarioNombre");
 	const idUsuarioActual = localStorage.getItem("usuarioId");
 	//alert(idUsuarioActual);
 

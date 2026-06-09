@@ -38,7 +38,7 @@
     <h2>Cierre de Caja</h2>
 
   <div style="text-align:center; font-size:18px;">
-    Usuario conectado: <b><span id="userLabel"></span></b>
+    👤 Usuario: <b><span id="userLabel"></span></b>
   </div>
 
 	<br>
@@ -57,7 +57,7 @@
   <script>
 
 verificarSesion();
-document.getElementById("userLabel").textContent = localStorage.getItem("usuarioEmail");
+document.getElementById("userLabel").textContent = localStorage.getItem("usuarioNombre");
 
     const formateadorMoneda = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
     let datosCierre = null;

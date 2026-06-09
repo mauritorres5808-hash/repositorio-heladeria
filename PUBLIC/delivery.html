@@ -250,11 +250,11 @@
 		</div>
 
 		<label>Descuento: </label>
-		<input class="input-pequeno2" type="number" id="descuento" value="0" step="0.10" onchange="aplicarDescuentoRecargo()">
+		<input class="input-pequeno2" type="number" id="descuento" value="0"  onchange="aplicarDescuentoRecargo()">
 		<label>Recargo: </label>
-		<input class="input-pequeno2" type="number" id="recargo" value="0" step="0.10" onchange="aplicarDescuentoRecargo()">
+		<input class="input-pequeno2" type="number" id="recargo" value="0"  onchange="aplicarDescuentoRecargo()">
 		<label>Costo de Envio: </label>
-		<input class="input-pequeno" type="number" id="cenvio" value="0" step="0.10" onchange="aplicarDescuentoRecargo()">
+		<input class="input-pequeno" type="number" id="cenvio" value="0"  onchange="aplicarDescuentoRecargo()">
 		<span style="margin-left:10px;" class="total"  id="totalGeneral">TOTAL GENERAL: $ 0.00</span>
     </div>
 
@@ -267,7 +267,7 @@
       </div>
       <div>
         <label>Importe 1</label><br>
-        <input class="input-pequeno" type="number" id="importe1" min="0" value="0" step="0.01" onchange="recalcularImportes(1)">
+        <input class="input-pequeno" type="number" id="importe1" min="0" value="0"  onchange="recalcularImportes(1)">
       </div>
       <div>
         <label>Forma de pago 2</label><br>
@@ -275,7 +275,7 @@
       </div>
       <div>
         <label>Importe 2</label><br>
-        <input class="input-pequeno" type="number" id="importe2" min="0" value="0" step="0.01" onchange="recalcularImportes(2)">
+        <input class="input-pequeno" type="number" id="importe2" min="0" value="0"  onchange="recalcularImportes(2)">
       </div>
     </div>
 
@@ -300,6 +300,14 @@ let configuracion = {
   total_pedido: 0,
   distancia_maxima: 0
 };
+
+const formateadorMoneda = new Intl.NumberFormat('es-AR', {
+  style: 'currency',
+  currency: 'ARS',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2
+});
+
 
 async function NuevoCliente() {
 localStorage.setItem("paginaAnterior", window.location.href);
@@ -706,9 +714,9 @@ async function aplicarDescuentoRecargo() {
     const descuentoPromo = promoData.descuentoPromos || 0;
 	
 	const subtotalNeto = subtotal - descuentoPromo;
-	document.getElementById('subtotal').textContent = 'Subtotal productos: $ ' + subtotal.toFixed(2);
-	document.getElementById('totalPromos').textContent = 'Descuento promociones: -$ ' + descuentoPromo.toFixed(2);
-	document.getElementById('subtotalNeto').textContent = 'Subtotal neto: $ ' + subtotalNeto.toFixed(2);
+	document.getElementById('subtotal').textContent = 'Subtotal productos: ' + formateadorMoneda.format(subtotal.toFixed(2));
+	document.getElementById('totalPromos').textContent = 'Descuento promociones: -' + formateadorMoneda.format(descuentoPromo.toFixed(2));
+	document.getElementById('subtotalNeto').textContent = 'Subtotal neto: ' + formateadorMoneda.format(subtotalNeto.toFixed(2));
 	const envioCalculado = calcularCostoEnvio(subtotal);
 	if (!document.getElementById('cenvio').dataset.manual) {
 		document.getElementById('cenvio').value = envioCalculado.toFixed(2);
@@ -729,8 +737,8 @@ async function aplicarDescuentoRecargo() {
         total = 0;
     }
 
-    document.getElementById('subtotal').textContent = 'Subtotal: $ ' + subtotal.toFixed(2);
-    document.getElementById('totalGeneral').textContent = 'TOTAL GENERAL: $ ' + total.toFixed(2);
+    document.getElementById('subtotal').textContent = 'Subtotal: ' + formateadorMoneda.format(subtotal.toFixed(2));
+    document.getElementById('totalGeneral').textContent = 'TOTAL GENERAL: ' + formateadorMoneda.format(total.toFixed(2));
 
     recalcularImportes();
 }
@@ -775,10 +783,10 @@ async function aplicarDescuentoRecargo() {
 		}
 	  
       window.productosVenta.forEach((p,i) => {
-        const subtotal = (Number(p.precio)||0) * (Number(p.cantidad)||0);
+        const subtotal = formateadorMoneda.format((Number(p.precio)||0) * (Number(p.cantidad)||0));
 
         const precioHTML = p.modifica === 1
-          ? `<input type="number" value="${p.precio.toFixed(2)}" min="0" step="0.01" style="width:80px" onchange="cambiarPrecio(${i}, this.value)">`
+          ? `<input type="number" value="${p.precio.toFixed(2)}" min="0"  style="width:80px" onchange="cambiarPrecio(${i}, this.value)">`
           : `$ ${p.precio.toFixed(2)}`;
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -786,7 +794,7 @@ async function aplicarDescuentoRecargo() {
           <td style="text-align:left">${p.nombre}</td>
           <td>${precioHTML}</td>
           <td><input type="number" value="${p.cantidad}" min="1" style="width:70px" onchange="cambiarCantidad(${i}, this.value)"></td>
-          <td>$ ${subtotal.toFixed(2)}</td>
+          <td> ${subtotal}</td>
           <td class="tooltip-container"><button onclick="eliminarProducto(${i})">X</button><span class="tooltip-text">Eliminar</span></td>
         `;
         tbody.appendChild(tr);
@@ -885,6 +893,8 @@ async function aplicarDescuentoRecargo() {
 			return;
 		}
 
+			const usuario = localStorage.getItem("usuarioId");
+
 		const fp1 = document.getElementById('fpago1').value;
 		const fp2 = document.getElementById('fpago2').value;
 
@@ -934,6 +944,7 @@ async function aplicarDescuentoRecargo() {
 				subtotal,
 				descuento,
 				recargo,
+				usuario,
 				descuento_promociones: descuentoPromo || 0,
 				costo_envio: cenvio,
 				total: totalFinal,

@@ -454,6 +454,7 @@ async function consultarVentas() {
                 <table border='1'>
                 <tr>
                     <th>Hora</th>
+                    <th>Usuario</th>
                     <th>TipoVenta</th>
                     <th>N° Venta</th>
                     <th>Subtotal</th>
@@ -503,6 +504,7 @@ async function consultarVentas() {
                     html += `
                     <tr ${v.anulada ? 'class="tachado"' : ''}>
                         <td>${v.hora}</td>
+                        <td>${v.usu_nombre}</td>
                         <td>${TipoVenta}</td>
                         <td>${v.id_venta}</td>
                         <td>${formateadorMoneda.format(v.subtotal || 0)}</td>

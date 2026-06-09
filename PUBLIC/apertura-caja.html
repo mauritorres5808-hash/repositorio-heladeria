@@ -38,7 +38,7 @@
     <h2>Apertura de Caja</h2>
 
   <div style="text-align:center; font-size:18px;">
-    Usuario conectado: <b><span id="userLabel"></span></b>
+    👤 Usuario: <b><span id="userLabel"></span></b>
   </div>
   
     <label><b>Importe caja inicial:</b>
@@ -67,7 +67,7 @@ verificarSesion();
 
 const mensajeDiv = document.getElementById("mensaje");
 
-document.getElementById("userLabel").textContent = localStorage.getItem("usuarioEmail");
+document.getElementById("userLabel").textContent = localStorage.getItem("usuarioNombre");
 
 cargarAperturas();
 

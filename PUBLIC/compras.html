@@ -106,6 +106,14 @@ id_producto.focus();
 
     const fechaFormateada = FechaHoy();
 
+const formateadorMoneda = new Intl.NumberFormat('es-AR', {
+  style: 'currency',
+  currency: 'ARS',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2
+});
+
+
     document.addEventListener('DOMContentLoaded', () => {
       const h2 = document.querySelector('h2');
       h2.textContent = `COMPRAS - Ingreso de Mercaderia  _____________________ ${fechaFormateada}`;
@@ -339,6 +347,8 @@ document.addEventListener("keydown", function(e) {
       let totalGeneral = 0;
       window.productosCompra.forEach((p,i) => {
         const subtotal = (Number(p.precio)||0) * (Number(p.cantidad)||0);
+        const subtotal2 = formateadorMoneda.format((Number(p.precio)||0) * (Number(p.cantidad)||0));
+
         totalGeneral += subtotal;
         /* -------- siempre modifica !!
 		const precioHTML = p.modifica === 'S'
@@ -353,12 +363,12 @@ document.addEventListener("keydown", function(e) {
           <td style="text-align:left">${p.nombre}</td>
           <td>${precioHTML}</td>
           <td><input type="number" value="${p.cantidad}" min="1" style="width:70px" onchange="cambiarCantidad(${i}, this.value)"></td>
-          <td>$ ${subtotal.toFixed(2)}</td>
+          <td>${subtotal2}</td>
           <td class="tooltip-container"><button onclick="eliminarProducto(${i})">X</button><span class="tooltip-text">Eliminar</span></td>
         `;
         tbody.appendChild(tr);
       });
-      document.getElementById('totalGeneral').textContent = 'Total general: $ ' + totalGeneral.toFixed(2);
+      document.getElementById('totalGeneral').textContent = 'Total general: ' + formateadorMoneda.format(totalGeneral);
     };
 
     window.cambiarPrecio = function(index, nuevoPrecio){
@@ -422,10 +432,12 @@ document.addEventListener("keydown", function(e) {
 			const fecha = FechaHoy_MySQL();
 			//const hora = Obtener_Hora();
 			const hora = HoraHoy();
+			const usuario = localStorage.getItem("usuarioId");
 
 			const body = {
 			  fecha,
 			  hora,
+			  usuario,
 			  total: totalFinal,
 			  f_pago1: Number(fp1),
 			  productos

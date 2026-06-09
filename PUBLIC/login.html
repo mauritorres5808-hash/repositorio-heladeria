@@ -265,6 +265,7 @@ async function login() {
         // =====================================
         localStorage.setItem("usuarioData",JSON.stringify(data.usuario));
         localStorage.setItem("usuarioEmail",data.usuario.email);
+        localStorage.setItem("usuarioNombre",data.usuario.nombre);
         localStorage.setItem("usuarioId",data.usuario.id_usuario);
         localStorage.setItem("usuarioNivel",data.usuario.nivel);
 

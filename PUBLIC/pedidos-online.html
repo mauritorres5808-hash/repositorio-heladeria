@@ -397,14 +397,17 @@
 		type="button"
 		id="btnVerPromos"
 		style="
+    background:linear-gradient(90deg,#4F39F6,#F50A87);
 		  color:white;
+		  font-size:15px;
 		  font-weight:bold;
-		  padding:10px 18px;
+		  padding:10px 48px;
 		  border-radius:8px;
 		  border:none;
 		  cursor:pointer;
+		  max-width:500px;
 		">
-		&#x2764;&#xFE0F; Ver promos vigentes
+		&#x2764;&#xFE0F; Ver promos vigentes 🎁
 	  </button>
     </div>
 
@@ -516,32 +519,37 @@
     <label class="lbl">
       ¿Cómo pensás pagar?
     </label>
+    <div class="meta">
+      Si es con efectivo indicar con cuánto pagás para calcular tu vuelto.
+    <br>
+      Si es con mercado pago, arriba tenés nuestro alias. Recuerda enviar el comprobante de pago a nuestro telefono.
+    </div>
 
     <br>
 
-<select
-    id="paga_con"
-    name="paga_con"
-    style="width:60%;">
-    <option value="">
-        -- Seleccione forma de pago --
-    </option>
-</select>
+	<select
+		id="paga_con"
+		name="paga_con"
+		style="width:40%;">
+		<option value="">
+			-- Seleccione forma de pago --
+		</option>
+	</select>
 
+    <br>
     <br>
     <label style="width:40%;" class="lbl">
       ¿Con cuanto efectivo pagás?
     </label>
+    <br>
     <input id="cuanto" style="width:15%;" placeholder="Ej: $20000" />
 
-    <div class="meta">
-      Si es con efectivo indicar con cuánto pagás para calcular tu vuelto.
-    </div>
-    <div class="meta">
-      Si es con mercado pago, arriba tienes nuestro alias. Recuerda enviar el comprobante de pago a nuestro telefono.
-    </div>
+    <br>
+    <br>
 
-<button id="btnEnviar" type="button" onclick="enviarPedido()">Enviar Pedido</button>
+	<div style="display:flex; justify-content:center;">
+	<button id="btnEnviar" type="button" onclick="enviarPedido()">Enviar Pedido &#128640;</button>
+	</div>
 
   </form>
 
@@ -624,11 +632,14 @@
       ¡Pedido recibido! 🙌
     </h3>
     <p id="mensajeFinalTxt">
+      <br>
+      👍 Bien ! <b id="NombreCli"></b>
+      <br>
       Tu pedido fue recibido correctamente.
       <br>
       <b id="nroPedido"></b>
       <br>
-	  ✅ Para completar tu pedido permitenos ir a Whatsapp para enviar un mensaje y cualquier
+	  ✅ Para completar tu pedido permiteme ir a Whatsapp para enviar un mensaje y cualquier
 	  duda o aclaracion podrás hacerla por ahi mismo.
       <br>
       Luego de recibir el mensaje lo preparamos 🍦 y te contactamos 📞

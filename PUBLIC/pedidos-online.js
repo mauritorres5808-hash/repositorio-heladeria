@@ -955,17 +955,10 @@ async function validarDireccionBackend(direccion){
 // =====================================================
 async function enviarPedido(){
 
-  const nombre = document.getElementById("nombre").value.trim();
-  const domicilio = document.getElementById("domicilio").value.trim();
-  const nota = document.getElementById("nota").value.trim();
+	const nombre = document.getElementById("nombre").value.trim();
+	const domicilio = document.getElementById("domicilio").value.trim();
+	const nota = document.getElementById("nota").value.trim();
   
-const fpago = document.getElementById("paga_con").value;
-if (!fpago) {
-    alert("Debe seleccionar una forma de pago");
-    document.getElementById("paga_con").focus();
-    return;
-}
-
   //const pagaCon = document.getElementById("paga_con").value.trim();
 let pagaCon = document.getElementById("paga_con").options[document.getElementById("paga_con").selectedIndex].text;
 pagaCon += ' ' + document.getElementById("cuanto").value;
@@ -977,6 +970,13 @@ pagaCon += ' ' + document.getElementById("cuanto").value;
     alert("El domicilio debe terminar con Bs As o CABA");
     return;
   }
+
+	const fpago = document.getElementById("paga_con").value;
+	if (!fpago) {
+		alert("Debe seleccionar una forma de pago");
+		document.getElementById("paga_con").focus();
+		return;
+	}
 
   if ( !nombre || !domicilio || !tel || !pagaCon ){
     alert("Complete nombre, domicilio, teléfono y cómo piensa pagar.");
@@ -1180,6 +1180,7 @@ function mostrarMensajeFinal(idPedido){
   window.pagaConActual = document.getElementById("paga_con").options[document.getElementById("paga_con").selectedIndex].text
   window.pagaConActual += ' ' + document.getElementById("cuanto").value;
   
+  document.getElementById("NombreCli").innerHTML = window.nombreClienteActual;
   document.getElementById("nroPedido").innerHTML = `N° de Pedido: ${idPedido}`;
   document.getElementById("mensajeFinal").style.display = "block";
 }

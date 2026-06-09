@@ -832,5 +832,43 @@ router.delete('/:id', async (req, res) => {
     }
 });
 
+// ======================================
+// ACTUALIZAR DOMICILIO
+// ======================================
+router.put('/:id/domicilio', async (req, res) => {
+
+    try {
+        const idPedido = parseInt(req.params.id);
+        const {domicilio} = req.body;
+
+        const [result] = await db.query(`
+            UPDATE pedidos_cab
+               SET domicilio = ?
+             WHERE id_pedido = ?
+        `, [
+            domicilio,
+            idPedido
+        ]);
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({
+                ok: false,
+                mensaje: 'Pedido no encontrado'
+            });
+        }
+
+        res.json({
+            ok: true,
+            mensaje: 'Domicilio actualizado'
+        });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({
+            ok: false,
+            mensaje: 'Error actualizando domicilio'
+        });
+    }
+});
 
 module.exports = router;

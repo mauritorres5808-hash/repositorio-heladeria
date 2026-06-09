@@ -17,7 +17,8 @@
   body{font-family:Arial;margin:12px;background:#8AC0FF;}
   header{display:flex;gap:12px; align-items:center; margin-bottom:12px; justify-content:center;}
   
-
+/*      .contenedor{max-width:980px;margin:auto;background:#fff;padding:20px;border-radius:8px }
+      .contenedor2{max-width:980px;margin:auto;background:#fff;padding:20px;border-radius:8px ;position: fixed;}*/
 .contenedor{
   max-width:980px;
   margin:auto;
@@ -37,6 +38,7 @@
   border-radius:8px;
   border:8px solid #1F8DB2;
   text-align: center;
+  /* border-color: #9BD9ED black; #007bff;*/
 }
 
   input[type="search"],select{padding:8px;border-radius:30px;border:5px solid #ccc}
@@ -51,7 +53,6 @@ button:hover{background:#0056b3};
 
   .acciones button{padding:8px 14px;background:#007bff;color:#fff;border:none;border-radius:5px;cursor:pointer}
   .convertir{background:#188C27;color:#fff}
-  .btnguardar{background:#D1A400;color:#fff}
   .eliminar{background:#e74c3c;color:#fff}
 
   /* Popup */
@@ -116,7 +117,6 @@ select {
 				<option value="cancelado">Pedidos Cancelados</option>
 				<option value="eliminado">Pedidos Eliminados</option>
 			  </select>
-			<button class="boton-derecha" onclick="cargar()">♻ Cargar</button>
 			<button class="boton-derecha" onclick="location.href='/menu-ventas.html'">&#8617; Volver</button>
 			</header>
 	  </div>
@@ -146,8 +146,8 @@ let configuracion = {
   distancia_maxima: 0
 };
 
-// Cargar configuracion
-cargarConfiguracion();
+    // Cargar configuracion
+    cargarConfiguracion();
   
 //notificacion con sonido de pedido NUEVO
 let pedidosNotificados = new Set();
@@ -391,22 +391,7 @@ function renderList(items){
   <br>
   <div style="font-size:20px;"><b>Nombre:</b> ${p.nombre}</div>
   <div style="font-size:20px;"><b>Telefono:</b> ${p.telefono}</div>
-
-	${
-	  p.estado === "P"
-		? `
-			<b style="font-size:20px;">Domicilio</b> (puede modificarlo): <input id="domicilio_${p.id_pedido}"
-				   value="${p.domicilio || ''}">
-			<button onclick="distancia('${p.domicilio}')">&#128663; Ver distancia</button>
-			<button class="btnguardar" onclick="guardarCambios(${p.id_pedido})">
-				💾 Guardar cambio domicilio
-			</button>
-		  `
-		: `
-			<div><b>Domicilio:</b> ${p.domicilio || '-'}</div>
-		  `
-	}
-
+  <div style="font-size:20px;"><b>Domicilio:</b> ${p.domicilio}</div>
   <div style="font-size:20px;"><b>Nota:</b> ${p.nota || "—"}</div>
   <br>
   <b>Detalle:</b><br>
@@ -461,19 +446,26 @@ const individuales = [];
 // ======================================
 Object.values(agrupados).forEach(item => {
 
-  const subtotal = item.precio * item.cantidad;
+  const subtotal =
+    item.precio * item.cantidad;
+
   subtotalPedido += subtotal;
 
-  html += `<div class="unidad">
+  html += `
+    <div class="unidad">
+
       <b>
         • ${item.cantidad} x ${item.descripcion}
       </b><br>
+
       Precio Unitario:
       ${formateadorMoneda.format(item.precio)}
       <br>
+
       Subtotal:
       ${formateadorMoneda.format(subtotal)}
       <br>
+
     </div>
   `;
 });
@@ -879,54 +871,14 @@ function notificarPedido(p) {
 */
 }
 
-async function guardarCambios(idPedido) {
 
-    const domicilio = document.getElementById(`domicilio_${idPedido}`).value.trim();
-
-    if (!domicilio) {
-        await mostrarAlerta({mensaje: "Debe ingresar un domicilio"});
-        return;
-    }
-
-    try {
-        const resp = await fetch(`/api/pedidos/${idPedido}/domicilio`,
-            {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({domicilio})
-            }
-        );
-
-        const data = await resp.json();
-
-        if (!data.ok) {
-            await mostrarAlerta({mensaje: data.mensaje || "Error actualizando domicilio"});
-            return;
-        }
-
-        await mostrarAlerta({mensaje: "Domicilio actualizado correctamente",icono: "✅"
-        });
-
-    } catch (err) {
-
-        console.error(err);
-
-        await mostrarAlerta({
-            mensaje: "Error actualizando domicilio"
-        });
-    }
-}
 
 // inicial
 cargar();
 
-
 setInterval(() => {
   cargar();
-}, 20000); // cada 20 segundos
-
+}, 5000); // cada 5 segundos
 
 </script>
 

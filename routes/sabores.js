@@ -28,6 +28,42 @@ router.get('/', async (req, res) => {
   }
 });
 
+
+router.get('/publicados', async (req, res) => {
+
+    try {
+        const [rows] = await db.query(`
+            SELECT
+                s.id_sabor,
+                s.descripcion,
+                s.contenido,
+                s.id_tipo_sabor,
+                ts.descripcion AS tipo_sabor
+            FROM sabores s
+            INNER JOIN tipo_sabores ts
+                ON ts.id_tipo_sabor = s.id_tipo_sabor
+            WHERE s.deshabilitado = 0
+              AND ts.deshabilitado = 0
+            ORDER BY
+                ts.descripcion,
+                s.descripcion
+        `);
+
+        res.json({
+            ok: true,
+            sabores: rows
+        });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({
+            ok: false,
+            mensaje: 'Error obteniendo sabores'
+        });
+    }
+});
+
+
 router.get('/:id', async (req, res) => {
 
   try {

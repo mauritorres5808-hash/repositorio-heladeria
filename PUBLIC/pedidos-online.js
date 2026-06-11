@@ -1189,7 +1189,7 @@ function aceptarPedido(){
 
   const idPedido = window.idPedidoActual;
   const nombre = window.nombreClienteActual;
-  const pagaCon = window.pagaConActual;
+  const pagaCon = window.pagaConActual.trim();;
 //  const mensaje =`Hola soy *${nombre}* mi pedido es el *Nro ${idPedido}* y pago con *${pagaCon}*`;
 //  const mensaje = `👋 Hola soy *${nombre}* 🧾 Mi pedido es el *Nro ${idPedido}* 💰 Pago con: *${pagaCon}*`;
   const mensaje = `*Nuevo Pedido*\n► Hola soy *${nombre}*\n► Mi pedido es el *Nro: ${idPedido}*\n► Pago con: *${pagaCon}*`;
@@ -1212,17 +1212,18 @@ function aceptarPedido(){
   let url = "";
 
   if (esMovil) {
-	  // CELULAR  ===================================
+	  // para CELULAR
     url =`https://wa.me/${numeroEmpresa}?text=${mensajeCodificado}`;
   } else {
-    // PC =====================================
+    // para PC 
     url =`https://web.whatsapp.com/send?phone=${numeroEmpresa}&text=${mensajeCodificado}`;
   }
 
-//  const url = `https://wa.me/${numeroEmpresa}?text=${mensajeCodificado}`;
-//  window.open(url,"_blank");
+  // abrir en pestaña nueva
+  window.open(url,"_blank");
+
   // abrir en misma pestaña
-  window.location.href = url;
+//  window.location.href = url;
 
   cerrarMensajeFinal();
 }

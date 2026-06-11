@@ -111,11 +111,12 @@ button:hover{
 }
 
 .dia-card{
+    width:220px;
     border:1px solid #ddd;
     border-radius:10px;
     padding:10px;
     margin-bottom:00px;
-    background:#D8F999;
+    background:#8BF0FE;
 }
 
 .dia-card h3{
@@ -125,11 +126,20 @@ button:hover{
 
 .franja{
     display:flex;
-    gap:10px;
+    gap:6px;
     margin-top:8px;
     align-items:center;
 }
+.franja input[type="time"]{
+    width:90px;
+    height:24px;
+    padding:0 4px;
+    font-size:13px;
+}
 /* fin modal Horarios */
+
+.alert-modern{background:#e9f7ef;border-left:6px solid red;padding:10px;border-radius:6px;margin:10px 0; font-style: italic;}
+
 
 </style>
 </head>
@@ -152,8 +162,18 @@ button:hover{
 
     <div class="form-group">
         <span <label><b>Teléfono</b></label>
-        <input type="text" id="telefono" onkeydown="if(event.key==='Enter')alias.focus()"></span>
+        <input type="text" id="telefono" 
+		     placeholder="54 9113 456 7890"
+             oninput="validarTelefonoUI(this)"
+		onkeydown="if(event.key==='Enter')alias.focus()"></span>
     </div>
+      <div id="telefonoMsg"
+           style="
+              font-size:13px;
+              margin-top:3px;
+              color:#b00;
+           ">
+      </div>
 
     <div class="form-group">
         <span <label><b>Alias para pagos</b></label>
@@ -171,7 +191,7 @@ button:hover{
 
     <div class="botones">
         <button onclick="guardar()">
-            💾 Guardar
+            💾 Guardar cambios
         </button>
 
         <button onclick="location.href='menu-general.html'">
@@ -249,7 +269,7 @@ async function guardar(){
 
             nombre: document.getElementById("nombre").value,
             domicilio: document.getElementById("domicilio").value,
-            telefono: document.getElementById("telefono").value,
+            telefono: normalizarTelefono(document.getElementById("telefono").value),
             alias: document.getElementById("alias").value,
             alias_nombre: document.getElementById("alias_nombre").value
         };
@@ -325,7 +345,12 @@ function renderHorarios(){
                     type="time"
                     value="${h.hasta.substring(0,5)}"
                     class="hasta">
-                <button
+                <button style="width:90px;
+						height:24px;
+						width:44px;
+						padding:0 4px;
+						font-size:13px;
+						background: #C1C1C8;"
                     onclick="eliminarFranja(${dia.id},${idx})">
                     ❌
                 </button>
@@ -445,6 +470,57 @@ async function guardarHorarios(){
 }
 
 
+// =====================================================
+// VALIDACION TELEFONO
+// =====================================================
+function validarTelefonoUI(input){
+
+  const msg = document.getElementById("telefonoMsg");
+
+  let valor = input.value.replace(/\D/g,"");
+
+  if (valor.length >= 2 && valor.length <= 6){
+    input.value =
+      valor.slice(0,2)
+      + (valor.length > 2
+          ? " " + valor.slice(2)
+          : "");
+  } else if (valor.length > 6){
+    input.value =
+      valor.slice(0,2)
+      + " "
+      + valor.slice(2,6)
+      + " "
+      + valor.slice(6);
+  }
+
+  const ok = normalizarTelefono(input.value);
+
+  if (ok){
+    input.style.borderColor = "green";
+    msg.style.color = "green";
+    msg.innerText = "✓ Número válido → " + ok;
+  } else {
+    input.style.borderColor = "red";
+    msg.style.color = "#b00";
+    msg.innerText = "Formato inválido. Ej: 54 9113 456 7890";
+  }
+}
+
+// =====================================================
+// NORMALIZAR TELEFONO
+// =====================================================
+function normalizarTelefono(tel){
+
+  tel = tel.replace(/\D/g,"");
+
+  if (tel.startsWith("54911") && tel.length === 13) {return "+" + tel;}
+  if (tel.startsWith("911") && tel.length === 11) {return "+54" + tel;}
+  if (tel.startsWith("11") && tel.length === 10) {return "+549" + tel;}
+  return null;
+}
+
+
 
 </script>
 
@@ -455,12 +531,12 @@ async function guardarHorarios(){
     <div class="modal-horarios-box">
         <h2>🕒 Configuración de Horarios</h2>
         <div style="margin-bottom:15px">
-            <label><b>Horarios para</b></label>
+            <span <label><b>Tipo de Horario </b></label>
 			<select
 				id="tipoHorario"
 				onchange="cargarHorarios()"
 				style="
-					width:280px;
+					width:180px;
 					height:35px;
 					font-size:16px;
 					font-weight:bold;
@@ -471,13 +547,14 @@ async function guardarHorarios(){
 				">
 				<option value="L">🏠 Local</option>
 				<option value="P">🌐 Pedidos Online</option>
-				<option value="D">🛵 Delivery</option>
-			</select>
+				<option value="D">🚀 Delivery</option>
+			</select></span>
 			<button
                 class="boton-redondeado2"
                 onclick="cerrarModalHorarios()">
                 &#8617; Cerrar
             </button>
+		<div id="mensajeTipo" class="alert-modern">Debe guardar los cambios ANTES de cambiar de tipo de horario</div>
 
 	</div>
         <div id="horariosContainer"></div>
@@ -485,7 +562,7 @@ async function guardarHorarios(){
             <button
                 class="boton-redondeado"
                 onclick="guardarHorarios()">
-                💾 Guardar
+                💾 Guardar cambios
             </button>
             <button
                 class="boton-redondeado2"

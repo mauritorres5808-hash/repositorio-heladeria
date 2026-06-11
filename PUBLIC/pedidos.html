@@ -158,6 +158,7 @@ let formasPago = [];
 
 let idPedidoActual = null;
 let totalPedidoActual = 0;
+let domiciliosEditados = {};
 
 document.getElementById("filterEstado")
 .addEventListener("change", async () => {
@@ -339,6 +340,8 @@ function renderList(items){
 		const el = document.createElement("div");
 		el.className = "pedido";
 
+const domicilioMostrar = domiciliosEditados[p.id_pedido] ?? p.domicilio ?? '';
+	
 	let subtotalPedido = 0;
 	let html = "";
 	let CostoEnv = p.costo_envio;
@@ -395,9 +398,11 @@ function renderList(items){
 	${
 	  p.estado === "P"
 		? `
-			<b style="font-size:20px;">Domicilio</b> (puede modificarlo): <input id="domicilio_${p.id_pedido}"
-				   value="${p.domicilio || ''}">
-			<button onclick="distancia('${p.domicilio}')">&#128663; Ver distancia</button>
+			<b style="font-size:20px;">Domicilio</b> (puede modificarlo): 
+			<input id="domicilio_${p.id_pedido}" value="${domicilioMostrar}" oninput="domiciliosEditados[${p.id_pedido}] = this.value">	
+	
+<button onclick="distancia(document.getElementById('domicilio_${p.id_pedido}').value)">&#128663; Ver distancia</button>
+
 			<button class="btnguardar" onclick="guardarCambios(${p.id_pedido})">
 				💾 Guardar cambio domicilio
 			</button>
@@ -906,13 +911,12 @@ async function guardarCambios(idPedido) {
             return;
         }
 
+delete domiciliosEditados[idPedido];
         await mostrarAlerta({mensaje: "Domicilio actualizado correctamente",icono: "✅"
         });
 
     } catch (err) {
-
         console.error(err);
-
         await mostrarAlerta({
             mensaje: "Error actualizando domicilio"
         });
@@ -925,7 +929,7 @@ cargar();
 
 setInterval(() => {
   cargar();
-}, 20000); // cada 20 segundos
+}, 5000); // cada 5 segundos
 
 
 </script>

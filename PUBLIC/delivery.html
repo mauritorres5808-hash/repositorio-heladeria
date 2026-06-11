@@ -94,7 +94,7 @@
 		    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 			<button class="boton-salirvolver" id="btnSalir" onclick="SalirVenta()">&#8617; Salir</button>
 
-		<button  id="btnVerPromos">&#x2764;&#xFE0F; Ver promos vigentes</button>
+		<button style="background:#FF637E;" id="btnVerPromos">ðŸ”¥ Ver promos vigentes</button>
 	</div>
  
     <!-- BLOQUE CLIENTE (oculto si no es delivery propio) -->
@@ -212,7 +212,7 @@
 			  </button>
 			</div>
 			
-			<h2 style="text-align:center">&#11088;  Promociones vigentes &#11088; </h2>
+			<h2 style="text-align:center">ðŸ”¥ Promociones vigentes </h2>
 			<h5 style="text-align:center">* Las promociones se aplican automaticamente</h5>
 			<div id="contenidoPromos"></div>
 		</div>
@@ -702,7 +702,7 @@ async function aplicarDescuentoRecargo() {
 	
 	const cenvioInput = document.getElementById('cenvio');
 
-	// sólo recalculo si el usuario todavía no modificó el valor
+	// solo recalculo si el usuario todavia no modifico el valor
 	if (!cenvioInput.dataset.manual) {
 		cenvioInput.value = calcularCostoEnvio(subtotalGeneral).toFixed(2);
 	}
@@ -1163,7 +1163,7 @@ async function abrirModalPromos(){
                         color:#cc0000;
                     "
                 >
-                    &#x2764;&#xFE0F; ${p.descripcion}
+                    ðŸ”¥ ${p.descripcion}
                 </div>
 
                 <div

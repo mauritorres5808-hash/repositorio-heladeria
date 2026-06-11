@@ -455,9 +455,8 @@
 
 <div class="contenedor">
 
-  <div id="loadingMsg"
-       style="text-align:center;font-weight:bold;margin:10px;">
-    ⏳ Un momento, cargando los productos...
+  <div id="loadingMsg" style="text-align:center;font-weight:bold;margin:10px;">
+    <B>Un momento, cargando los productos...&nbsp;&nbsp;</B><IMG border=0 align=absmiddle name=RelojArena src="img/relojarena.gif">
   </div>
 
 	<form id="formPedido" novalidate>
@@ -510,7 +509,7 @@
 		  cursor:pointer;
 		  max-width:500px;
 		">
-		&#x2764;&#xFE0F;  Ver promos vigentes  🎁
+		🔥  Ver promos vigentes  🎁
 		</button>
 		<button 
 				style="
@@ -639,7 +638,7 @@
 	<select
 		id="paga_con"
 		name="paga_con"
-		style="width:40%;">
+		style="width:55%;">
 		<option value="">
 			-- Seleccione forma de pago --
 		</option>
@@ -651,7 +650,7 @@
       ¿Con cuanto efectivo pagás?
     </label>
     <br>
-    <input id="cuanto" style="width:15%;" placeholder="Ej: $20000" />
+    <input id="cuanto" style="width:35%;" placeholder="Ej: $20000" />
 
     <br>
     <br>
@@ -685,7 +684,7 @@
 			  </button>
 			</div>
 
-			<h2 style="text-align:center">&#11088;  Promociones vigentes &#11088; </h2>
+			<h2 style="text-align:center">🔥  Promociones vigentes 🔥 </h2>
 			<h5 style="text-align:center">* Las promociones se aplican automaticamente</h5>
 			<div id="contenidoPromos"></div>
 		</div>
@@ -1057,7 +1056,7 @@ async function abrirModalPromos(){
                         color:#cc0000;
                     "
                 >
-                    &#x2764;&#xFE0F; ${p.descripcion}
+                    🔥 ${p.descripcion}
                 </div>
 
                 <div

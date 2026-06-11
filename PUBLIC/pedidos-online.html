@@ -5,6 +5,9 @@
 <title>Hacer Pedido - Heladería</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 
+<script src="JS/utils.js"></script>
+
+
 <style>
 
   body{
@@ -290,7 +293,7 @@
 
 .card-grupo{
     padding:12px 18px;
-    background:white;
+    background:#FEF9C2;
     border:2px solid #ddd;
     border-radius:12px;
     cursor:pointer;
@@ -440,6 +443,7 @@
 /* fin modal sabores*/
 
 
+
 </style>
 </head>
 
@@ -477,7 +481,14 @@
 				💳 Alias: <b><span id="empAlias"></b></span><br>
 				a nombre de: <b><span id="empAlias_nom"></b></span>
 			</div>
+
+		<button style="background:linear-gradient(90deg,#6357D6,#6357D6);
+				color:white;
+				height:42px;
+				font-size:15px;
+				font-weight:bold;" type="button" class="boton-redondeado" onclick="verHorarios()">🕒 Ver nuestros Horarios</button>
 		</div>
+		
 	</div>
 
 
@@ -628,9 +639,9 @@
       ¿Cómo pensás pagar?
     </label>
     <div class="meta">
-      Si es con efectivo indicar con cuánto pagás para calcular tu vuelto.
+      Si es con <b>EFECTIVO</b> indicar con cuánto pagás para calcular tu vuelto.
     <br>
-      Si es con mercado pago, arriba tenés nuestro alias. Recuerda enviar el comprobante de pago a nuestro telefono.
+      Si es con <b>MERCADO PAGO</b>, arriba tenés nuestro alias. Recuerda enviar el comprobante de pago a nuestro telefono.
     </div>
 
     <br>
@@ -656,7 +667,8 @@
     <br>
 
 	<div style="display:flex; justify-content:center;">
-	<button id="btnEnviar" type="button" onclick="enviarPedido()">Enviar Pedido &#128640;</button>
+	<button id="btnEnviar" type="button" onclick="enviarPedido()">
+	<span id="BotonEnvio" > </span></button>
 	</div>
 
   </form>
@@ -810,12 +822,56 @@ const API_BASE =
 //const API_BASE = window.location.origin;
 document.getElementById('btnVerPromos').addEventListener('click',abrirModalPromos);
 
-cargarEmpresa();
-cargarFormasPago();
-
 let saboresModal = [];
 let tipoSeleccionado = null;
+window.sinDelivery = false;
 
+(async () => {
+
+    await cargarEmpresa();
+    await cargarFormasPago();
+    await VerificarHorarios();
+
+})();
+
+async function VerificarHorarios() {
+
+    // =====================================
+    // verifico PEDIDOS ONLINE
+    // =====================================
+    const abiertoPedidos = await validarHorario_AHORA('P');
+
+    if (!abiertoPedidos) {
+        await mostrarAlerta({mensaje:'✋ Lo sentimos pero el horario para Pedidos Online ya se encuentra cerrado.🙈\n\nVerifica nuestros horarios.'});
+        document.getElementById('btnEnviar').disabled = true;
+        document.getElementById('BotonEnvio').textContent ='✋ Lo siento. Envío No permitido. Fuera de horario 🙄';
+        return false;
+    }
+
+    // =====================================
+    // verifico DELIVERY
+    // =====================================
+    const abiertoDelivery = await validarHorario_AHORA('D');
+
+	window.sinDelivery = false;
+    if (!abiertoDelivery) {
+        await mostrarAlerta({mensaje:'El horario de Delivery 🚀 se encuentra cerrado.\n\nPodrás enviar el pedido pero el retiro deberá ser personalmente por el Local.\n\nVerifica nuestros horarios.'});
+		window.sinDelivery = true;
+        document.getElementById('btnEnviar').disabled = false;
+        document.getElementById('BotonEnvio').textContent = 'Enviar Pedido (Retiro por Local) 🏪';
+ actualizarCarritoUI(); 
+        return true;
+    }
+
+    // =====================================
+    // TODO OK
+    // =====================================
+    document.getElementById('btnEnviar').disabled = false;
+    document.getElementById('BotonEnvio').textContent =
+        'Enviar Pedido 🚀';
+
+    return true;
+}
 
 // ======================================
 // CARGAR EMPRESA
@@ -837,6 +893,7 @@ async function cargarEmpresa(){
         alert("Error cargando empresa");
     }
 }
+
 
 async function abrirModalSabores(){
 
@@ -1097,6 +1154,8 @@ function cerrarModalPromos(){
 </script>
 
 <script src="pedidos-online.js"></script>
+<script src="JS/modal.js"></script>
+
 
 </body>
 </html>

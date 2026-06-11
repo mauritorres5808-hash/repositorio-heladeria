@@ -44,6 +44,7 @@ function crearModalBase() {
 
 #modalSistemaContenido{
   display:flex;
+  flex-direction:column;
   align-items:center;
   justify-content:center;
   gap:10px;
@@ -84,7 +85,7 @@ function crearModalBase() {
   line-height:1.4;
   white-space:pre-line;
   margin-bottom:0;
-  text-align:left;
+  text-align:center;
 }
 
     #modalSistemaBotones{

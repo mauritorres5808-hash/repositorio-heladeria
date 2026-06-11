@@ -195,6 +195,10 @@ function getTextoBusqueda() {
 // =====================================================
 function calcularCostoEnvio(subtotal) {
 
+	if (window.sinDelivery) {
+		return 0;
+	}
+
   if (subtotal >= configuracion.total_pedido) {
     return 0;
   }
@@ -301,7 +305,7 @@ const lista = productos.filter(p => {
 
   if (lista.length === 0) {
     cont.innerHTML = `
-      <div class="meta">
+      <div class="meta" style="font-size:18px; color:red;">
         No hay productos para mostrar.
       </div>
     `;
@@ -686,7 +690,8 @@ async function actualizarTotalUI(){
       ? totalFinalPromos
       : subtotal;
 
-const costoEnvio = calcularCostoEnvio(subtotalConPromos);
+	let costoEnvio =0;
+	costoEnvio = calcularCostoEnvio(subtotalConPromos);
 const total = subtotalConPromos + costoEnvio;
   
   const tv = document.getElementById("totalValor");
@@ -851,7 +856,9 @@ function actualizarCarritoUI(){
 			? totalFinalPromos
 			: total;
 
-		const costoEnvio = calcularCostoEnvio(subtotalPromos);
+let costoEnvio=0;
+costoEnvio = calcularCostoEnvio(subtotalPromos);
+		
 		const totalMostrar = subtotalPromos + costoEnvio;
   
 			  //muestro costo de envio
@@ -959,9 +966,14 @@ async function enviarPedido(){
 	const domicilio = document.getElementById("domicilio").value.trim();
 	const nota = document.getElementById("nota").value.trim();
   
-  //const pagaCon = document.getElementById("paga_con").value.trim();
-let pagaCon = document.getElementById("paga_con").options[document.getElementById("paga_con").selectedIndex].text;
-pagaCon += ' ' + document.getElementById("cuanto").value;
+let pagaCon ="";
+
+	if (window.sinDelivery) {
+		pagaCon = "Retira por el local";
+	}else{
+		pagaCon = document.getElementById("paga_con").options[document.getElementById("paga_con").selectedIndex].text;
+		pagaCon += ' ' + document.getElementById("cuanto").value;
+	}
   const tel = normalizarTelefono(document.getElementById("telefono").value);
   const domLower = domicilio.toLowerCase();
 
@@ -997,8 +1009,6 @@ pagaCon += ' ' + document.getElementById("cuanto").value;
   if (!validarSabores()){
     return;
   }
-
-
 
 const pedidoBackend = [];
 // =====================================
@@ -1176,10 +1186,13 @@ try {
 function mostrarMensajeFinal(idPedido){
   window.idPedidoActual = idPedido;
   window.nombreClienteActual = document.getElementById("nombre").value.trim();
-  //window.pagaConActual = document.getElementById("paga_con").value.trim();
-  window.pagaConActual = document.getElementById("paga_con").options[document.getElementById("paga_con").selectedIndex].text
-  window.pagaConActual += ' ' + document.getElementById("cuanto").value;
-  
+
+	if (window.sinDelivery) {
+		window.pagaConActual = "Retiro por el Local";
+	}else{
+		window.pagaConActual = document.getElementById("paga_con").options[document.getElementById("paga_con").selectedIndex].text
+		window.pagaConActual += ' ' + document.getElementById("cuanto").value;
+	}
   document.getElementById("NombreCli").innerHTML = window.nombreClienteActual;
   document.getElementById("nroPedido").innerHTML = `N° de Pedido: ${idPedido}`;
   document.getElementById("mensajeFinal").style.display = "block";

@@ -5,21 +5,20 @@ const db = require('../db');
 
 
 // ==========================================
-// OBTENER DATOS EMPRESA
+// OBTENER DATOS sistema
 // ==========================================
 router.get('/', async (req, res) => {
-
+ 
   try {
 
     const [rows] = await db.query(`
       SELECT *
-      FROM empresa
-      LIMIT 1
+      FROM sistema
     `);
 
     if (rows.length === 0) {
       return res.status(404).json({
-        error: 'Empresa no encontrada'
+        error: 'Sistema no encontrada'
       });
     }
 
@@ -27,40 +26,30 @@ router.get('/', async (req, res) => {
 
   } catch (error) {
     console.error(error);
-    res.status(500).json({error: 'Error obteniendo empresa'});
+    res.status(500).json({error: 'Error obteniendo sistema'});
   }
 });
 
 // ==========================================
-// MODIFICAR EMPRESA
+// MODIFICAR sistema
 // ==========================================
 router.put('/', async (req, res) => {
 
     try {
 
         const {
-            nombre,
-            domicilio,
-            telefono,
-            alias,
-            alias_nombre
+            fecha_vigencia,
+            deshabilitada
         } = req.body;
 
         await db.query(`
-            UPDATE empresa
+            UPDATE sistema
             SET
-                nombre = ?,
-                domicilio = ?,
-                telefono = ?,
-                alias = ?,
-                alias_nombre = ?
-            WHERE id_empresa = 1
+                fecha_vigencia = ?,
+                deshabilitada = ?
         `, [
-            nombre,
-            domicilio,
-            telefono,
-            alias,
-            alias_nombre
+            fecha_vigencia,
+            deshabilitada ? 1 : 0
         ]);
 
         res.json({
@@ -71,7 +60,7 @@ router.put('/', async (req, res) => {
         console.error(error);
         res.status(500).json({
             ok: false,
-            error: 'Error actualizando empresa'
+            error: 'Error actualizando sistema'
         });
     }
 });

@@ -17,6 +17,7 @@ const tipoSaboresRoutes = require('./routes/tipo-sabores');
 const clientesRoutes = require('./routes/clientes');
 const usuariosRoutes = require('./routes/usuarios');
 const empresaRoutes = require('./routes/empresa');
+const sistemaRoutes = require('./routes/sistema');
 const permisosRoutes = require('./routes/permisos');
 const fpagoRoutes = require('./routes/fpago');
 const gruposRoutes = require('./routes/grupos');
@@ -53,6 +54,7 @@ const configuracionesRouter = require('./routes/configuraciones');
 
 const fpagoPublicRoutes = require('./routes/fpago_public');
 
+const horariosRoutes = require('./routes/horarios');
 
 
 // ==========================================
@@ -84,6 +86,7 @@ app.use('/api/tipo-sabores', validarSesion, tipoSaboresRoutes);
 app.use('/api/clientes', validarSesion, clientesRoutes);
 app.use('/api/usuarios', usuariosRoutes);
 app.use('/api/empresa', empresaRoutes);
+app.use('/api/sistema', sistemaRoutes);
 app.use('/api/permisos', validarSesion, permisosRoutes);
 app.use('/api/fpago', validarSesion, fpagoRoutes);
 app.use('/api/grupos', gruposRoutes);
@@ -105,7 +108,6 @@ app.use('/api/auditoria-ventas', auditoriaVentasRoutes);
 	
 app.use('/api/auditoria-precios', auditoriaPreciosRoutes);
 
-//app.use('/api/compras', require('./routes/compras'));
 app.use('/api/compras', comprasRoutes);
 
 app.use('/api/pedidos', pedidosRoutes);
@@ -119,6 +121,7 @@ app.use('/api/configuraciones',configuracionesRouter);
 
 app.use('/api/fpago_public', fpagoPublicRoutes);
 
+app.use('/api/horarios',horariosRoutes);
 
 app.get('/api/session', (req, res) => {
     if (!req.session.usuario) {

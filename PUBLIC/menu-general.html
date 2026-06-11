@@ -189,20 +189,20 @@ filter: brightness(1.08);
         </td>
       </tr>
       <tr>
-        <td>
-          <button class="boton-redondeado" id="btnCambio" onclick="location.href='cambio-pass.html'">🔒 Cambiar mi contraseña</button>
-        </td>
+		<td>
+		  <button class="boton-redondeado" id="btnEstadis" onclick="location.href='estadisticas.html'">📊 Estadisticas</button>
+		</td>
         <td>
           <button class="boton-redondeado" id="btnPromos" onclick="location.href='promociones.html'">🎁 Promociones</button>
         </td>
       </tr>
 
       <tr>
-		<td>
-		  <button class="boton-redondeado" id="btnEstadis" onclick="location.href='estadisticas.html'">📊 Estadisticas</button>
-		</td>
         <td>
-          <button class="boton-redondeado" id="btnConfig2" onclick="location.href='configuraciones.html'">🚀 Config. Delivery</button>
+          <button class="boton-redondeado" id="btnConfig_Delivery" onclick="location.href='configuraciones.html'">🚀 Config. Delivery</button>
+        </td>
+		<td>
+          <button class="boton-redondeado" id="btnConfig_Empresa" onclick="location.href='empresa_config.html'">⚙️ Config. Empresa</button>
         </td>
       </tr>
 
@@ -216,8 +216,8 @@ filter: brightness(1.08);
         <td>
           <button class="boton-redondeado" id="btnFunciones" onclick="location.href='funciones.html'">Funciones</button>
         </td>
-		<td>
-          <button class="boton-redondeado" id="btnConfig" onclick="location.href='empresa_config.html'">Config. Empresa</button>
+        <td>
+          <button class="boton-redondeado" id="btnSistema" onclick="location.href='sistema_config.html'">Sistema</button>
         </td>
       </tr>
 
@@ -317,11 +317,14 @@ if (idUsuarioActual != 1) {
 		if (btn5) btn5.disabled = false;
 		btn5.title = "";
     }
-    const btn6 = document.getElementById("btnCambio");
-    if (tienePermiso(55)) {
+    const btn6 = document.getElementById("btnSistema");
+	if (idUsuarioActual == 1) {
 		if (btn6) btn6.disabled = false;
 		btn6.title = "";
     }
+
+
+
     const btn7 = document.getElementById("btnCambioPrecios");
     if (tienePermiso(56)) {
 		if (btn7) btn7.disabled = false;
@@ -344,12 +347,12 @@ if (idUsuarioActual != 1) {
 		btn10.title = "";
     }
 
-    const btn11 = document.getElementById("btnConfig");
-    if (parseInt(localStorage.getItem("usuarioId")) === 1) {
+    const btn11 = document.getElementById("btnConfig_Empresa");
+    if (tienePermiso(56)) {
 		if (btn11) btn11.disabled = false;
 		btn11.title = "";
     }
-	const btn12 = document.getElementById("btnConfig2");
+	const btn12 = document.getElementById("btnConfig_Delivery");
     if (tienePermiso(56)) {
 		if (btn12) btn12.disabled = false;
 		btn12.title = "";

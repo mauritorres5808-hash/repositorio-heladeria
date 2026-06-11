@@ -221,17 +221,17 @@ async function login() {
         const idUsuario = parseInt(data.usuario.id_usuario || 0);
 
         // =====================================
-        // VALIDAR EMPRESA
+        // VALIDAR sistema
         // SOLO SI NO ES ADMIN
         // =====================================
         if (idUsuario !== 1) {
-            const empResp = await fetch('/api/empresa');
-            const empresa = await empResp.json();
+            const empResp = await fetch('/api/sistema');
+            const sistema = await empResp.json();
 
             // ---------------------------------
             // SISTEMA DESHABILITADO
             // ---------------------------------
-            if (parseInt(empresa.deshabilitada || 0) === 1) {
+            if (parseInt(sistema.deshabilitada || 0) === 1) {
                 document.getElementById("modalBloqueoSistema").style.display = "flex";
                 document.getElementById("mensajeSistema")
                     .innerHTML =
@@ -243,10 +243,10 @@ async function login() {
             // ---------------------------------
             // VALIDAR VIGENCIA
             // ---------------------------------
-            if (empresa.fecha_vigencia) {
+            if (sistema.fecha_vigencia) {
                 const hoy = new Date();
                 hoy.setHours(0,0,0,0);
-                const fechaVenc = new Date(empresa.fecha_vigencia);
+                const fechaVenc = new Date(sistema.fecha_vigencia);
                 fechaVenc.setHours(0,0,0,0);
 
                 if (hoy > fechaVenc) {

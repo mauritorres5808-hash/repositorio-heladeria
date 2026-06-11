@@ -35,3 +35,26 @@ function FechaHoy_MySQL() {
 	function Formatea_Moneda(f) {
 		return '$ ' + Number(f).toLocaleString('es-AR');
 	}
+
+
+
+// control de HORARIOS
+/*
+se usa asi:
+if estaAbierto("L")...
+if estaAbierto("P")...
+if estaAbierto("D")...
+*/
+
+function estaAbierto(tipo, fechaActual) {
+   const dia = obtenerDia(fechaActual);
+   const hora = obtenerHora(fechaActual);
+
+   return horarios.some(h =>
+      h.tipo === tipo &&
+      h.dia === dia &&
+      hora >= h.desde &&
+      hora <= h.hasta
+   );
+}
+

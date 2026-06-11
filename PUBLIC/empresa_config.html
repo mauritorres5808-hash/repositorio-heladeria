@@ -82,6 +82,55 @@ button:hover{
     font-weight:bold;
 }
 
+
+/* modal Horarios */
+#horariosContainer{
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap:15px;
+}
+
+.modal-horarios{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.5);
+    z-index:9999;
+    justify-content:center;
+    align-items:center;
+}
+
+.modal-horarios-box{
+    background:white;
+    width:95%;
+    max-width:900px;
+    max-height:80vh;
+    overflow:auto;
+    border-radius:12px;
+    padding:20px;
+}
+
+.dia-card{
+    border:1px solid #ddd;
+    border-radius:10px;
+    padding:10px;
+    margin-bottom:00px;
+    background:#D8F999;
+}
+
+.dia-card h3{
+    margin-top:0;
+    margin-bottom:10px;
+}
+
+.franja{
+    display:flex;
+    gap:10px;
+    margin-top:8px;
+    align-items:center;
+}
+/* fin modal Horarios */
+
 </style>
 </head>
 
@@ -115,17 +164,10 @@ button:hover{
         <input type="text" id="alias_nombre" onkeydown="if(event.key==='Enter')fecha_vigencia.focus()"></span>
     </div>
 
-    <div class="form-group">
-        <span <label><b>Fecha Vigencia</b></label>
-        <input type="date" id="fecha_vigencia"></span>
-    </div>
 
-    <div class="form-group">
-        <label>
-            <input class="chk" type="checkbox" id="deshabilitada">
-            Sistema deshabilitado
-        </label>
-    </div>
+
+
+
 
     <div class="botones">
         <button onclick="guardar()">
@@ -135,6 +177,13 @@ button:hover{
         <button onclick="location.href='menu-general.html'">
             &#8617;  Volver
         </button>
+
+		<button
+			class="boton-redondeado"
+			onclick="abrirModalHorarios()">
+			🕒 Configurar Horarios
+		</button>
+
     </div>
 
     <div class="msg" id="msg"></div>
@@ -145,12 +194,28 @@ button:hover{
 
 verificarSesion();
 
+/*
 if (parseInt(localStorage.getItem("usuarioId")) != 1) {
     window.location.href = "index.html";
 }
+*/
 
 cargarEmpresa();
 nombre.focus();
+
+const diasSemana = [
+    {id:1,nombre:"Lunes"},
+    {id:2,nombre:"Martes"},
+    {id:3,nombre:"Miércoles"},
+    {id:4,nombre:"Jueves"},
+    {id:5,nombre:"Viernes"},
+    {id:6,nombre:"Sábado"},
+    {id:7,nombre:"Domingo"}
+];
+
+let horariosActuales = [];
+
+
 
 // ======================================
 // CARGAR EMPRESA
@@ -166,12 +231,6 @@ async function cargarEmpresa(){
         document.getElementById("telefono").value = emp.telefono || '';
         document.getElementById("alias").value = emp.alias || '';
         document.getElementById("alias_nombre").value = emp.alias_nombre || '';
-        document.getElementById("fecha_vigencia").value =
-            emp.fecha_vigencia
-                ? emp.fecha_vigencia.split('T')[0]
-                : '';
-
-        document.getElementById("deshabilitada").checked = parseInt(emp.deshabilitada || 0) === 1;
 
     }catch(err){
         console.error(err);
@@ -192,12 +251,7 @@ async function guardar(){
             domicilio: document.getElementById("domicilio").value,
             telefono: document.getElementById("telefono").value,
             alias: document.getElementById("alias").value,
-            alias_nombre: document.getElementById("alias_nombre").value,
-            fecha_vigencia: document.getElementById("fecha_vigencia").value,
-            deshabilitada:
-                document.getElementById("deshabilitada").checked
-                    ? 1
-                    : 0
+            alias_nombre: document.getElementById("alias_nombre").value
         };
 
         const resp = await fetch('/api/empresa', {
@@ -224,7 +278,223 @@ async function guardar(){
     }
 }
 
+
+async function cargarHorarios(){
+    const tipo = document.getElementById("tipoHorario").value;
+    const resp = await fetch(`/api/horarios/${tipo}`);
+    const data = await resp.json();
+    horariosActuales = data.horarios || [];
+    renderHorarios();
+}
+
+async function abrirModalHorarios(){
+    document.getElementById("modalHorarios").style.display="flex";
+    await cargarHorarios();
+}
+
+async function cerrarModalHorarios(){
+    document.getElementById("modalHorarios").style.display="none";
+}
+
+
+function renderHorarios(){
+
+    const cont = document.getElementById("horariosContainer");
+
+    cont.innerHTML = "";
+
+    diasSemana.forEach(dia => {
+
+        const horariosDia = horariosActuales.filter(
+                h => Number(h.dia) === dia.id
+            );
+
+        let html = `<div class="dia-card">
+            <h3>${dia.nombre}</h3>
+            <div id="dia_${dia.id}">
+        `;
+
+        horariosDia.forEach((h,idx)=>{
+            html += `
+            <div class="franja">
+                <input
+                    type="time"
+                    value="${h.desde.substring(0,5)}"
+                    class="desde">
+                <input
+                    type="time"
+                    value="${h.hasta.substring(0,5)}"
+                    class="hasta">
+                <button
+                    onclick="eliminarFranja(${dia.id},${idx})">
+                    ❌
+                </button>
+            </div>
+            `;
+        });
+
+        html += `
+            <br>
+            </div>
+            <button style="background: #14BD55"
+                onclick="agregarFranja(${dia.id})">
+                ➕ Agregar horario
+            </button>
+
+        </div>
+        `;
+        cont.innerHTML += html;
+
+    });
+}
+
+function agregarFranja(dia){
+
+	actualizarHorariosDesdePantalla();
+
+    horariosActuales.push({
+        dia,
+        desde:"11:00",
+        hasta:"22:00"
+    });
+    renderHorarios();
+}
+
+function eliminarFranja(dia,idx){
+
+	actualizarHorariosDesdePantalla();
+
+    const lista =
+        horariosActuales.filter(
+            h => Number(h.dia) === dia
+        );
+
+    const item = lista[idx];
+
+    horariosActuales =
+        horariosActuales.filter(
+            h => h !== item
+        );
+    renderHorarios();
+}
+
+function actualizarHorariosDesdePantalla(){
+
+    const nuevo = [];
+
+    diasSemana.forEach(dia => {
+
+        const cont = document.getElementById(`dia_${dia.id}`);
+
+        if (!cont) return;
+
+        const franjas = cont.querySelectorAll(".franja");
+
+        franjas.forEach(f => {
+            nuevo.push({
+                dia: dia.id,
+                desde: f.querySelector(".desde").value,
+                hasta: f.querySelector(".hasta").value
+            });
+        });
+    });
+
+    horariosActuales = nuevo;
+}
+
+
+async function guardarHorarios(){
+
+    const nuevo = [];
+
+    diasSemana.forEach(dia => {
+
+        const cont = document.getElementById(`dia_${dia.id}`);
+
+        const franjas = cont.querySelectorAll(".franja");
+
+        franjas.forEach(f => {
+            nuevo.push({
+                dia: dia.id,
+                desde: f.querySelector(".desde").value,
+                hasta: f.querySelector(".hasta").value
+            });
+        });
+    });
+
+    const tipo = document.getElementById("tipoHorario").value;
+
+    const resp = await fetch(`/api/horarios/${tipo}`,{
+
+            method:"POST",
+
+            headers:{
+                "Content-Type":"application/json"
+            },
+
+            body:JSON.stringify({
+                horarios:nuevo
+            })
+        });
+
+    const data = await resp.json();
+
+    if(data.ok){
+		await mostrarAlerta({mensaje: `Horarios guardados correctamente`,icono:`&#10004;`});
+    }
+}
+
+
+
 </script>
+
+<script src="JS/modal.js"></script>
+
+
+<div id="modalHorarios" class="modal-horarios">
+    <div class="modal-horarios-box">
+        <h2>🕒 Configuración de Horarios</h2>
+        <div style="margin-bottom:15px">
+            <label><b>Horarios para</b></label>
+			<select
+				id="tipoHorario"
+				onchange="cargarHorarios()"
+				style="
+					width:280px;
+					height:35px;
+					font-size:16px;
+					font-weight:bold;
+					border-radius:10px;
+					border:2px solid #8AC0FF;
+					background:#f8fbff;
+					padding:0 10px;
+				">
+				<option value="L">🏠 Local</option>
+				<option value="P">🌐 Pedidos Online</option>
+				<option value="D">🛵 Delivery</option>
+			</select>
+			<button
+                class="boton-redondeado2"
+                onclick="cerrarModalHorarios()">
+                &#8617; Cerrar
+            </button>
+
+	</div>
+        <div id="horariosContainer"></div>
+        <div style="margin-top:20px;text-align:center;">
+            <button
+                class="boton-redondeado"
+                onclick="guardarHorarios()">
+                💾 Guardar
+            </button>
+            <button
+                class="boton-redondeado2"
+                onclick="cerrarModalHorarios()">
+                &#8617; Cerrar
+            </button>
+        </div>
+    </div>
+</div>
 
 </body>
 </html>

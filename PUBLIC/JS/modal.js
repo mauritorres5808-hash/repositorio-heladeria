@@ -31,16 +31,17 @@ function crearModalBase() {
 
   style.innerHTML = `
 
-    #modalSistema{
-      position:fixed;
-      inset:0;
-      background:rgba(0,0,0,0.45);
-      display:none;
-      justify-content:center;
-      align-items:center;
-      z-index:999999;
-      font-family:Arial;
-    }
+#modalSistema{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.45);
+  display:none;
+  justify-content:center;
+  align-items:center;
+  z-index:999999;
+  padding:15px;
+  box-sizing:border-box;
+}
 
 #modalSistemaContenido{
   display:flex;
@@ -51,16 +52,15 @@ function crearModalBase() {
   margin-bottom:20px;
 }
 
-    #modalSistemaBox{
-      background:white;
-      width:50%;
-      max-width:320px;
-      border-radius:14px;
-      padding:25px;
-      text-align:center;
-      box-shadow:0 0 25px rgba(0,0,0,0.25);
-      animation:modalShow .15s ease;
-    }
+#modalSistemaBox{
+  background:white;
+  width:90%;
+  max-width:420px;
+  border-radius:14px;
+  padding:20px;
+  text-align:center;
+  box-sizing:border-box;
+}
 
     @keyframes modalShow{
       from{
@@ -82,10 +82,11 @@ function crearModalBase() {
 #modalSistemaMensaje{
   font-size:14px;
   color:#333;
-  line-height:1.4;
+  line-height:1.5;
   white-space:pre-line;
-  margin-bottom:0;
   text-align:center;
+  word-wrap:break-word;
+  overflow-wrap:break-word;
 }
 
     #modalSistemaBotones{

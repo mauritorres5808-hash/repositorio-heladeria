@@ -63,7 +63,7 @@
       <button onclick="window.location.href='menu-general.html'" class="boton-redondeado">&#8617; Volver</button>
     </div>
 
-    <p class="nota">Al guardar se reemplazar√°n las funciones del usuario para el m√≥dulo seleccionado.</p>
+    <p class="nota">Al guardar se reemplazaran las funciones del usuario para el modulo seleccionado.</p>
   </div>
 
   <script>
@@ -77,6 +77,9 @@ verificarSesion();
     const btnGuardar = document.getElementById('btnGuardar');
     const btnLimpiar = document.getElementById('btnLimpiar');
     const tbody = document.querySelector('#tablaFunciones tbody');
+	
+	usuarioSelect.addEventListener('change', limpiarTablaFunciones);
+	moduloSelect.addEventListener('change', limpiarTablaFunciones);
 
     let funcionesDelModulo = []; // {docId,id_funcion,descripcion}
     let asignadasActuales = new Set(); // id_funcion asignadas al usuario (para m√≥dulo)
@@ -123,7 +126,7 @@ verificarSesion();
 			const data = await resp.json();
 
 			if (!data.ok) {
-			  alert('Error cargando m®Ædulos');
+			  alert('Error cargando modulos');
 			  return;
 			}
 
@@ -137,7 +140,7 @@ verificarSesion();
 
 		  } catch (err) {
 			console.error(err);
-			alert('Error cargando m®Ædulos');
+			alert('Error cargando modulos');
 		  }
 		}
 
@@ -253,6 +256,19 @@ verificarSesion();
 			alert('Error guardando permisos');
 		  }
 		}
+
+function limpiarTablaFunciones() {
+    tbody.innerHTML = `
+        <tr>
+            <td colspan="3" style="text-align:center">
+                Seleccione "Cargar"
+            </td>
+        </tr>
+    `;
+
+    funcionesDelModulo = [];
+    asignadasActuales.clear();
+}
 
   </script>
 <script src="JS/modal.js"></script>

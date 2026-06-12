@@ -16,22 +16,35 @@
   <style>
     body{font-family:Arial;background:#f3f3f3;margin:0;padding:20px;background-color:#8AC0FF}
     .contenedor{max-width:920px;margin:auto;background:#fff;padding:20px;border-radius:8px}
-	.contenedor-botones {
-  display: flex;
-  justify-content: space-between; /* Distribuye el espacio: uno a la izquierda, otro a la derecha */
-  align-items: center; /* Centra los botones verticalmente si es necesario */
-  width: 40%; /* Ancho del contenedor */
-  margin: 0 auto; /* Centra el contenedor horizontalmente en la página */
+
+.contenedor-botones {
+  display:flex;
+  justify-content:center;
+  flex-wrap:wrap;
+  gap:10px;
+  width:100%;
+  margin:0 auto;
 }
     
 	input, select {
-      width: 15%;
+      width: 100%; /*15*/
       padding: 6px;
       border-radius: 6px;
       border: 1px solid #ccc;
       margin-top: 4px;
       font-size: 14px;
+    box-sizing:border-box;
     }
+/*
+@media (max-width: 768px){
+  input,
+  select{
+    width:100%;
+    box-sizing:border-box;
+  }
+}
+*/
+	
     table{width:100%;border-collapse:collapse;margin-top:10px}
     th,td{border:1px solid #ccc;padding:8px;text-align:center}
     th{background:#eee}
@@ -50,7 +63,13 @@
     .tooltip-container{position:relative;display:inline-block}
     .tooltip-text{visibility:hidden;width:120px;background:black;color:#fff;text-align:center;border-radius:6px;padding:5px 0;position:absolute;z-index:1;bottom:125%;left:50%;margin-left:-60px;opacity:0;transition:opacity .3s}
     .tooltip-container:hover .tooltip-text{visibility:visible;opacity:1}
-    .radio-group{display:flex;padding:20px;gap:46px;align-items:center;justify-content:center;margin-bottom:12px; font-size:20px; background-color:#42EB83}
+.radio-group{
+    display:flex;
+    flex-wrap:wrap;
+    gap:15px;
+    align-items:center;
+    justify-content:center;
+}
     .cliente-box{display:flex;padding:20px;border:4px solid #ddd;padding:5px;border-radius:6px;margin:8px 0;background:#fafafa}
     .alert-modern{background:#e9f7ef;border-left:6px solid #28a745;padding:10px;border-radius:6px;margin:10px 0; font-style: italic;}
 	

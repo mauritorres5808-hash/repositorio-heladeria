@@ -58,6 +58,9 @@ body{overflow-x:hidden;}
     .input-pequeno2{width:60px;height:22px}
     h2{text-align:center;background-color:#8AC0FF;padding:10px;border-radius:8px}
     .flex{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+	
+
+
     .right{float:right}
     /* modal styling (reusable) */
     .modal{display:none;position:fixed;z-index:1000;left:0;top:0;width:100%;height:100%;background-color:rgba(0,0,0,0.4)}
@@ -90,6 +93,33 @@ body{overflow-x:hidden;}
   font-size: 14px;
   cursor: pointer;
   transition: background-color 0.3s ease;
+}
+
+@media (max-width: 768px){
+
+    .contenedor{
+        width:100%;
+        padding:10px;
+    }
+
+    .flex{
+        flex-direction:column;
+    }
+
+    input,
+    select{
+        width:100% !important;
+    }
+
+    .cliente-box{
+        flex-direction:column;
+    }
+
+    .contenedor-botones{
+        width:100%;
+        flex-wrap:wrap;
+        justify-content:center;
+    }
 }
 	
   </style>
